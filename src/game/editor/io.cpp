@@ -1283,11 +1283,19 @@ int CEditor::Compare(const char *pFileName, int StorageType)
             SwitchLayer = (CLayerSwitch*)CurrentLayer;
     }
 
+    char aBuf[256];
     int size;
     if(GameLayer && ComparedGameLayer)
     {
         int identique = 0, differente = 0;
-        size = GameLayer->m_Width*GameLayer->m_Height < ComparedGameLayer->m_Width*ComparedGameLayer->m_Height?GameLayer->m_Width*GameLayer->m_Height:ComparedGameLayer->m_Width*ComparedGameLayer->m_Height;
+        size = GameLayer->m_Width*GameLayer->m_Height;
+        if(size != ComparedGameLayer->m_Width*ComparedGameLayer->m_Height)
+        {
+            size = GameLayer->m_Width*GameLayer->m_Height < ComparedGameLayer->m_Width*ComparedGameLayer->m_Height?GameLayer->m_Width*GameLayer->m_Height:ComparedGameLayer->m_Width*ComparedGameLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Games layers have different size : %d and %d", GameLayer->m_Width*GameLayer->m_Height, ComparedGameLayer->m_Width*ComparedGameLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
         for(int i = 0; i < size; ++i)
         {
             if(GameLayer->m_pTiles[i] == ComparedGameLayer->m_pTiles[i])
@@ -1300,16 +1308,62 @@ int CEditor::Compare(const char *pFileName, int StorageType)
                 same = false;
             }
         }
-        char aBuf[256];
+
         str_format(aBuf, sizeof(aBuf),"%d tiles are different on game layer", differente);
         Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
         str_format(aBuf, sizeof(aBuf),"%d tiles are identical on game layer", identique);
         Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
     }
+
+    if(FrontLayer && ComparedFrontLayer)
+    {
+        int identique = 0, differente = 0;
+        size = FrontLayer->m_Width*FrontLayer->m_Height;
+        if(size != ComparedFrontLayer->m_Width*ComparedFrontLayer->m_Height)
+        {
+            size = FrontLayer->m_Width*FrontLayer->m_Height < ComparedFrontLayer->m_Width*ComparedFrontLayer->m_Height?FrontLayer->m_Width*FrontLayer->m_Height:ComparedFrontLayer->m_Width*ComparedFrontLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Fronts layers have different size : %d and %d", FrontLayer->m_Width*FrontLayer->m_Height, ComparedFrontLayer->m_Width*ComparedFrontLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
+        for(int i = 0; i < size; ++i)
+        {
+            if(FrontLayer->m_pTiles[i] == ComparedFrontLayer->m_pTiles[i])
+            {
+                ++identique;
+            }
+            else
+            {
+                ++differente;
+                same = false;
+
+                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(FrontLayer->m_pTiles[i].m_Index), i,
+                               Tile(ComparedFrontLayer->m_pTiles[i].m_Index));
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+            }
+        }
+
+        str_format(aBuf, sizeof(aBuf),"%d tiles are different on Front layer", differente);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        str_format(aBuf, sizeof(aBuf),"%d tiles are identical on Front layer", identique);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+    }
+    else if(FrontLayer && !ComparedFrontLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Front layer was deleted");
+    else if(!FrontLayer && ComparedFrontLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Front layer was added");
+
     if(TeleLayer && ComparedTeleLayer)
     {
         int identique = 0, differente = 0;
-        size = TeleLayer->m_Width*TeleLayer->m_Height < ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height?TeleLayer->m_Width*TeleLayer->m_Height:ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height;
+        size = TeleLayer->m_Width*TeleLayer->m_Height;
+        if(size != ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height)
+        {
+            size = TeleLayer->m_Width*TeleLayer->m_Height < ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height?TeleLayer->m_Width*TeleLayer->m_Height:ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Teles layers have different size : %d and %d", TeleLayer->m_Width*TeleLayer->m_Height, ComparedTeleLayer->m_Width*ComparedTeleLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
         for(int i = 0; i < size; ++i)
         {
             if(TeleLayer->m_pTiles[i] == ComparedTeleLayer->m_pTiles[i] && TeleLayer->m_pTeleTile[i] == ComparedTeleLayer->m_pTeleTile[i])
@@ -1320,135 +1374,150 @@ int CEditor::Compare(const char *pFileName, int StorageType)
             {
                 ++differente;
                 same = false;
-                char aBuf[256];
-                /*str_format(aBuf, sizeof(aBuf),"%d %d changed to %d %d on tile %d", TeleLayer->m_pTeleTile[i].m_Number,
-                           ComparedTeleLayer->m_pTeleTile[i].m_Number, TeleLayer->m_pTeleTile[i].m_Type, ComparedTeleLayer->m_pTeleTile[i].m_Type,
-                           i);
-                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
-                str_format(aBuf, sizeof(aBuf), "%d %d %d %d changed to %d %d %d %d", TeleLayer->m_pTiles[i].m_Index,
-                           TeleLayer->m_pTiles[i].m_Flags, TeleLayer->m_pTiles[i].m_Skip, TeleLayer->m_pTiles[i].m_Reserved,
-                           ComparedTeleLayer->m_pTiles[i].m_Index, ComparedTeleLayer->m_pTiles[i].m_Flags, ComparedTeleLayer->m_pTiles[i].m_Skip,
-                           ComparedTeleLayer->m_pTiles[i].m_Reserved);
-                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);*/
 
                 str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
                                Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
                 Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
-                /*switch(TeleLayer->m_pTiles[i].m_Index)
-                {
-                case TILE_AIR:              // = 0
-                    str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-                case TILE_TELEIN:           // = 26
-                    str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-                case TILE_TELEOUT:          // = 27
-                    str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-                case TILE_TELECHECK:        // = 29
-                    str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELECHECKOUT:     // = 30
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELECHECKIN:      // = 31
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELECHECKINEVIL:  // = 63
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_CP:               // = 64
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_CP_F:             // = 65
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELEINWEAPON:     // = 14
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELEINHOOK:       // = 15
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-	            case TILE_TELEINEVIL:       // = 10
-	                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-                default:
-                    str_format(aBuf, sizeof(aBuf), "Unknown on tile %d changed to %s", Tile(TeleLayer->m_pTiles[i].m_Index), i,
-                               Tile(ComparedTeleLayer->m_pTiles[i].m_Index));
-                    break;
-                }*/
-
+                str_format(aBuf, sizeof(aBuf), "Num Type %d %d changed to %d %d",  TeleLayer->m_pTeleTile[i].m_Number,TeleLayer->m_pTeleTile[i].m_Type,
+                           ComparedTeleLayer->m_pTeleTile[i].m_Number, ComparedTeleLayer->m_pTeleTile[i].m_Type);
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
             }
         }
-        /***
-Num Type
-1 0 changed to 26 0 on tile 51
-Index, Flags, Skip, Reserved
-26 0 0 0 changed to 0 0 0 0
-1 2 changed to 26 26 on tile 52
-26 0 0 0 changed to 26 0 0 0
-1 2 changed to 26 31 on tile 53
-26 0 0 0 changed to 31 0 0 0
-2 0 changed to 10 0 on tile 101
-10 0 0 0 changed to 0 0 0 0
-2 1 changed to 10 10 on tile 102
-10 0 0 0 changed to 10 0 0 0
-2 1 changed to 10 63 on tile 103
-10 0 0 0 changed to 63 0 0 0
-3 0 changed to 29 0 on tile 151
-29 0 0 0 changed to 0 0 0 0
-3 1 changed to 29 29 on tile 152
-29 0 0 0 changed to 29 0 0 0
-3 1 changed to 29 29 on tile 153
-29 0 0 0 changed to 29 0 0 0
-4 0 changed to 14 0 on tile 201
-14 0 0 0 changed to 0 0 0 0
-4 1 changed to 14 14 on tile 202
-14 0 0 0 changed to 14 0 0 0
-5 0 changed to 15 0 on tile 251
-15 0 0 0 changed to 0 0 0 0
-5 1 changed to 15 15 on tile 252
-15 0 0 0 changed to 15 0 0 0
-6 0 changed to 31 0 on tile 301
-31 0 0 0 changed to 0 0 0 0
-6 1 changed to 31 26 on tile 302
-31 0 0 0 changed to 26 0 0 0
-6 0 changed to 63 0 on tile 351
-63 0 0 0 changed to 0 0 0 0
-6 1 changed to 63 10 on tile 352
-63 0 0 0 changed to 10 0 0 0
-6 0 changed to 29 0 on tile 401
-29 0 0 0 changed to 0 0 0 0
-6 1 changed to 29 29 on tile 405
-29 0 0 0 changed to 29 0 0 0
-6 0 changed to 27 0 on tile 451
-27 0 0 0 changed to 0 0 0 0
-6 1 changed to 27 27 on tile 452
-27 0 0 0 changed to 27 0 0 0
-6 0 changed to 30 0 on tile 501
-30 0 0 0 changed to 0 0 0 0
-6 1 changed to 30 30 on tile 502
-30 0 0 0 changed to 30 0 0 0
-*/
-        char aBuf[256];
+
         str_format(aBuf, sizeof(aBuf),"%d tiles are different on tele layer", differente);
         Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
         str_format(aBuf, sizeof(aBuf),"%d tiles are identical on tele layer", identique);
         Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
     }
+    else if(TeleLayer && !ComparedTeleLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Tele layer was deleted");
+    else if(!TeleLayer && ComparedTeleLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Tele layer was added");
 
+    if(TuneLayer && ComparedTuneLayer)
+    {
+        int identique = 0, differente = 0;
+        size = TuneLayer->m_Width*TuneLayer->m_Height;
+        if(size != ComparedTuneLayer->m_Width*ComparedTuneLayer->m_Height)
+        {
+            size = TuneLayer->m_Width*TuneLayer->m_Height < ComparedTuneLayer->m_Width*ComparedTuneLayer->m_Height?TuneLayer->m_Width*TuneLayer->m_Height:ComparedTuneLayer->m_Width*ComparedTuneLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Tunes layers have different size : %d and %d", TuneLayer->m_Width*TuneLayer->m_Height, ComparedTuneLayer->m_Width*ComparedTuneLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
+        for(int i = 0; i < size; ++i)
+        {
+            if(TuneLayer->m_pTiles[i] == ComparedTuneLayer->m_pTiles[i] && TuneLayer->m_pTuneTile[i] == ComparedTuneLayer->m_pTuneTile[i])
+            {
+                ++identique;
+            }
+            else
+            {
+                ++differente;
+                same = false;
+
+                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(TuneLayer->m_pTiles[i].m_Index), i,
+                               Tile(ComparedTuneLayer->m_pTiles[i].m_Index));
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+                str_format(aBuf, sizeof(aBuf), "Num Type %d %d changed to %d %d",  TuneLayer->m_pTuneTile[i].m_Number,TuneLayer->m_pTuneTile[i].m_Type,
+                           ComparedTuneLayer->m_pTuneTile[i].m_Number, ComparedTuneLayer->m_pTuneTile[i].m_Type);
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+            }
+        }
+
+        str_format(aBuf, sizeof(aBuf),"%d tiles are different on Tune layer", differente);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        str_format(aBuf, sizeof(aBuf),"%d tiles are identical on Tune layer", identique);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+    }
+    else if(TuneLayer && !ComparedTuneLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Tune layer was deleted");
+    else if(!TuneLayer && ComparedTuneLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Tune layer was added");
+
+    if(SpeedupLayer && ComparedSpeedupLayer)
+    {
+        int identique = 0, differente = 0;
+        size = SpeedupLayer->m_Width*SpeedupLayer->m_Height;
+        if(size != ComparedSpeedupLayer->m_Width*ComparedSpeedupLayer->m_Height)
+        {
+            size = SpeedupLayer->m_Width*SpeedupLayer->m_Height < ComparedSpeedupLayer->m_Width*ComparedSpeedupLayer->m_Height?SpeedupLayer->m_Width*SpeedupLayer->m_Height:ComparedSpeedupLayer->m_Width*ComparedSpeedupLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Speedups layers have different size : %d and %d", SpeedupLayer->m_Width*SpeedupLayer->m_Height, ComparedSpeedupLayer->m_Width*ComparedSpeedupLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
+        for(int i = 0; i < size; ++i)
+        {
+            if(SpeedupLayer->m_pTiles[i] == ComparedSpeedupLayer->m_pTiles[i] && SpeedupLayer->m_pSpeedupTile[i] == ComparedSpeedupLayer->m_pSpeedupTile[i])
+            {
+                ++identique;
+            }
+            else
+            {
+                ++differente;
+                same = false;
+
+                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(SpeedupLayer->m_pTiles[i].m_Index), i,
+                               Tile(ComparedSpeedupLayer->m_pTiles[i].m_Index));
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+                str_format(aBuf, sizeof(aBuf), "Force Maxspeed Angle Type %d %d %d %d changed to %d %d %d %d",  SpeedupLayer->m_pSpeedupTile[i].m_Force,SpeedupLayer->m_pSpeedupTile[i].m_MaxSpeed,
+                           SpeedupLayer->m_pSpeedupTile[i].m_Angle, SpeedupLayer->m_pSpeedupTile[i].m_Type, ComparedSpeedupLayer->m_pSpeedupTile[i].m_Force, ComparedSpeedupLayer->m_pSpeedupTile[i].m_MaxSpeed,
+                           ComparedSpeedupLayer->m_pSpeedupTile[i].m_Angle, ComparedSpeedupLayer->m_pSpeedupTile[i].m_Type);
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+            }
+        }
+
+        str_format(aBuf, sizeof(aBuf),"%d tiles are different on Speedup layer", differente);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        str_format(aBuf, sizeof(aBuf),"%d tiles are identical on Speedup layer", identique);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+    }
+    else if(SpeedupLayer && !ComparedSpeedupLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Speedup layer was deleted");
+    else if(!SpeedupLayer && ComparedSpeedupLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Speedup layer was added");
+
+    if(SwitchLayer && ComparedSwitchLayer)
+    {
+        int identique = 0, differente = 0;
+        size = SwitchLayer->m_Width*SwitchLayer->m_Height;
+        if(size != ComparedSwitchLayer->m_Width*ComparedSwitchLayer->m_Height)
+        {
+            size = SwitchLayer->m_Width*SwitchLayer->m_Height < ComparedSwitchLayer->m_Width*ComparedSwitchLayer->m_Height?SwitchLayer->m_Width*SwitchLayer->m_Height:ComparedSwitchLayer->m_Width*ComparedSwitchLayer->m_Height;
+            str_format(aBuf, sizeof(aBuf),"Switchs layers have different size : %d and %d", SwitchLayer->m_Width*SwitchLayer->m_Height, ComparedSwitchLayer->m_Width*ComparedSwitchLayer->m_Height);
+            Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        }
+
+        for(int i = 0; i < size; ++i)
+        {
+            if(SwitchLayer->m_pTiles[i] == ComparedSwitchLayer->m_pTiles[i] && SwitchLayer->m_pSwitchTile[i] == ComparedSwitchLayer->m_pSwitchTile[i])
+            {
+                ++identique;
+            }
+            else
+            {
+                ++differente;
+                same = false;
+
+                str_format(aBuf, sizeof(aBuf), "%s on tile %d changed to %s", Tile(SwitchLayer->m_pTiles[i].m_Index), i,
+                               Tile(ComparedSwitchLayer->m_pTiles[i].m_Index));
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+                str_format(aBuf, sizeof(aBuf), "Num Type Flags Delay %d %d %d %d changed to %d %d %d %d",  SwitchLayer->m_pSwitchTile[i].m_Number,SwitchLayer->m_pSwitchTile[i].m_Type,
+                           SwitchLayer->m_pSwitchTile[i].m_Flags, SwitchLayer->m_pSwitchTile[i].m_Delay, ComparedSwitchLayer->m_pSwitchTile[i].m_Number, ComparedSwitchLayer->m_pSwitchTile[i].m_Type,
+                           ComparedSwitchLayer->m_pSwitchTile[i].m_Flags, ComparedSwitchLayer->m_pSwitchTile[i].m_Delay);
+                Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+            }
+        }
+
+        str_format(aBuf, sizeof(aBuf),"%d tiles are different on Switch layer", differente);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+        str_format(aBuf, sizeof(aBuf),"%d tiles are identical on Switch layer", identique);
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", aBuf);
+    }
+    else if(SwitchLayer && !ComparedSwitchLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Switch layer was deleted");
+    else if(!SwitchLayer && ComparedSwitchLayer)
+        Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Switch layer was added");
 
     if(same)
         Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "editor", "Maps are identical");

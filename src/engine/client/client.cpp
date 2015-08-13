@@ -1055,6 +1055,18 @@ void CClient::Render()
 		int64 Now = time_get();
 		g_Config.m_ClAntiPing = (m_PredictedTime.Get(Now)-m_GameTime[g_Config.m_ClDummy].Get(Now))*1000/(float)time_freq() > g_Config.m_ClAntiPingLimit;
 	}
+	
+	if(g_Config.m_ClMaxFPS)
+	{
+		static int64 Past = 0;
+		static int64 Freq = time_freq();
+		while(time_get()-Past < Freq/g_Config.m_ClMaxFPS)
+		{
+			thread_sleep(1);
+		}
+		Past = time_get();
+	}
+	
 }
 
 vec3 CClient::GetColorV3(int v)

@@ -332,10 +332,6 @@ int CServer::TrySetClientName(int ClientID, const char *pName)
 	if(!aTrimmedName[0])
 		return -1;
 
-	// check if new and old name are the same
-	if(m_aClients[ClientID].m_aName[0] && str_comp(m_aClients[ClientID].m_aName, aTrimmedName) == 0)
-		return 0;
-
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "'%s' -> '%s'", pName, aTrimmedName);
 	Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
@@ -764,6 +760,22 @@ void CServer::DoSnapshot()
 	GameServer()->OnPostSnap();
 }
 
+int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
+{
+	CServer *pThis = (CServer *)pUser;
+	pThis->m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
+	pThis->m_aClients[ClientID].m_aName[0] = 0;
+	pThis->m_aClients[ClientID].m_aClan[0] = 0;
+	pThis->m_aClients[ClientID].m_Country = -1;
+	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
+	pThis->m_aClients[ClientID].m_AuthTries = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].Reset();
+
+	pThis->SendMap(ClientID);
+
+	return 0;
+}
 
 int CServer::NewClientCallback(int ClientID, void *pUser)
 {
@@ -1012,7 +1024,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				net_addr_str(m_NetServer.ClientAddr(ClientID), aAddrStr, sizeof(aAddrStr), true);
 
 				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "player is ready. ClientID=%x addr=%s", ClientID, aAddrStr);
+				str_format(aBuf, sizeof(aBuf), "player is ready. ClientID=%x addr=%s secure=%s", ClientID, aAddrStr, m_NetServer.HasSecurityToken(ClientID)?"yes":"no");
 				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
 				m_aClients[ClientID].m_State = CClient::STATE_READY;
 				GameServer()->OnClientConnected(ClientID);
@@ -1543,7 +1555,7 @@ int CServer::Run()
 		return -1;
 	}
 
-	m_NetServer.SetCallbacks(NewClientCallback, DelClientCallback, this);
+	m_NetServer.SetCallbacks(NewClientCallback, NewClientNoAuthCallback, DelClientCallback, this);
 
 	m_Econ.Init(Console(), &m_ServerBan);
 
@@ -1746,8 +1758,8 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 			{
 				const char *pAuthStr = pThis->m_aClients[i].m_Authed == CServer::AUTHED_ADMIN ? "(Admin)" :
 										pThis->m_aClients[i].m_Authed == CServer::AUTHED_MOD ? "(Mod)" : "";
-				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d %s", i, aAddrStr,
-					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pAuthStr);
+				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s name='%s' score=%d client=%d secure=%s %s", i, aAddrStr,
+					pThis->m_aClients[i].m_aName, pThis->m_aClients[i].m_Score, ((CGameContext *)(pThis->GameServer()))->m_apPlayers[i]->m_ClientVersion, pThis->m_NetServer.HasSecurityToken(i) ? "yes":"no", pAuthStr);
 			}
 			else
 				str_format(aBuf, sizeof(aBuf), "id=%d addr=%s connecting", i, aAddrStr);

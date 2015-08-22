@@ -1692,6 +1692,15 @@ int fs_is_dir(const char *path)
 #endif
 }
 
+time_t fs_getmtime(const char *path)
+{
+	struct stat sb;
+	if (stat(path, &sb) == -1)
+		return 0;
+
+	return sb.st_mtime;
+}
+
 int fs_chdir(const char *path)
 {
 	if(fs_is_dir(path))
@@ -2128,6 +2137,7 @@ char str_uppercase(char c)
 }
 
 int str_toint(const char *str) { return atoi(str); }
+int str_toint_base(const char *str, int base) { return strtol(str, NULL, base); }
 float str_tofloat(const char *str) { return atof(str); }
 
 

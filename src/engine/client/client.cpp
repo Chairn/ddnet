@@ -3112,12 +3112,14 @@ void CClient::DemoRecorder_HandleAutoStart()
 	if(g_Config.m_ClAutoDemoRecord)
 	{
 		DemoRecorder_Stop(RECORDER_AUTO);
-		DemoRecorder_Start("auto/autorecord", true, RECORDER_AUTO);
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf), "auto/%s", m_aCurrentMap);
+		DemoRecorder_Start(aBuf, true, RECORDER_AUTO);
 		if(g_Config.m_ClAutoDemoMax)
 		{
 			// clean up auto recorded demos
 			CFileCollection AutoDemos;
-			AutoDemos.Init(Storage(), "demos/auto", "autorecord", ".demo", g_Config.m_ClAutoDemoMax);
+			AutoDemos.Init(Storage(), "demos/auto", "" /* empty for wild card */, ".demo", g_Config.m_ClAutoDemoMax);
 		}
 	}
 }
@@ -3143,7 +3145,7 @@ void CClient::Con_Record(IConsole::IResult *pResult, void *pUserData)
 	if(pResult->NumArguments())
 		pSelf->DemoRecorder_Start(pResult->GetString(0), false, RECORDER_MANUAL);
 	else
-		pSelf->DemoRecorder_Start("demo", true, RECORDER_MANUAL);
+		pSelf->DemoRecorder_Start(pSelf->m_aCurrentMap, true, RECORDER_MANUAL);
 }
 
 void CClient::Con_StopRecord(IConsole::IResult *pResult, void *pUserData)

@@ -1085,6 +1085,12 @@ int fs_storage_path(const char *appname, char *path, int max);
 int fs_is_dir(const char *path);
 
 /*
+	Function: fs_getmtime
+		Gets the modification time of a file
+*/
+time_t fs_getmtime(const char *path);
+
+/*
 	Function: fs_chdir
 		Changes current working directory
 
@@ -1226,6 +1232,7 @@ typedef struct
 void net_stats(NETSTATS *stats);
 
 int str_toint(const char *str);
+int str_toint_base(const char *str, int base);
 float str_tofloat(const char *str);
 int str_isspace(char c);
 char str_uppercase(char c);

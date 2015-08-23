@@ -94,6 +94,9 @@ class CClient : public IClient, public CDemoPlayer::IListner
 	float m_RenderFrameTimeHigh;
 	int m_RenderFrames;
 
+	float m_LastRenderDrawTime;
+	int64 m_RenderWaitEndTime;
+
 	NETADDR m_ServerAddress;
 	int m_WindowMustRefocus;
 	int m_SnapCrcErrors;

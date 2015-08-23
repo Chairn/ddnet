@@ -123,6 +123,7 @@ MACRO_CONFIG_INT(GfxQuadAsTriangle, gfx_quad_as_triangle, 0, 0, 0, CFGFLAG_SAVE|
 #else
 MACRO_CONFIG_INT(GfxQuadAsTriangle, gfx_quad_as_triangle, 1, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Render quads as triangles (fixes quad coloring on some GPUs)")
 #endif
+MACRO_CONFIG_INT(GfxMaxFps, gfx_max_fps, 0, 0, 1000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Frame rate limiter (0 = off)")
 
 MACRO_CONFIG_INT(InpMousesens, inp_mousesens, 100, 5, 100000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Mouse sensitivity")
 

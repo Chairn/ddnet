@@ -60,10 +60,11 @@ int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT p
 	return 0;
 }
 
-int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_DELCLIENT pfnDelClient, void *pUser)
+int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_NEWCLIENT_NOAUTH pfnNewClientNoAuth, NETFUNC_CLIENTREJOIN pfnClientRejoin, NETFUNC_DELCLIENT pfnDelClient, void *pUser)
 {
 	m_pfnNewClient = pfnNewClient;
 	m_pfnNewClientNoAuth = pfnNewClientNoAuth;
+	m_pfnClientRejoin = pfnClientRejoin;
 	m_pfnDelClient = pfnDelClient;
 	m_UserPtr = pUser;
 	return 0;
@@ -143,7 +144,8 @@ int CNetServer::NumClientsWithAddr(NETADDR Addr)
 
 	for(int i = 0; i < MaxClients(); ++i)
 	{
-		if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE)
+		if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE ||
+			m_aSlots[i].m_Connection.State() == NET_CONNSTATE_ERROR)
 			continue;
 
 		OtherAddr = *m_aSlots[i].m_Connection.PeerAddress();
@@ -206,7 +208,7 @@ int CNetServer::TryAcceptClient(NETADDR &Addr, SECURITY_TOKEN SecurityToken, boo
 
 
 	if (VanillaAuth)
-		m_pfnNewClientNoAuth(Slot, m_UserPtr);
+		m_pfnNewClientNoAuth(Slot, true, m_UserPtr);
 	else
 		m_pfnNewClient(Slot, m_UserPtr);
 
@@ -358,6 +360,43 @@ void CNetServer::OnPreConnMsg(NETADDR &Addr, CNetPacketConstruct &Packet)
 	}
 }
 
+void CNetServer::OnConnCtrlMsg(NETADDR &Addr, int ClientID, int ControlMsg, const CNetPacketConstruct &Packet)
+{
+	if (ControlMsg == NET_CTRLMSG_CONNECT)
+	{
+		// got connection attempt inside of valid session
+		// the client probably wants to reconnect
+		bool SupportsToken = Packet.m_DataSize >=
+								(int)(1 + sizeof(SECURITY_TOKEN_MAGIC) + sizeof(SECURITY_TOKEN)) &&
+								!mem_comp(&Packet.m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+
+		if (SupportsToken)
+		{
+			// response connection request with token
+			SECURITY_TOKEN Token = GetToken(Addr);
+			SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC), Token);
+		}
+
+		if (g_Config.m_Debug)
+			dbg_msg("security", "client %d wants to reconnect", ClientID);
+	}
+	else if (ControlMsg == NET_CTRLMSG_ACCEPT && Packet.m_DataSize == 1 + sizeof(SECURITY_TOKEN))
+	{
+		SECURITY_TOKEN Token = ToSecurityToken(&Packet.m_aChunkData[1]);
+		if (Token == GetToken(Addr))
+		{
+			// correct token
+			// try to accept client
+			if (g_Config.m_Debug)
+				dbg_msg("security", "client %d reconnect");
+
+			// reset netconn and process rejoin
+			m_aSlots[ClientID].m_Connection.Reset(true);
+			m_pfnClientRejoin(ClientID, m_UserPtr);
+		}
+	}
+}
+
 void CNetServer::OnTokenCtrlMsg(NETADDR &Addr, int ControlMsg, const CNetPacketConstruct &Packet)
 {
 	if (ClientExists(Addr))
@@ -404,20 +443,22 @@ void CNetServer::OnTokenCtrlMsg(NETADDR &Addr, int ControlMsg, const CNetPacketC
 	}
 }
 
-bool CNetServer::ClientExists(const NETADDR &Addr)
+int CNetServer::GetClientSlot(const NETADDR &Addr)
 {
+	int Slot = -1;
+
 	for(int i = 0; i < MaxClients(); i++)
 	{
 		if(m_aSlots[i].m_Connection.State() != NET_CONNSTATE_OFFLINE &&
+			m_aSlots[i].m_Connection.State() != NET_CONNSTATE_ERROR &&
 			net_addr_comp(m_aSlots[i].m_Connection.PeerAddress(), &Addr) == 0)
+
 		{
-			// found
-			return true;
+			Slot = i;
 		}
 	}
 
-	// doesn't exist
-	return false;
+	return Slot;
 }
 
 /*
@@ -463,26 +504,26 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			else
 			{
 				// normal packet, find matching slot
-				bool Found = false;
-				for(int i = 0; i < MaxClients(); i++)
-				{
-					if(net_addr_comp(m_aSlots[i].m_Connection.PeerAddress(), &Addr) == 0)
-					{
-						if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE ||
-							m_aSlots[i].m_Connection.State() == NET_CONNSTATE_ERROR)
-							continue;
+				int Slot = GetClientSlot(Addr);
 
-						Found = true;
-						if(m_aSlots[i].m_Connection.Feed(&m_RecvUnpacker.m_Data, &Addr))
-						{
-							if(m_RecvUnpacker.m_Data.m_DataSize)
-								m_RecvUnpacker.Start(&Addr, &m_aSlots[i].m_Connection, i);
-						}
+				if (Slot != -1)
+				{
+					// found
+
+					// control
+					if(m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONTROL)
+						OnConnCtrlMsg(Addr, Slot, m_RecvUnpacker.m_Data.m_aChunkData[0], m_RecvUnpacker.m_Data);
+
+					if(m_aSlots[Slot].m_Connection.Feed(&m_RecvUnpacker.m_Data, &Addr))
+					{
+						if(m_RecvUnpacker.m_Data.m_DataSize)
+							m_RecvUnpacker.Start(&Addr, &m_aSlots[Slot].m_Connection, Slot);
 					}
 				}
-
-				if (!Found)
+				else
 				{
+					// not found, client that wants to connect
+
 					if(m_RecvUnpacker.m_Data.m_Flags&NET_PACKETFLAG_CONTROL &&
 						m_RecvUnpacker.m_Data.m_DataSize > 1)
 						// got control msg with extra size (should support token)

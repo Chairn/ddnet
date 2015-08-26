@@ -3388,6 +3388,11 @@ int main(int argc, const char **argv) // ignore_convention
 	FifoConsole *fifoConsole = new FifoConsole(pConsole, g_Config.m_ClInputFifo, CFGFLAG_CLIENT);
 #endif
 
+#if defined(CONF_FAMILY_WINDOWS)
+	if(!g_Config.m_ClShowConsole)
+		FreeConsole();
+#endif
+
 	// run the client
 	dbg_msg("client", "starting...");
 	pClient->Run();

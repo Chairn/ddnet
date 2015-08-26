@@ -1695,7 +1695,7 @@ int fs_is_dir(const char *path)
 
 time_t fs_getmtime(const char *path)
 {
-  struct stat sb;
+	struct stat sb;
 	if (stat(path, &sb) == -1)
 		return 0;
 
@@ -2308,7 +2308,7 @@ int str_utf8_decode(const char **ptr)
 		unsigned char byte = str_byte_next(ptr);
 		if(utf8_bytes_needed == 0)
 		{
-			if(0x00 <= byte && byte <= 0x7F)
+			if(byte <= 0x7F)
 			{
 				return byte;
 			}

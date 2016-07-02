@@ -3683,6 +3683,10 @@ static int EditorListdirCallback(const char *pName, int IsDir, int StorageType, 
 	Item.m_IsDir = IsDir != 0;
 	Item.m_IsLink = false;
 	Item.m_StorageType = StorageType;
+	if(pEditor->m_FileList.size())
+		Item.m_Index = pEditor->m_FileList[pEditor->m_FileList.size()-1].m_Index+1;
+	else
+		Item.m_Index = 0;
 	pEditor->m_FileList.add(Item);
 
 	return 0;
@@ -3715,6 +3719,7 @@ void CEditor::AddFileDialogEntry(int Index, CUIRect *pView)
 			m_aFileDialogFileName[0] = 0;
 		m_FilesSelectedIndex = Index;
 		m_FilePreviewImage = 0;
+		m_FilesFoundSelectedIndex = m_FilesCur-1;
 
 		if(Input()->MouseDoubleClick())
 			m_aFileDialogActivate = true;
@@ -3777,13 +3782,27 @@ void CEditor::RenderFileDialog()
 			m_FilesSelectedIndex = -1;
 		}
 	}
+	else if(m_FileDialogFileType == CEditor::FILETYPE_MAP && m_FileDialogStorageType == IStorage::TYPE_ALL)
+	{
+		static float s_Search = 0;
+		UI()->DoLabel(&FileBoxLabel, "Search:", 10.0f, -1, -1);
+		if(DoEditBox(&s_Search, &FileBox, m_aFileDialogFileSearch, sizeof(m_aFileDialogFileSearch), 10.0f, &s_Search))
+		{
+			// remove '/' and '\'
+			for(int i = 0; m_aFileDialogFileSearch[i]; ++i)
+				if(m_aFileDialogFileSearch[i] == '/' || m_aFileDialogFileSearch[i] == '\\')
+					str_copy(&m_aFileDialogFileSearch[i], &m_aFileDialogFileSearch[i+1], (int)(sizeof(m_aFileDialogFileSearch))-i);
+			m_FilesSelectedIndex = -1;
+			m_FilesFoundIndex.clear();
+		}
+	}
 
 	int Num = (int)(View.h/17.0f)+1;
 	static int ScrollBar = 0;
 	Scroll.HMargin(5.0f, &Scroll);
 	m_FileDialogScrollValue = UiDoScrollbarV(&ScrollBar, &Scroll, m_FileDialogScrollValue);
 
-	int ScrollNum = m_FileList.size()-Num+1;
+	int ScrollNum = m_FilesCur-Num+1;
 	if(ScrollNum > 0)
 	{
 		if(Input()->KeyPresses(KEY_MOUSE_WHEEL_UP))
@@ -3799,10 +3818,23 @@ void CEditor::RenderFileDialog()
 		for(int i = 0; i < Input()->NumEvents(); i++)
 		{
 			int NewIndex = -1;
+			int NewFoundIndex = -1;
 			if(Input()->GetEvent(i).m_Flags&IInput::FLAG_PRESS)
 			{
-				if(Input()->GetEvent(i).m_Key == KEY_DOWN) NewIndex = m_FilesSelectedIndex + 1;
-				if(Input()->GetEvent(i).m_Key == KEY_UP) NewIndex = m_FilesSelectedIndex - 1;
+				if(Input()->GetEvent(i).m_Key == KEY_DOWN)
+				{
+					if(m_FilesFoundSelectedIndex > -1) //case search is active
+						NewFoundIndex = m_FilesFoundSelectedIndex + 1;
+					else
+						NewIndex = m_FilesSelectedIndex + 1;
+				}
+				if(Input()->GetEvent(i).m_Key == KEY_UP)
+				{
+					if(m_FilesFoundSelectedIndex > -1) //case search is active
+						NewFoundIndex = m_FilesFoundSelectedIndex - 1;
+					else
+						NewIndex = m_FilesSelectedIndex - 1;
+				}
 			}
 			if(NewIndex > -1 && NewIndex < m_FileList.size())
 			{
@@ -3821,7 +3853,30 @@ void CEditor::RenderFileDialog()
 					str_copy(m_aFileDialogFileName, m_FileList[NewIndex].m_aFilename, sizeof(m_aFileDialogFileName));
 				else
 					m_aFileDialogFileName[0] = 0;
+					
 				m_FilesSelectedIndex = NewIndex;
+				m_FilePreviewImage = 0;
+			}
+			if(NewFoundIndex > -1 && NewFoundIndex < m_FilesFoundIndex.size()) //case search is active
+			{
+				//scroll
+				float IndexY = View.y - m_FileDialogScrollValue*ScrollNum*17.0f + NewFoundIndex*17.0f;
+				int Scroll = View.y > IndexY ? -1 : View.y+View.h < IndexY+17.0f ? 1 : 0;
+				if(Scroll)
+				{
+					if(Scroll < 0)
+						m_FileDialogScrollValue = ((float)(NewFoundIndex)+0.5f)/ScrollNum;
+					else
+						m_FileDialogScrollValue = ((float)(NewFoundIndex-Num)+2.5f)/ScrollNum;
+				}
+
+				if(!m_FileList[m_FilesFoundIndex[NewFoundIndex]].m_IsDir)
+					str_copy(m_aFileDialogFileName, m_FileList[m_FilesFoundIndex[NewFoundIndex]].m_aFilename, sizeof(m_aFileDialogFileName));
+				else
+					m_aFileDialogFileName[0] = 0;
+					
+				m_FilesFoundSelectedIndex = NewFoundIndex;
+				m_FilesSelectedIndex = m_FilesFoundIndex[m_FilesFoundSelectedIndex];
 				m_FilePreviewImage = 0;
 			}
 		}
@@ -3874,8 +3929,7 @@ void CEditor::RenderFileDialog()
 		}
 	}
 
-	if(m_FileDialogScrollValue < 0) m_FileDialogScrollValue = 0;
-	if(m_FileDialogScrollValue > 1) m_FileDialogScrollValue = 1;
+	m_FileDialogScrollValue = clamp(m_FileDialogScrollValue, 0.0f, 1.0f);
 
 	m_FilesStartAt = (int)(ScrollNum*m_FileDialogScrollValue);
 	if(m_FilesStartAt < 0)
@@ -3889,7 +3943,18 @@ void CEditor::RenderFileDialog()
 	UI()->ClipEnable(&View);
 
 	for(int i = 0; i < m_FileList.size(); i++)
-		AddFileDialogEntry(i, &View);
+	{
+		if(m_aFileDialogFileSearch[0])
+		{
+			if(str_find_nocase(m_FileList[i].m_aFilename, m_aFileDialogFileSearch))
+			{
+				m_FilesFoundIndex.add(m_FileList[i].m_Index);
+				AddFileDialogEntry(i, &View);
+			}
+		}
+		else
+			AddFileDialogEntry(i, &View);
+	}
 
 	// disable clipping again
 	UI()->ClipDisable();
@@ -3995,6 +4060,7 @@ void CEditor::RenderFileDialog()
 void CEditor::FilelistPopulate(int StorageType)
 {
 	m_FileList.clear();
+	m_FilesFoundIndex.clear();
 	if(m_FileDialogStorageType != IStorage::TYPE_SAVE && !str_comp(m_pFileDialogPath, "maps"))
 	{
 		CFilelistItem Item;
@@ -4003,6 +4069,7 @@ void CEditor::FilelistPopulate(int StorageType)
 		Item.m_IsDir = true;
 		Item.m_IsLink = true;
 		Item.m_StorageType = IStorage::TYPE_SAVE;
+		Item.m_Index = 0;
 		m_FileList.add(Item);
 	}
 	Storage()->ListDirectory(StorageType, m_pFileDialogPath, EditorListdirCallback, this);
@@ -4026,6 +4093,7 @@ void CEditor::InvokeFileDialog(int StorageType, int FileType, const char *pTitle
 	m_pfnFileDialogFunc = pfnFunc;
 	m_pFileDialogUser = pUser;
 	m_aFileDialogFileName[0] = 0;
+	m_aFileDialogFileSearch[0] = 0;
 	m_aFileDialogCurrentFolder[0] = 0;
 	m_aFileDialogCurrentLink[0] = 0;
 	m_pFileDialogPath = m_aFileDialogCurrentFolder;

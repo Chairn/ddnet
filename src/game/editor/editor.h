@@ -645,10 +645,12 @@ public:
 		m_aFileDialogFileName[0] = 0;
 		m_aFileDialogCurrentFolder[0] = 0;
 		m_aFileDialogCurrentLink[0] = 0;
+		m_aFileDialogFileSearch[0] = 0;
 		m_pFileDialogPath = m_aFileDialogCurrentFolder;
 		m_aFileDialogActivate = false;
 		m_FileDialogScrollValue = 0.0f;
 		m_FilesSelectedIndex = -1;
+		m_FilesFoundSelectedIndex = -1;
 		m_FilesStartAt = 0;
 		m_FilesCur = 0;
 		m_FilesStopAt = 999;
@@ -796,6 +798,7 @@ public:
 	char m_aFileDialogFileName[MAX_PATH_LENGTH];
 	char m_aFileDialogCurrentFolder[MAX_PATH_LENGTH];
 	char m_aFileDialogCurrentLink[MAX_PATH_LENGTH];
+	char m_aFileDialogFileSearch[MAX_PATH_LENGTH];
 	char *m_pFileDialogPath;
 	bool m_aFileDialogActivate;
 	int m_FileDialogFileType;
@@ -814,12 +817,15 @@ public:
 		bool m_IsDir;
 		bool m_IsLink;
 		int m_StorageType;
+		int m_Index;
 
 		bool operator<(const CFilelistItem &Other) { return !str_comp(m_aFilename, "..") ? true : !str_comp(Other.m_aFilename, "..") ? false :
 														m_IsDir && !Other.m_IsDir ? true : !m_IsDir && Other.m_IsDir ? false :
 														str_comp_filenames(m_aFilename, Other.m_aFilename) < 0; }
 	};
 	sorted_array<CFilelistItem> m_FileList;
+	sorted_array<int> m_FilesFoundIndex;
+	int m_FilesFoundSelectedIndex;
 	int m_FilesStartAt;
 	int m_FilesCur;
 	int m_FilesStopAt;

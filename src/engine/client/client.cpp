@@ -276,6 +276,9 @@ CClient::CClient() : m_DemoPlayer(&m_SnapshotDelta)
 	m_RenderFrames = 0;
 	m_LastRenderTime = time_get();
 
+	m_LastRenderDrawTime = 0.0f;
+	m_RenderWaitEndTime = time_get();
+
 	m_GameTickSpeed = SERVER_TICK_SPEED;
 
 	m_SnapCrcErrors = 0;
@@ -1049,14 +1052,29 @@ void CClient::Render()
 		Graphics()->Clear(bg.r, bg.g, bg.b);
 	}
 
+	int64 DrawStartTime = time_get();
 	GameClient()->OnRender();
 	DebugRender();
+	m_LastRenderDrawTime = (float) (time_get() - DrawStartTime);
+
 
 	if(State() == IClient::STATE_ONLINE && g_Config.m_ClAntiPingLimit)
 	{
 		int64 Now = time_get();
 		g_Config.m_ClAntiPing = (m_PredictedTime.Get(Now)-m_GameTime[g_Config.m_ClDummy].Get(Now))*1000/(float)time_freq() > g_Config.m_ClAntiPingLimit;
 	}
+	
+	if(g_Config.m_ClMaxFPS)
+	{
+		static int64 Past = 0;
+		static int64 Freq = time_freq();
+		while(time_get()-Past < Freq/g_Config.m_ClMaxFPS)
+		{
+			thread_sleep(1);
+		}
+		Past = time_get();
+	}
+	
 }
 
 vec3 CClient::GetColorV3(int v)
@@ -2777,11 +2795,31 @@ void CClient::Run()
 					m_RenderFrameTimeHigh = m_RenderFrameTime;
 				m_FpsGraph.Add(1.0f/m_RenderFrameTime, 1,1,1);
 
-				m_LastRenderTime = Now;
+					// update frametime
+					m_RenderFrameTime = (Now - m_LastRenderTime) / (float)time_freq();
+					if(m_RenderFrameTime < m_RenderFrameTimeLow)
+						m_RenderFrameTimeLow = m_RenderFrameTime;
+					if(m_RenderFrameTime > m_RenderFrameTimeHigh)
+						m_RenderFrameTimeHigh = m_RenderFrameTime;
+					m_FpsGraph.Add(1.0f/m_RenderFrameTime, 1,1,1);
 
-				if(g_Config.m_DbgStress)
-				{
-					if((m_RenderFrames%10) == 0)
+					m_LastRenderTime = Now;
+
+					if(g_Config.m_DbgStress)
+					{
+						if((m_RenderFrames%10) == 0)
+						{
+							if(!m_EditorActive)
+								Render();
+							else
+							{
+								m_pEditor->UpdateAndRender();
+								DebugRender();
+							}
+							m_pGraphics->Swap();
+						}
+					}
+					else
 					{
 						if(!m_EditorActive)
 							Render();
@@ -2792,17 +2830,25 @@ void CClient::Run()
 						}
 						m_pGraphics->Swap();
 					}
+					if(g_Config.m_GfxMaxFps)
+					{
+						static int s_GfxVsync = g_Config.m_GfxVsync;
+						m_RenderWaitEndTime = time_get() + time_freq() / (int64) g_Config.m_GfxMaxFps;
+						if(s_GfxVsync)
+							m_RenderWaitEndTime -= time_freq() * 2/1000;
+						else
+						{
+							m_RenderWaitEndTime += (int64) m_LastRenderDrawTime;
+							m_RenderWaitEndTime -= (m_RenderWaitEndTime % time_freq()) % (time_freq() / (int64) g_Config.m_GfxMaxFps);
+						}
+						m_RenderWaitEndTime -= (int64) m_LastRenderDrawTime;
+					}
 				}
 				else
 				{
-					if(!m_EditorActive)
-						Render();
-					else
-					{
-						m_pEditor->UpdateAndRender();
-						DebugRender();
-					}
-					m_pGraphics->Swap();
+					int64 Wait = m_RenderWaitEndTime - Now;
+					Wait = clamp(Wait, (int64) 0, time_freq()*2/1000);
+					net_socket_read_wait(m_NetClient[0].m_Socket, Wait);
 				}
 				Input()->NextFrame();
 			}

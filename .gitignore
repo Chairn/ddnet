@@ -29,6 +29,7 @@ Debug
 bam
 build server.bat
 buildlog.txt
+log.txt
 bam.exe
 *.bat
 .cproject

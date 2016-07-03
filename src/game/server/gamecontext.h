@@ -197,7 +197,7 @@ public:
 	virtual void OnInit();
 	virtual void OnConsoleInit();
 	virtual void OnMapChange(char *pNewMapName, int MapNameSize);
-	virtual void OnShutdown();
+	virtual void OnShutdown(bool FullShutdown = false);
 
 	virtual void OnTick();
 	virtual void OnPreSnap();
@@ -223,6 +223,8 @@ public:
 
 	int ProcessSpamProtection(int ClientID);
 	int GetDDRaceTeam(int ClientID);
+	// Describes the time when the first player joined the server.
+	int64 m_NonEmptySince;
 	int64 m_LastMapVote;
 
 private:

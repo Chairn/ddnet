@@ -18,23 +18,21 @@ void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *) pUserData;
 
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"DDRaceNetwork is maintained by deen.");
+		"DDNet is run by the DDNet staff (DDNet.tw/staff)");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Many ideas from the great community,");
+		"Great maps and many ideas from the great community");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"Help and code by eeeee, HMH, east, CookieMichal, Learath2,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, DoNe, Shiki,");
+		"Savander, laxa, Tobii, BeaR, Wohoo, nuborn, timakro, Shiki,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"trml, Soreu, hi_leute_gll, Lady Saavik, Chairn, heinrich5991 &");
+		"trml, Soreu, hi_leute_gll, Lady Saavik, Chairn, heinrich5991,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"others.");
+		"swick, oy & others.");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"Based on DDRace by the DDRace developers,");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
 		"which is a mod of Teeworlds by the Teeworlds developers.");
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "credit",
-		"Check the changes on ddnet.tw");
 }
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
@@ -47,11 +45,11 @@ void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 			"Git revision hash: " GIT_SHORTREV_HASH);
 #endif
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"Official site: ddnet.tw");
+			"Official site: DDNet.tw");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"For more Info /cmdlist");
+			"For more info: /cmdlist");
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-			"Or visit ddnet.tw");
+			"Or visit DDNet.tw");
 }
 
 void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
@@ -72,9 +70,18 @@ void CGameContext::ConHelp(IConsole::IResult *pResult, void *pUserData)
 		const char *pArg = pResult->GetString(0);
 		const IConsole::CCommandInfo *pCmdInfo =
 				pSelf->Console()->GetCommandInfo(pArg, CFGFLAG_SERVER, false);
-		if (pCmdInfo && pCmdInfo->m_pHelp)
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help",
-					pCmdInfo->m_pHelp);
+		if (pCmdInfo)
+		{
+			if (pCmdInfo->m_pParams)
+			{
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "Usage: %s %s", pCmdInfo->m_pName, pCmdInfo->m_pParams);
+				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", aBuf);
+			}
+
+			if (pCmdInfo->m_pHelp)
+				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "help", pCmdInfo->m_pHelp);
+		}
 		else
 			pSelf->Console()->Print(
 					IConsole::OUTPUT_LEVEL_STANDARD,
@@ -387,7 +394,7 @@ void CGameContext::ConTeamTop5(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) >= 0)
+	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) > 0)
 		pSelf->Score()->ShowTeamTop5(pResult, pResult->m_ClientID, pUserData,
 				pResult->GetInteger(0));
 	else
@@ -418,7 +425,7 @@ void CGameContext::ConTop5(IConsole::IResult *pResult, void *pUserData)
 		return;
 	}
 
-	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) >= 0)
+	if (pResult->NumArguments() > 0 && pResult->GetInteger(0) > 0)
 		pSelf->Score()->ShowTop5(pResult, pResult->m_ClientID, pUserData,
 				pResult->GetInteger(0));
 	else

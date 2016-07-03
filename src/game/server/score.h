@@ -45,6 +45,7 @@ public:
 
 	virtual void MapInfo(int ClientID, const char* MapName) = 0;
 	virtual void MapVote(int ClientID, const char* MapName) = 0;
+	virtual void CheckBirthday(int ClientID) = 0;
 	virtual void LoadScore(int ClientID) = 0;
 	virtual void SaveScore(int ClientID, float Time, float CpTime[NUM_CHECKPOINTS]) = 0;
 
@@ -64,6 +65,9 @@ public:
 
 	virtual void SaveTeam(int Team, const char* Code, int ClientID, const char* Server) = 0;
 	virtual void LoadTeam(const char* Code, int ClientID) = 0;
+
+	// called when the server is shut down but not on mapchange/reload
+	virtual void OnShutdown() = 0;
 };
 
 #endif

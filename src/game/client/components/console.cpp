@@ -92,6 +92,40 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 {
 	bool Handled = false;
 
+	if(m_pGameConsole->Input()->KeyIsPressed(KEY_LCTRL) && m_pGameConsole->Input()->KeyPress(KEY_V))
+	{
+		const char *Text = m_pGameConsole->Input()->GetClipboardText();
+		if(Text)
+		{
+			char Line[256];
+			int i, Begin = 0;
+			for(i = 0; i < str_length(Text); i++)
+			{
+				if(Text[i] == '\n')
+				{
+					if(i == Begin)
+					{
+						Begin++;
+						continue;
+					}
+					int max = min(i - Begin + 1, (int)sizeof(Line));
+					str_copy(Line, Text + Begin, max);
+					Begin = i+1;
+					ExecuteLine(Line);
+				}
+			}
+			int max = min(i - Begin + 1, (int)sizeof(Line));
+			str_copy(Line, Text + Begin, max);
+			Begin = i+1;
+			m_Input.Add(Line);
+		}
+	}
+
+	if(m_pGameConsole->Input()->KeyIsPressed(KEY_LCTRL) && m_pGameConsole->Input()->KeyPress(KEY_C))
+	{
+		m_pGameConsole->Input()->SetClipboardText(m_Input.GetString());
+	}
+
 	if(Event.m_Flags&IInput::FLAG_PRESS)
 	{
 		if(Event.m_Key == KEY_RETURN || Event.m_Key == KEY_KP_ENTER)
@@ -177,19 +211,20 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 	}
 	if(Event.m_Flags&IInput::FLAG_RELEASE && Event.m_Key == KEY_LSHIFT)
 	{
-	m_ReverseTAB = false;
-	Handled = true;
+		m_ReverseTAB = false;
+		Handled = true;
 	}
 
 	if(!Handled)
 		m_Input.ProcessInput(Event);
 
-	if(Event.m_Flags&IInput::FLAG_PRESS)
+	if(Event.m_Flags & (IInput::FLAG_PRESS|IInput::FLAG_TEXT))
 	{
 		if((Event.m_Key != KEY_TAB) && (Event.m_Key != KEY_LSHIFT))
 		{
 			m_CompletionChosen = -1;
 			str_copy(m_aCompletionBuffer, m_Input.GetString(), sizeof(m_aCompletionBuffer));
+			m_CompletionRenderOffset = 0.0f;
 		}
 
 		// find the current command
@@ -489,7 +524,7 @@ void CGameConsole::OnRender()
 						str_format(aBuf, sizeof(aBuf), "Help: %s ", pConsole->m_aCommandHelp);
 						TextRender()->TextEx(&Info.m_Cursor, aBuf, -1);
 						TextRender()->TextColor(0.75f, 0.75f, 0.75f, 1);
-						str_format(aBuf, sizeof(aBuf), "Syntax: %s %s", pConsole->m_aCommandName, pConsole->m_aCommandParams);
+						str_format(aBuf, sizeof(aBuf), "Usage: %s %s", pConsole->m_aCommandName, pConsole->m_aCommandParams);
 						TextRender()->TextEx(&Info.m_Cursor, aBuf, -1);
 					}
 				}
@@ -575,9 +610,10 @@ void CGameConsole::OnMessage(int MsgType, void *pRawMsg)
 
 bool CGameConsole::OnInput(IInput::CEvent Event)
 {
-	if(m_ConsoleState == CONSOLE_CLOSED)
+	// accept input when opening, but not at first frame to discard the input that caused the console to open
+	if(m_ConsoleState != CONSOLE_OPEN && (m_ConsoleState != CONSOLE_OPENING || m_StateChangeEnd == TimeNow()+m_StateChangeDuration))
 		return false;
-	if(Event.m_Key >= KEY_F1 && Event.m_Key <= KEY_F15)
+	if((Event.m_Key >= KEY_F1 && Event.m_Key <= KEY_F12) || (Event.m_Key >= KEY_F13 && Event.m_Key <= KEY_F24))
 		return false;
 
 	if(Event.m_Key == KEY_ESCAPE && (Event.m_Flags&IInput::FLAG_PRESS))

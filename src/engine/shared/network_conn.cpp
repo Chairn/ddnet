@@ -206,9 +206,12 @@ void CNetConnection::Disconnect(const char *pReason)
 		else
 			SendControl(NET_CTRLMSG_CLOSE, 0, 0);
 
-		m_ErrorString[0] = 0;
-		if(pReason && pReason != m_ErrorString)
-			str_copy(m_ErrorString, pReason, sizeof(m_ErrorString));
+		if(pReason != m_ErrorString)
+		{
+			m_ErrorString[0] = 0;
+			if(pReason)
+				str_copy(m_ErrorString, pReason, sizeof(m_ErrorString));
+		}
 	}
 
 	Reset();
@@ -464,7 +467,7 @@ int CNetConnection::Update()
 	return 0;
 }
 
-void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken)
+void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken, TStaticRingBuffer<CNetChunkResend, NET_CONN_BUFFERSIZE> *pResendBuffer)
 {
 	int64 Now = time_get();
 
@@ -479,5 +482,16 @@ void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SE
 	m_LastRecvTime = Now;
 	m_LastUpdateTime = Now;
 	m_SecurityToken = SecurityToken;
+
+	// copy resend buffer
 	m_Buffer.Init();
+	while (pResendBuffer->First())
+	{
+		CNetChunkResend *First = pResendBuffer->First();
+
+		CNetChunkResend *pResend = m_Buffer.Allocate(sizeof(CNetChunkResend)+First->m_DataSize);
+		mem_copy(pResend, First, sizeof(CNetChunkResend)+First->m_DataSize);
+
+		pResendBuffer->PopFirst();
+	}
 }

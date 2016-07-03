@@ -167,7 +167,7 @@ void mem_zero(void *block, unsigned size);
 	Returns:
 		<0 - Block a is lesser then block b
 		0 - Block a is equal to block b
-		>0 - Block a is greater then block b
+		>0 - Block a is greater than block b
 */
 int mem_comp(const void *a, const void *b, int size);
 
@@ -184,6 +184,7 @@ enum {
 	IOFLAG_READ = 1,
 	IOFLAG_WRITE = 2,
 	IOFLAG_RANDOM = 4,
+	IOFLAG_APPEND = 8,
 
 	IOSEEK_START = 0,
 	IOSEEK_CUR = 1,
@@ -198,7 +199,7 @@ typedef struct IOINTERNAL *IOHANDLE;
 
 	Parameters:
 		filename - File to open.
-		flags - A set of flags. IOFLAG_READ, IOFLAG_WRITE, IOFLAG_RANDOM.
+		flags - A set of flags. IOFLAG_READ, IOFLAG_WRITE, IOFLAG_RANDOM, IOFLAG_APPEND.
 
 	Returns:
 		Returns a handle to the file on success and 0 on failure.
@@ -1066,6 +1067,18 @@ int fs_listdir_info(const char *dir, FS_LISTDIR_INFO_CALLBACK cb, int type, void
 int fs_makedir(const char *path);
 
 /*
+	Function: fs_makedir_rec_for
+		Recursively create directories for a file
+
+	Parameters:
+		path - File for which to create directories
+
+	Returns:
+		Returns 0 on success. Negative value on failure.
+*/
+int fs_makedir_rec_for(const char *path);
+
+/*
 	Function: fs_storage_path
 		Fetches per user configuration directory.
 
@@ -1382,6 +1395,12 @@ int secure_random_init();
 		length - Length of the buffer.
 */
 void secure_random_fill(void *bytes, size_t length);
+
+/*
+	Function: secure_rand
+		Returns random int (replacement for rand()).
+*/
+int secure_rand();
 
 #ifdef __cplusplus
 }

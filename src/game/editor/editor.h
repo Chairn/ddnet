@@ -61,7 +61,7 @@ public:
 		m_aName[0] = 0;
 		m_Bottom = 0;
 		m_Top = 0;
-		m_Synchronized = true;
+		m_Synchronized = false;
 	}
 
 	void Resort()
@@ -507,6 +507,9 @@ public:
 	CLayerTiles(int w, int h);
 	~CLayerTiles();
 
+	virtual CTile GetTile(int x, int y);
+	virtual void SetTile(int x, int y, CTile tile);
+
 	virtual void Resize(int NewW, int NewH);
 	virtual void Shift(int Direction);
 
@@ -589,6 +592,9 @@ class CLayerGame : public CLayerTiles
 public:
 	CLayerGame(int w, int h);
 	~CLayerGame();
+
+	virtual CTile GetTile(int x, int y);
+	virtual void SetTile(int x, int y, CTile tile);
 
 	virtual int RenderProperties(CUIRect *pToolbox);
 };
@@ -714,6 +720,9 @@ public:
 		m_SpeedupForce = 50;
 		m_SpeedupMaxSpeed = 0;
 		m_SpeedupAngle = 0;
+		m_LargeLayerWasWarned = false;
+		m_PreventUnusedTilesWasWarned = false;
+		m_AllowPlaceUnusedTiles = false;
 	}
 
 	virtual void Init();
@@ -773,11 +782,16 @@ public:
 		POPEVENT_LOAD,
 		POPEVENT_NEW,
 		POPEVENT_SAVE,
+		POPEVENT_LARGELAYER,
+		POPEVENT_PREVENTUNUSEDTILES
 	};
 
 	int m_PopupEventType;
 	int m_PopupEventActivated;
 	int m_PopupEventWasActivated;
+	bool m_LargeLayerWasWarned;
+	bool m_PreventUnusedTilesWasWarned;
+	bool m_AllowPlaceUnusedTiles;
 
 	enum
 	{
@@ -817,7 +831,7 @@ public:
 
 		bool operator<(const CFilelistItem &Other) { return !str_comp(m_aFilename, "..") ? true : !str_comp(Other.m_aFilename, "..") ? false :
 														m_IsDir && !Other.m_IsDir ? true : !m_IsDir && Other.m_IsDir ? false :
-														str_comp_filenames(m_aFilename, Other.m_aFilename) < 0; }
+														str_comp_nocase(m_aFilename, Other.m_aFilename) < 0; }
 	};
 	sorted_array<CFilelistItem> m_FileList;
 	int m_FilesStartAt;
@@ -1077,6 +1091,7 @@ public:
 
 	virtual void Resize(int NewW, int NewH);
 	virtual void Shift(int Direction);
+	virtual void SetTile(int x, int y, CTile tile);
 	virtual void BrushDraw(CLayer *pBrush, float wx, float wy);
 };
 

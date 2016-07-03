@@ -6,6 +6,7 @@ datasrc/*.pyc
 objs
 src/game/generated
 SDL.dll
+SDL2.dll
 freetype.dll
 
 crapnet*
@@ -19,6 +20,7 @@ mastersrv*
 packetgen*
 teeworlds*
 teeworlds_srv*
+serverlaunch_*
 tileset_border*
 twping*
 versionsrv*
@@ -27,6 +29,7 @@ Debug
 bam
 build server.bat
 buildlog.txt
+log.txt
 bam.exe
 *.bat
 .cproject
@@ -50,5 +53,6 @@ bam.exe
 .settings
 *.opensdf
 *.pyc
+*.dll
 
 DDNet*

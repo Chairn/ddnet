@@ -17,10 +17,11 @@
 void CSpectator::ConKeySpectator(IConsole::IResult *pResult, void *pUserData)
 {
 	CSpectator *pSelf = (CSpectator *)pUserData;
+
 	if(pSelf->m_pClient->m_Snap.m_SpecInfo.m_Active || pSelf->Client()->State() == IClient::STATE_DEMOPLAYBACK)
-	{
 		pSelf->m_Active = pResult->GetInteger(0) != 0;
-	}
+	else
+		pSelf->m_Active = false;
 }
 
 void CSpectator::ConSpectate(IConsole::IResult *pResult, void *pUserData)
@@ -141,7 +142,7 @@ CSpectator::CSpectator()
 void CSpectator::OnConsoleInit()
 {
 	Console()->Register("+spectate", "", CFGFLAG_CLIENT, ConKeySpectator, this, "Open spectator mode selector");
-	Console()->Register("spectate", "i", CFGFLAG_CLIENT, ConSpectate, this, "Switch spectator mode");
+	Console()->Register("spectate", "i[spectator-id]", CFGFLAG_CLIENT, ConSpectate, this, "Switch spectator mode");
 	Console()->Register("spectate_next", "", CFGFLAG_CLIENT, ConSpectateNext, this, "Spectate the next player");
 	Console()->Register("spectate_previous", "", CFGFLAG_CLIENT, ConSpectatePrevious, this, "Spectate the previous player");
 }
@@ -157,7 +158,7 @@ bool CSpectator::OnMouseMove(float x, float y)
 	{
 		m_OldMouseX = x;
 		m_OldMouseY = y;
-		m_SelectorMouse = vec2((x - g_Config.m_GfxScreenWidth/2), (y - g_Config.m_GfxScreenHeight/2));
+		m_SelectorMouse = vec2((x - Graphics()->ScreenWidth()/2), (y - Graphics()->ScreenHeight()/2));
 	}
 #else
 	UI()->ConvertMouseMove(&x, &y);
@@ -184,7 +185,7 @@ void CSpectator::OnRender()
 		return;
 	}
 
-	if(!m_pClient->m_Snap.m_SpecInfo.m_Active && !Client()->State() == IClient::STATE_DEMOPLAYBACK)
+	if(!m_pClient->m_Snap.m_SpecInfo.m_Active && Client()->State() != IClient::STATE_DEMOPLAYBACK)
 	{
 		m_Active = false;
 		m_WasActive = false;

@@ -18,7 +18,7 @@ const char* vanillaSkins[] = {"bluekitty.png", "bluestripe.png", "brownbear.png"
 
 int CSkins::SkinScan(const char *pName, int IsDir, int DirType, void *pUser)
 {
-	if(!g_Config.m_ClShowNewSkins)
+	if(g_Config.m_ClVanillaSkinsOnly)
 	{
 		bool found = false;
 		for(unsigned int i = 0; i < sizeof(vanillaSkins) / sizeof(vanillaSkins[0]); i++)
@@ -62,6 +62,8 @@ int CSkins::SkinScan(const char *pName, int IsDir, int DirType, void *pUser)
 	Skin.m_OrgTexture = pSelf->Graphics()->LoadTextureRaw(Info.m_Width, Info.m_Height, Info.m_Format, Info.m_pData, Info.m_Format, 0);
 
 	int BodySize = 96; // body size
+	if (BodySize > Info.m_Height)
+		return 0;
 	unsigned char *d = (unsigned char *)Info.m_pData;
 	int Pitch = Info.m_Width*4;
 

@@ -7,7 +7,7 @@ git clone https://github.com/pelya/commandergenius.git
 # Get the most recent DDNet source
 cd /media/commandergenius/project/jni/application/teeworlds
 rm -rf src master.zip*
-wget "https://github.com/def-/ddnet/archive/master.zip"
+wget "https://github.com/ddnet/ddnet/archive/master.zip"
 unzip ddnet-master.zip
 mv ddnet-master src
 mkdir src/src/game/generated
@@ -18,6 +18,7 @@ rm -rf AndroidData
 
 # Actual compilation, needs a key to sign
 cd /media/commandergenius
+ln -s teeworlds project/jni/application/src
 ./changeAppSettings.sh -a
 android update project -p project
 ./build.sh

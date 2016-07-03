@@ -51,10 +51,16 @@ public:
 	CClient m_aClients[MAX_CLIENTS];
 };
 
+bool IsVanilla(const CServerInfo *pInfo);
+bool IsCatch(const CServerInfo *pInfo);
+bool IsInsta(const CServerInfo *pInfo);
+bool IsFNG(const CServerInfo *pInfo);
 bool IsRace(const CServerInfo *pInfo);
 bool IsDDRace(const CServerInfo *pInfo);
 bool IsDDNet(const CServerInfo *pInfo);
+
 bool Is64Player(const CServerInfo *pInfo);
+bool IsPlus(const CServerInfo *pInfo);
 
 class IServerBrowser : public IInterface
 {
@@ -79,10 +85,11 @@ public:
 		QUICK_PLAYER=2,
 		QUICK_MAPNAME=4,
 
-		TYPE_INTERNET = 0,
-		TYPE_LAN = 1,
-		TYPE_FAVORITES = 2,
-		TYPE_DDNET = 3,
+		TYPE_NONE = 0,
+		TYPE_INTERNET = 1,
+		TYPE_LAN = 2,
+		TYPE_FAVORITES = 3,
+		TYPE_DDNET = 4,
 
 		SET_MASTER_ADD=1,
 		SET_FAV_ADD,

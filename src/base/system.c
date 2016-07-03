@@ -10,6 +10,9 @@
 #include "system.h"
 #include "confusables.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #if defined(WEBSOCKETS)
 	#include "engine/shared/websockets.h"
 #endif
@@ -19,8 +22,6 @@
 	#include <unistd.h>
 
 	/* unix net includes */
-	#include <sys/stat.h>
-	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <sys/ioctl.h>
 	#include <errno.h>
@@ -48,6 +49,7 @@
 
 #elif defined(CONF_FAMILY_WINDOWS)
 	#define WIN32_LEAN_AND_MEAN
+	#undef _WIN32_WINNT
 	#define _WIN32_WINNT 0x0501 /* required for mingw to get getaddrinfo to work */
 	#include <windows.h>
 	#include <winsock2.h>
@@ -180,9 +182,7 @@ void dbg_enable_threaded()
 	dbg_msg_threaded = 1;
 
 	Thread = thread_init(dbg_msg_thread, 0);
-	#if defined(CONF_FAMILY_UNIX)
-		pthread_detach((pthread_t)Thread);
-	#endif
+	thread_detach(Thread);
 }
 #endif
 
@@ -191,7 +191,6 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 	va_list args;
 	char *msg;
 	int len;
-	int e;
 
 	//str_format(str, sizeof(str), "[%08x][%s]: ", (int)time(0), sys);
 	time_t rawtime;
@@ -206,6 +205,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 #if !defined(CONF_PLATFORM_MACOSX)
 	if(dbg_msg_threaded)
 	{
+		int e;
 		semaphore_wait(&log_queue.notfull);
 		semaphore_wait(&log_queue.mutex);
 		e = queue_empty(&log_queue);
@@ -413,7 +413,7 @@ int mem_check_imp()
 		MEMTAIL *tail = (MEMTAIL *)(((char*)(header+1))+header->size);
 		if(tail->guard != MEM_GUARD_VAL)
 		{
-			dbg_msg("mem", "Memory check failed at %s(%d): %d", header->filename, header->line, header->size);
+			dbg_msg("mem", "memory check failed at %s(%d): %d", header->filename, header->line, header->size);
 			return 0;
 		}
 		header = header->next;
@@ -428,6 +428,8 @@ IOHANDLE io_open(const char *filename, int flags)
 		return (IOHANDLE)fopen(filename, "rb");
 	if(flags == IOFLAG_WRITE)
 		return (IOHANDLE)fopen(filename, "wb");
+	if(flags == IOFLAG_APPEND)
+		return (IOHANDLE)fopen(filename, "ab");
 	return 0x0;
 }
 
@@ -668,15 +670,15 @@ void set_new_tick()
 int64 time_get()
 {
 	static int64 last = 0;
-	if(!new_tick)
+	if(new_tick == 0)
 		return last;
 	if(new_tick != -1)
 		new_tick = 0;
 
 #if defined(CONF_FAMILY_UNIX)
-	struct timeval val;
-	gettimeofday(&val, NULL);
-	last = (int64)val.tv_sec*(int64)1000000+(int64)val.tv_usec;
+	struct timespec spec;
+	clock_gettime(CLOCK_MONOTONIC, &spec);
+	last = (int64)spec.tv_sec*(int64)1000000+(int64)spec.tv_nsec/1000;
 	return last;
 #elif defined(CONF_FAMILY_WINDOWS)
 	{
@@ -1568,6 +1570,59 @@ int net_init()
 	return 0;
 }
 
+int fs_listdir_info(const char *dir, FS_LISTDIR_INFO_CALLBACK cb, int type, void *user)
+{
+#if defined(CONF_FAMILY_WINDOWS)
+	WIN32_FIND_DATA finddata;
+	HANDLE handle;
+	char buffer[1024*2];
+	int length;
+	str_format(buffer, sizeof(buffer), "%s/*", dir);
+
+	handle = FindFirstFileA(buffer, &finddata);
+
+	if (handle == INVALID_HANDLE_VALUE)
+		return 0;
+
+	str_format(buffer, sizeof(buffer), "%s/", dir);
+	length = str_length(buffer);
+
+	/* add all the entries */
+	do
+	{
+		str_copy(buffer+length, finddata.cFileName, (int)sizeof(buffer)-length);
+		if(cb(finddata.cFileName, fs_getmtime(buffer), fs_is_dir(buffer), type, user))
+			break;
+	}
+	while (FindNextFileA(handle, &finddata));
+
+	FindClose(handle);
+	return 0;
+#else
+	struct dirent *entry;
+	char buffer[1024*2];
+	int length;
+	DIR *d = opendir(dir);
+
+	if(!d)
+		return 0;
+
+	str_format(buffer, sizeof(buffer), "%s/", dir);
+	length = str_length(buffer);
+
+	while((entry = readdir(d)) != NULL)
+	{
+		str_copy(buffer+length, entry->d_name, (int)sizeof(buffer)-length);
+		if(cb(entry->d_name, fs_getmtime(buffer), fs_is_dir(buffer), type, user))
+			break;
+	}
+
+	/* close the directory and return */
+	closedir(d);
+	return 0;
+#endif
+}
+
 int fs_listdir(const char *dir, FS_LISTDIR_CALLBACK cb, int type, void *user)
 {
 #if defined(CONF_FAMILY_WINDOWS)
@@ -1649,6 +1704,24 @@ int fs_storage_path(const char *appname, char *path, int max)
 #endif
 }
 
+int fs_makedir_rec_for(const char *path)
+{
+	char buffer[1024*2];
+	char *p;
+	str_copy(buffer, path, sizeof(buffer));
+	for(p = buffer+1; *p != '\0'; p++)
+	{
+		if(*p == '/' && *(p + 1) != '\0')
+		{
+			*p = '\0';
+			if(fs_makedir(buffer) < 0)
+				return -1;
+			*p = '/';
+		}
+	}
+	return 0;
+}
+
 int fs_makedir(const char *path)
 {
 #if defined(CONF_FAMILY_WINDOWS)
@@ -1690,6 +1763,15 @@ int fs_is_dir(const char *path)
 	else
 		return 0;
 #endif
+}
+
+time_t fs_getmtime(const char *path)
+{
+	struct stat sb;
+	if (stat(path, &sb) == -1)
+		return 0;
+
+	return sb.st_mtime;
 }
 
 int fs_chdir(const char *path)
@@ -2050,15 +2132,20 @@ void str_hex(char *dst, int dst_size, const void *data, int data_size)
 	}
 }
 
+void str_timestamp_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
+{
+	struct tm *time_info;
+
+	time_info = localtime(&time_data);
+	strftime(buffer, buffer_size, format, time_info);
+	buffer[buffer_size-1] = 0;	/* assure null termination */
+}
+
 void str_timestamp(char *buffer, int buffer_size)
 {
 	time_t time_data;
-	struct tm *time_info;
-
 	time(&time_data);
-	time_info = localtime(&time_data);
-	strftime(buffer, buffer_size, "%Y-%m-%d_%H-%M-%S", time_info);
-	buffer[buffer_size-1] = 0;	/* assure null termination */
+	str_timestamp_ex(time_data, buffer, buffer_size, "%Y-%m-%d_%H-%M-%S");
 }
 
 int mem_comp(const void *a, const void *b, int size)
@@ -2128,6 +2215,7 @@ char str_uppercase(char c)
 }
 
 int str_toint(const char *str) { return atoi(str); }
+int str_toint_base(const char *str, int base) { return strtol(str, NULL, base); }
 float str_tofloat(const char *str) { return atof(str); }
 
 
@@ -2297,11 +2385,11 @@ int str_utf8_decode(const char **ptr)
 		unsigned char byte = str_byte_next(ptr);
 		if(utf8_bytes_needed == 0)
 		{
-			if(0x00 <= byte && byte <= 0x7F)
+			if(byte <= 0x7F)
 			{
 				return byte;
 			}
-			else if(0x80 <= byte && byte <= 0xDF)
+			else if(0xC2 <= byte && byte <= 0xDF)
 			{
 				utf8_bytes_needed = 1;
 				utf8_code_point = byte - 0xC0;
@@ -2349,18 +2437,13 @@ int str_utf8_decode(const char **ptr)
 
 int str_utf8_check(const char *str)
 {
-	while(*str)
+	int codepoint;
+	while((codepoint = str_utf8_decode(&str)))
 	{
-		if((*str&0x80) == 0x0)
-			str++;
-		else if((*str&0xE0) == 0xC0 && (*(str+1)&0xC0) == 0x80)
-			str += 2;
-		else if((*str&0xF0) == 0xE0 && (*(str+1)&0xC0) == 0x80 && (*(str+2)&0xC0) == 0x80)
-			str += 3;
-		else if((*str&0xF8) == 0xF0 && (*(str+1)&0xC0) == 0x80 && (*(str+2)&0xC0) == 0x80 && (*(str+3)&0xC0) == 0x80)
-			str += 4;
-		else
+		if(codepoint == -1)
+		{
 			return 0;
+		}
 	}
 	return 1;
 }
@@ -2477,6 +2560,13 @@ void secure_random_fill(void *bytes, size_t length)
 		dbg_break();
 	}
 #endif
+}
+
+int secure_rand()
+{
+	unsigned int i;
+	secure_random_fill(&i, sizeof(i));
+	return (int)(i%RAND_MAX);
 }
 
 #if defined(__cplusplus)

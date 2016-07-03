@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
+#include <base/math.h>
 
 #include <engine/shared/config.h>
 #include <engine/graphics.h>
@@ -78,7 +79,6 @@ void CUI::AndroidShowScreenKeys(bool shown)
 	static SDL_Rect ButtonHidden = { 0, 0, 0, 0 };
 	if( !ScreenKeyboardInitialized )
 	{
-		//dbg_msg("dbg", "CUI::AndroidShowScreenKeys: ScreenKeyboardInitialized");
 		ScreenKeyboardInitialized = true;
 
 		for( int i = 0; i < SDL_ANDROID_SCREENKEYBOARD_BUTTON_NUM; i++ )
@@ -157,7 +157,6 @@ void CUI::AndroidShowScreenKeys(bool shown)
 	if( ScreenKeyboardShown == shown )
 		return;
 	ScreenKeyboardShown = shown;
-	//dbg_msg("dbg", "CUI::AndroidShowScreenKeys: shown %d", shown);
 	for( int i = 0; i < SDL_ANDROID_SCREENKEYBOARD_BUTTON_NUM; i++ )
 		SDL_ANDROID_SetScreenKeyboardButtonPos( i, shown ? &Buttons[i] : &ButtonHidden );
 #endif
@@ -437,6 +436,35 @@ int CUI::DoButtonLogic(const void *pID, const char *pText, int Checked, const CU
 
 	return ReturnValue;
 }
+
+int CUI::DoPickerLogic(const void *pID, const CUIRect *pRect, float *pX, float *pY)
+{
+	int Inside = MouseInside(pRect);
+
+	if(ActiveItem() == pID)
+	{
+		if(!MouseButton(0))
+			SetActiveItem(0);
+	}
+	else if(HotItem() == pID)
+	{
+		if(MouseButton(0))
+			SetActiveItem(pID);
+	}
+	else if(Inside)
+		SetHotItem(pID);
+
+	if(!Inside || !MouseButton(0))
+		return 0;
+
+	if(pX)
+		*pX = clamp(m_MouseX - pRect->x, 0.0f, pRect->w) / Scale();
+	if(pY)
+		*pY = clamp(m_MouseY - pRect->y, 0.0f, pRect->h) / Scale();
+
+	return 1;
+}
+
 /*
 int CUI::DoButton(const void *id, const char *text, int checked, const CUIRect *r, ui_draw_button_func draw_func, const void *extra)
 {

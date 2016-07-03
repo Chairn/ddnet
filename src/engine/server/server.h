@@ -15,7 +15,13 @@
 #include <base/math.h>
 #include <engine/shared/mapchecker.h>
 #include <engine/shared/econ.h>
+#include <engine/shared/fifo.h>
 #include <engine/shared/netban.h>
+
+#if defined (CONF_SQL)
+	#include "sql_connector.h"
+	#include "sql_server.h"
+#endif
 
 class CSnapIDPool
 {
@@ -75,6 +81,12 @@ class CServer : public IServer
 	class IGameServer *m_pGameServer;
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
+
+#if defined (CONF_SQL)
+	CSqlServer* m_apSqlReadServers[MAX_SQLSERVERS];
+	CSqlServer* m_apSqlWriteServers[MAX_SQLSERVERS];
+#endif
+
 public:
 	class IGameServer *GameServer() { return m_pGameServer; }
 	class IConsole *Console() { return m_pConsole; }
@@ -83,6 +95,7 @@ public:
 	enum
 	{
 		AUTHED_NO=0,
+		AUTHED_HELPER,
 		AUTHED_MOD,
 		AUTHED_ADMIN,
 
@@ -134,7 +147,6 @@ public:
 		int m_Country;
 		int m_Score;
 		int m_Authed;
-		int m_LastAuthed;
 		int m_AuthTries;
 
 		const IConsole::CCommandInfo *m_pRconCmdToSend;
@@ -154,6 +166,9 @@ public:
 	CSnapIDPool m_IDPool;
 	CNetServer m_NetServer;
 	CEcon m_Econ;
+#if defined(CONF_FAMILY_UNIX)
+	CFifo m_Fifo;
+#endif
 	CServerBan m_ServerBan;
 
 	IEngineMap *m_pMap;
@@ -162,6 +177,7 @@ public:
 	//int m_CurrentGameTick;
 	int m_RunServer;
 	int m_MapReload;
+	bool m_ReloadedWhenEmpty;
 	int m_RconClientID;
 	int m_RconAuthLevel;
 	int m_PrintCBIndex;
@@ -181,6 +197,10 @@ public:
 	CMapChecker m_MapChecker;
 
 	int m_RconRestrict;
+
+	bool m_ServerInfoHighLoad;
+	int64 m_ServerInfoFirstRequest;
+	int m_ServerInfoNumRequests;
 
 	CServer();
 
@@ -220,7 +240,10 @@ public:
 	void DoSnapshot();
 
 	static int NewClientCallback(int ClientID, void *pUser);
+	static int NewClientNoAuthCallback(int ClientID, bool Reset, void *pUser);
 	static int DelClientCallback(int ClientID, const char *pReason, void *pUser);
+
+	static int ClientRejoinCallback(int ClientID, void *pUser);
 
 	void SendMap(int ClientID);
 	void SendConnectionReady(int ClientID);
@@ -233,7 +256,8 @@ public:
 
 	void ProcessClientPacket(CNetChunk *pPacket);
 
-	void SendServerInfo(const NETADDR *pAddr, int Token, bool Extended=false, int Offset=0);
+	void SendServerInfoConnless(const NETADDR *pAddr, int Token, bool Extended);
+	void SendServerInfo(const NETADDR *pAddr, int Token, bool Extended=false, int Offset=0, bool Short=false);
 	void UpdateServerInfo();
 
 	void PumpNetwork();
@@ -258,12 +282,25 @@ public:
 	static void ConStopRecord(IConsole::IResult *pResult, void *pUser);
 	static void ConMapReload(IConsole::IResult *pResult, void *pUser);
 	static void ConLogout(IConsole::IResult *pResult, void *pUser);
+
+#if defined (CONF_SQL)
+	// console commands for sqlmasters
+	static void ConAddSqlServer(IConsole::IResult *pResult, void *pUserData);
+	static void ConDumpSqlServers(IConsole::IResult *pResult, void *pUserData);
+
+	static void CreateTablesThread(void *pData);
+#endif
+
 	static void ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainMaxclientsperipUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	static void ConchainModCommandUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void ConchainCommandAccessUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
+	void LogoutByAuthLevel(int AuthLevel);
+
 	static void ConchainRconPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainRconModPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+	static void ConchainRconHelperPasswordChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	void RegisterCommands();
 
@@ -282,6 +319,7 @@ public:
 	void RestrictRconOutput(int ClientID) { m_RconRestrict = ClientID; }
 
 	virtual int* GetIdMap(int ClientID);
+
 };
 
 #endif

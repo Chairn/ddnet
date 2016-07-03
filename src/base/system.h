@@ -10,6 +10,7 @@
 
 #include "detect.h"
 #include "stddef.h"
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -166,7 +167,7 @@ void mem_zero(void *block, unsigned size);
 	Returns:
 		<0 - Block a is lesser then block b
 		0 - Block a is equal to block b
-		>0 - Block a is greater then block b
+		>0 - Block a is greater than block b
 */
 int mem_comp(const void *a, const void *b, int size);
 
@@ -183,6 +184,7 @@ enum {
 	IOFLAG_READ = 1,
 	IOFLAG_WRITE = 2,
 	IOFLAG_RANDOM = 4,
+	IOFLAG_APPEND = 8,
 
 	IOSEEK_START = 0,
 	IOSEEK_CUR = 1,
@@ -197,7 +199,7 @@ typedef struct IOINTERNAL *IOHANDLE;
 
 	Parameters:
 		filename - File to open.
-		flags - A set of flags. IOFLAG_READ, IOFLAG_WRITE, IOFLAG_RANDOM.
+		flags - A set of flags. IOFLAG_READ, IOFLAG_WRITE, IOFLAG_RANDOM, IOFLAG_APPEND.
 
 	Returns:
 		Returns a handle to the file on success and 0 on failure.
@@ -1026,6 +1028,7 @@ void str_hex(char *dst, int dst_size, const void *data, int data_size);
 		- Guarantees that buffer string will contain zero-termination.
 */
 void str_timestamp(char *buffer, int buffer_size);
+void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format);
 
 /* Group: Filesystem */
 
@@ -1043,7 +1046,9 @@ void str_timestamp(char *buffer, int buffer_size);
 		Always returns 0.
 */
 typedef int (*FS_LISTDIR_CALLBACK)(const char *name, int is_dir, int dir_type, void *user);
+typedef int (*FS_LISTDIR_INFO_CALLBACK)(const char *name, time_t date, int is_dir, int dir_type, void *user);
 int fs_listdir(const char *dir, FS_LISTDIR_CALLBACK cb, int type, void *user);
+int fs_listdir_info(const char *dir, FS_LISTDIR_INFO_CALLBACK cb, int type, void *user);
 
 /*
 	Function: fs_makedir
@@ -1060,6 +1065,18 @@ int fs_listdir(const char *dir, FS_LISTDIR_CALLBACK cb, int type, void *user);
 		in a failure if b or a does not exist.
 */
 int fs_makedir(const char *path);
+
+/*
+	Function: fs_makedir_rec_for
+		Recursively create directories for a file
+
+	Parameters:
+		path - File for which to create directories
+
+	Returns:
+		Returns 0 on success. Negative value on failure.
+*/
+int fs_makedir_rec_for(const char *path);
 
 /*
 	Function: fs_storage_path
@@ -1083,6 +1100,12 @@ int fs_storage_path(const char *appname, char *path, int max);
 		Returns 1 on success, 0 on failure.
 */
 int fs_is_dir(const char *path);
+
+/*
+	Function: fs_getmtime
+		Gets the modification time of a file
+*/
+time_t fs_getmtime(const char *path);
 
 /*
 	Function: fs_chdir
@@ -1226,6 +1249,7 @@ typedef struct
 void net_stats(NETSTATS *stats);
 
 int str_toint(const char *str);
+int str_toint_base(const char *str, int base);
 float str_tofloat(const char *str);
 int str_isspace(char c);
 char str_uppercase(char c);
@@ -1371,6 +1395,12 @@ int secure_random_init();
 		length - Length of the buffer.
 */
 void secure_random_fill(void *bytes, size_t length);
+
+/*
+	Function: secure_rand
+		Returns random int (replacement for rand()).
+*/
+int secure_rand();
 
 #ifdef __cplusplus
 }

@@ -6,8 +6,12 @@
 
 class CMapImages : public CComponent
 {
+	friend class CBackground;
+	
 	int m_aTextures[64];
 	int m_Count;
+
+	char m_aEntitiesGameType[16];
 public:
 	CMapImages();
 
@@ -15,6 +19,7 @@ public:
 	int Num() const { return m_Count; }
 
 	virtual void OnMapLoad();
+	void LoadBackground(class IMap *pMap);
 
 	// DDRace
 

@@ -61,7 +61,7 @@ public:
 		m_aName[0] = 0;
 		m_Bottom = 0;
 		m_Top = 0;
-		m_Synchronized = true;
+		m_Synchronized = false;
 	}
 
 	void Resort()
@@ -376,6 +376,12 @@ public:
 	};
 	CMapInfo m_MapInfo;
 
+	struct CSetting
+	{
+		char m_aCommand[64];
+	};
+	array<CSetting> m_lSettings;
+
 	class CLayerGame *m_pGameLayer;
 	CLayerGroup *m_pGameGroup;
 
@@ -501,6 +507,9 @@ public:
 	CLayerTiles(int w, int h);
 	~CLayerTiles();
 
+	virtual CTile GetTile(int x, int y);
+	virtual void SetTile(int x, int y, CTile tile);
+
 	virtual void Resize(int NewW, int NewH);
 	virtual void Shift(int Direction);
 
@@ -583,6 +592,9 @@ class CLayerGame : public CLayerTiles
 public:
 	CLayerGame(int w, int h);
 	~CLayerGame();
+
+	virtual CTile GetTile(int x, int y);
+	virtual void SetTile(int x, int y, CTile tile);
 
 	virtual int RenderProperties(CUIRect *pToolbox);
 };
@@ -678,10 +690,14 @@ public:
 		m_ShowEnvelopeEditor = 0;
 		m_ShowUndo = 0;
 		m_UndoScrollValue = 0.0f;
+		m_ShowServerSettingsEditor = false;
 
 		m_ShowEnvelopePreview = 0;
 		m_SelectedQuadEnvelope = -1;
 		m_SelectedEnvelopePoint = -1;
+
+		m_CommandBox = 0.0f;
+		m_aSettingsCommand[0] = 0;
 
 		ms_CheckerTexture = 0;
 		ms_BackgroundTexture = 0;
@@ -704,8 +720,9 @@ public:
 		m_SpeedupForce = 50;
 		m_SpeedupMaxSpeed = 0;
 		m_SpeedupAngle = 0;
-
-		m_CompareMode = false;
+		m_LargeLayerWasWarned = false;
+		m_PreventUnusedTilesWasWarned = false;
+		m_AllowPlaceUnusedTiles = false;
 	}
 
 	virtual void Init();
@@ -766,11 +783,16 @@ public:
 		POPEVENT_LOAD,
 		POPEVENT_NEW,
 		POPEVENT_SAVE,
+		POPEVENT_LARGELAYER,
+		POPEVENT_PREVENTUNUSEDTILES
 	};
 
 	int m_PopupEventType;
 	int m_PopupEventActivated;
 	int m_PopupEventWasActivated;
+	bool m_LargeLayerWasWarned;
+	bool m_PreventUnusedTilesWasWarned;
+	bool m_AllowPlaceUnusedTiles;
 
 	enum
 	{
@@ -810,7 +832,7 @@ public:
 
 		bool operator<(const CFilelistItem &Other) { return !str_comp(m_aFilename, "..") ? true : !str_comp(Other.m_aFilename, "..") ? false :
 														m_IsDir && !Other.m_IsDir ? true : !m_IsDir && Other.m_IsDir ? false :
-														str_comp_filenames(m_aFilename, Other.m_aFilename) < 0; }
+														str_comp_nocase(m_aFilename, Other.m_aFilename) < 0; }
 	};
 	sorted_array<CFilelistItem> m_FileList;
 	int m_FilesStartAt;
@@ -845,6 +867,7 @@ public:
 
 	int m_ShowEnvelopeEditor;
 	int m_ShowEnvelopePreview; //Values: 0-Off|1-Selected Envelope|2-All
+	bool m_ShowServerSettingsEditor;
 	bool m_ShowPicker;
 
 	int m_SelectedLayer;
@@ -874,6 +897,9 @@ public:
 
 	static void EnvelopeEval(float TimeOffset, int Env, float *pChannels, void *pUser);
 
+	float m_CommandBox;
+	char m_aSettingsCommand[64];
+
 	void DoMapBorder();
 	int DoButton_Editor_Common(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
 	int DoButton_Editor(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
@@ -889,6 +915,8 @@ public:
 	int DoButton_Menu(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags, const char *pToolTip);
 	int DoButton_MenuItem(const void *pID, const char *pText, int Checked, const CUIRect *pRect, int Flags=0, const char *pToolTip=0);
 
+	int DoButton_ColorPicker(const void *pID, const CUIRect *pRect, vec4 *pColor, const char *pToolTip=0);
+
 	int DoEditBox(void *pID, const CUIRect *pRect, char *pStr, unsigned StrSize, float FontSize, float *Offset, bool Hidden=false, int Corners=CUI::CORNER_ALL);
 
 	void RenderBackground(CUIRect View, int Texture, float Size, float Brightness);
@@ -898,7 +926,7 @@ public:
 	void UiInvokePopupMenu(void *pID, int Flags, float X, float Y, float W, float H, int (*pfnFunc)(CEditor *pEditor, CUIRect Rect), void *pExtra=0);
 	void UiDoPopupMenu();
 
-	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool isDegree=false);
+	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool isDegree=false, bool isHex=false);
 
 	static int PopupGroup(CEditor *pEditor, CUIRect View);
 	static int PopupLayer(CEditor *pEditor, CUIRect View);
@@ -915,6 +943,7 @@ public:
 	static int PopupSelectConfigAutoMap(CEditor *pEditor, CUIRect View);
 	static int PopupSound(CEditor *pEditor, CUIRect View);
 	static int PopupSource(CEditor *pEditor, CUIRect View);
+	static int PopupColorPicker(CEditor *pEditor, CUIRect View);
 
 	static void CallbackOpenMap(const char *pFileName, int StorageType, void *pUser);
 	static void CallbackAppendMap(const char *pFileName, int StorageType, void *pUser);
@@ -961,6 +990,7 @@ public:
 	void RenderStatusbar(CUIRect View);
 	void RenderEnvelopeEditor(CUIRect View);
 	void RenderUndoList(CUIRect View);
+	void RenderServerSettingsEditor(CUIRect View);
 
 	void RenderMenubar(CUIRect Menubar);
 	void RenderFileDialog();
@@ -985,6 +1015,10 @@ public:
 
 	int GetLineDistance();
 	void ZoomMouseTarget(float ZoomFactor);
+
+	static vec3 ms_PickerColor;
+	static int ms_SVPicker;
+	static int ms_HuePicker;
 
 	// DDRace
 
@@ -1064,6 +1098,7 @@ public:
 
 	virtual void Resize(int NewW, int NewH);
 	virtual void Shift(int Direction);
+	virtual void SetTile(int x, int y, CTile tile);
 	virtual void BrushDraw(CLayer *pBrush, float wx, float wy);
 };
 

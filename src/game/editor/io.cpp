@@ -238,7 +238,7 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 	// save map info
 	{
-		CMapItemInfo Item;
+		CMapItemInfoSettings Item;
 		Item.m_Version = 1;
 
 		if(m_MapInfo.m_aAuthor[0])
@@ -257,6 +257,27 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 			Item.m_License = df.AddData(str_length(m_MapInfo.m_aLicense)+1, m_MapInfo.m_aLicense);
 		else
 			Item.m_License = -1;
+
+		Item.m_Settings = -1;
+		if(m_lSettings.size())
+		{
+			int Size = 0;
+			for(int i = 0; i < m_lSettings.size(); i++)
+			{
+				Size += str_length(m_lSettings[i].m_aCommand) + 1;
+			}
+
+			char *pSettings = (char *)mem_alloc(Size, 1);
+			char *pNext = pSettings;
+			for(int i = 0; i < m_lSettings.size(); i++)
+			{
+				int Length = str_length(m_lSettings[i].m_aCommand) + 1;
+				mem_copy(pNext, m_lSettings[i].m_aCommand, Length);
+				pNext += Length;
+			}
+			Item.m_Settings = df.AddData(Size, pSettings);
+			mem_free(pSettings);
+		}
 
 		df.AddItem(MAPITEMTYPE_INFO, 0, sizeof(Item), &Item);
 	}
@@ -589,9 +610,16 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 
 		// load map info
 		{
-			CMapItemInfo *pItem = (CMapItemInfo *)DataFile.FindItem(MAPITEMTYPE_INFO, 0);
-			if(pItem && pItem->m_Version == 1)
+			int Start, Num;
+			DataFile.GetType(MAPITEMTYPE_INFO, &Start, &Num);
+			for(int i = Start; i < Start + Num; i++)
 			{
+				int ItemSize = DataFile.GetItemSize(Start) - 8;
+				int ItemID;
+				CMapItemInfoSettings *pItem = (CMapItemInfoSettings *)DataFile.GetItem(i, 0, &ItemID);
+				if(!pItem || ItemID != 0)
+					continue;
+
 				if(pItem->m_Author > -1)
 					str_copy(m_MapInfo.m_aAuthor, (char *)DataFile.GetData(pItem->m_Author), sizeof(m_MapInfo.m_aAuthor));
 				if(pItem->m_MapVersion > -1)
@@ -600,6 +628,24 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 					str_copy(m_MapInfo.m_aCredits, (char *)DataFile.GetData(pItem->m_Credits), sizeof(m_MapInfo.m_aCredits));
 				if(pItem->m_License > -1)
 					str_copy(m_MapInfo.m_aLicense, (char *)DataFile.GetData(pItem->m_License), sizeof(m_MapInfo.m_aLicense));
+
+				if(pItem->m_Version != 1 || ItemSize < (int)sizeof(CMapItemInfoSettings))
+					break;
+
+				if(!(pItem->m_Settings > -1))
+					break;
+
+				int Size = DataFile.GetUncompressedDataSize(pItem->m_Settings);
+				char *pSettings = (char *)DataFile.GetData(pItem->m_Settings);
+				char *pNext = pSettings;
+				while(pNext < pSettings + Size)
+				{
+					int StrSize = str_length(pNext) + 1;
+					CSetting Setting;
+					str_copy(Setting.m_aCommand, pNext, sizeof(Setting.m_aCommand));
+					m_lSettings.add(Setting);
+					pNext += StrSize;
+				}
 			}
 		}
 
@@ -831,50 +877,6 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						if(pTilemapItem->m_Version >= 3)
 							IntsToStr(pTilemapItem->m_aName, sizeof(pTiles->m_aName)/sizeof(int), pTiles->m_aName);
 
-						if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CTile))
-						{
-							mem_copy(pTiles->m_pTiles, pData, pTiles->m_Width*pTiles->m_Height*sizeof(CTile));
-
-							if(pTiles->m_Game && pTilemapItem->m_Version == MakeVersion(1, *pTilemapItem))
-							{
-								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
-								{
-									if(pTiles->m_pTiles[i].m_Index)
-										pTiles->m_pTiles[i].m_Index += ENTITY_OFFSET;
-								}
-							}
-
-							// Convert race stoppers to ddrace stoppers
-							/*if(pTiles->m_Game)
-							{
-								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
-								{
-									if(pTiles->m_pTiles[i].m_Index == 29)
-									{
-										pTiles->m_pTiles[i].m_Index = 60;
-										pTiles->m_pTiles[i].m_Flags = TILEFLAG_HFLIP|TILEFLAG_VFLIP|TILEFLAG_ROTATE;
-									}
-									else if(pTiles->m_pTiles[i].m_Index == 30)
-									{
-										pTiles->m_pTiles[i].m_Index = 60;
-										pTiles->m_pTiles[i].m_Flags = TILEFLAG_ROTATE;
-									}
-									else if(pTiles->m_pTiles[i].m_Index == 31)
-									{
-										pTiles->m_pTiles[i].m_Index = 60;
-										pTiles->m_pTiles[i].m_Flags = TILEFLAG_HFLIP|TILEFLAG_VFLIP;
-									}
-									else if(pTiles->m_pTiles[i].m_Index == 32)
-									{
-										pTiles->m_pTiles[i].m_Index = 60;
-										pTiles->m_pTiles[i].m_Flags = 0;
-									}
-								}
-							}*/
-						}
-
-						DataFile.UnloadData(pTilemapItem->m_Data);
-
 						if(pTiles->m_Tele)
 						{
 							void *pTeleData = DataFile.GetData(pTilemapItem->m_Tele);
@@ -1037,6 +1039,77 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 							}
 							DataFile.UnloadData(pTilemapItem->m_Tune);
 						}
+						else // regular tile layer or game layer
+						{
+							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CTile))
+							{
+								mem_copy(pTiles->m_pTiles, pData, pTiles->m_Width*pTiles->m_Height*sizeof(CTile));
+
+								if(pTiles->m_Game && pTilemapItem->m_Version == MakeVersion(1, *pTilemapItem))
+								{
+									for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+									{
+										if(pTiles->m_pTiles[i].m_Index)
+											pTiles->m_pTiles[i].m_Index += ENTITY_OFFSET;
+									}
+								}
+							}
+						}
+
+						DataFile.UnloadData(pTilemapItem->m_Data);
+
+						// Remove unused tiles on game and front layers
+						/*if(pTiles->m_Game)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(!IsValidGameTile(pTiles->m_pTiles[i].m_Index))
+								{
+									pTiles->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}
+						if(pTiles->m_Front)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(!IsValidFrontTile(pTiles->m_pTiles[i].m_Index))
+								{
+									pTiles->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}*/
+
+						// Convert race stoppers to ddrace stoppers
+						/*if(pTiles->m_Game)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(pTiles->m_pTiles[i].m_Index == 29)
+								{
+									pTiles->m_pTiles[i].m_Index = 60;
+									pTiles->m_pTiles[i].m_Flags = TILEFLAG_HFLIP|TILEFLAG_VFLIP|TILEFLAG_ROTATE;
+								}
+								else if(pTiles->m_pTiles[i].m_Index == 30)
+								{
+									pTiles->m_pTiles[i].m_Index = 60;
+									pTiles->m_pTiles[i].m_Flags = TILEFLAG_ROTATE;
+								}
+								else if(pTiles->m_pTiles[i].m_Index == 31)
+								{
+									pTiles->m_pTiles[i].m_Index = 60;
+									pTiles->m_pTiles[i].m_Flags = TILEFLAG_HFLIP|TILEFLAG_VFLIP;
+								}
+								else if(pTiles->m_pTiles[i].m_Index == 32)
+								{
+									pTiles->m_pTiles[i].m_Index = 60;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}*/
+
 					}
 					else if(pLayerItem->m_Type == LAYERTYPE_QUADS)
 					{

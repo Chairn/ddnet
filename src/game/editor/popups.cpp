@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
+#include <base/color.h>
 #include <base/tl/array.h>
 
 #include <engine/console.h>
@@ -56,7 +57,10 @@ void CEditor::UiDoPopupMenu()
 			if(!UI()->MouseButton(0))
 			{
 				if(!Inside)
+				{
 					g_UiNumPopups--;
+					m_PopupEventWasActivated = false;
+				}
 				UI()->SetActiveItem(0);
 			}
 		}
@@ -77,10 +81,20 @@ void CEditor::UiDoPopupMenu()
 		r.Margin(4.0f, &r);
 
 		if(s_UiPopups[i].m_pfnFunc(this, r))
+		{
+			m_LockMouse = false;
+			UI()->SetActiveItem(0);
 			g_UiNumPopups--;
+			m_PopupEventWasActivated = false;
+		}
 
-		if(Input()->KeyDown(KEY_ESCAPE))
+		if(Input()->KeyPress(KEY_ESCAPE))
+		{
+			m_LockMouse = false;
+			UI()->SetActiveItem(0);
 			g_UiNumPopups--;
+			m_PopupEventWasActivated = false;
+		}
 	}
 }
 
@@ -1024,6 +1038,10 @@ int CEditor::PopupEvent(CEditor *pEditor, CUIRect View)
 		pEditor->UI()->DoLabel(&Label, "New map", 20.0f, 0);
 	else if(pEditor->m_PopupEventType == POPEVENT_SAVE)
 		pEditor->UI()->DoLabel(&Label, "Save map", 20.0f, 0);
+	else if(pEditor->m_PopupEventType == POPEVENT_LARGELAYER)
+		pEditor->UI()->DoLabel(&Label, "Large layer", 20.0f, 0);
+	else if(pEditor->m_PopupEventType == POPEVENT_PREVENTUNUSEDTILES)
+		pEditor->UI()->DoLabel(&Label, "Unused tiles disabled", 20.0f, 0);
 
 	View.HSplitBottom(10.0f, &View, 0);
 	View.HSplitBottom(20.0f, &View, &ButtonBar);
@@ -1040,6 +1058,10 @@ int CEditor::PopupEvent(CEditor *pEditor, CUIRect View)
 		pEditor->UI()->DoLabel(&Label, "The map contains unsaved data, you might want to save it before you create a new map.\nContinue anyway?", 10.0f, -1, Label.w-10.0f);
 	else if(pEditor->m_PopupEventType == POPEVENT_SAVE)
 		pEditor->UI()->DoLabel(&Label, "The file already exists.\nDo you want to overwrite the map?", 10.0f, -1);
+	else if(pEditor->m_PopupEventType == POPEVENT_LARGELAYER)
+		pEditor->UI()->DoLabel(&Label, "You are trying to set the height or width of a layer to more than 1000 tiles. This is actually possible, but only rarely necessary. It may cause the editor to work slower, larger file size as well as higher memory usage for client and server.", 10.0f, -1, Label.w-10.0f);
+	else if(pEditor->m_PopupEventType == POPEVENT_PREVENTUNUSEDTILES)
+		pEditor->UI()->DoLabel(&Label, "Unused tiles can't be placed by default because they could get a use later and then destroy your map. If you are mapping for a different gametype you can activate the 'Unused' switch to be able to place every tile.", 10.0f, -1, Label.w-10.0f);
 
 	// button bar
 	ButtonBar.VSplitLeft(30.0f, 0, &ButtonBar);
@@ -1063,11 +1085,14 @@ int CEditor::PopupEvent(CEditor *pEditor, CUIRect View)
 	}
 	ButtonBar.VSplitRight(30.0f, &ButtonBar, 0);
 	ButtonBar.VSplitRight(110.0f, &ButtonBar, &Label);
-	static int s_AbortButton = 0;
-	if(pEditor->DoButton_Editor(&s_AbortButton, "Abort", 0, &Label, 0, 0))
+	if(pEditor->m_PopupEventType != POPEVENT_LARGELAYER && pEditor->m_PopupEventType != POPEVENT_PREVENTUNUSEDTILES)
 	{
-		pEditor->m_PopupEventWasActivated = false;
-		return 1;
+		static int s_AbortButton = 0;
+		if(pEditor->DoButton_Editor(&s_AbortButton, "Abort", 0, &Label, 0, 0))
+		{
+			pEditor->m_PopupEventWasActivated = false;
+			return 1;
+		}
 	}
 
 	return 0;
@@ -1103,9 +1128,9 @@ int CEditor::PopupSelectImage(CEditor *pEditor, CUIRect View)
 			int ScrollNum = (int)((ImagesHeight-ButtonBar.h)/14.0f)+1;
 			if(ScrollNum > 0)
 			{
-				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_UP))
+				if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_UP))
 					s_ScrollValue = clamp(s_ScrollValue - 1.0f/ScrollNum, 0.0f, 1.0f);
-				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
+				if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN))
 					s_ScrollValue = clamp(s_ScrollValue + 1.0f/ScrollNum, 0.0f, 1.0f);
 			}
 		}
@@ -1214,9 +1239,9 @@ int CEditor::PopupSelectSound(CEditor *pEditor, CUIRect View)
 			int ScrollNum = (int)((SoundsHeight-ButtonBar.h)/14.0f)+1;
 			if(ScrollNum > 0)
 			{
-				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_UP))
+				if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_UP))
 					s_ScrollValue = clamp(s_ScrollValue - 1.0f/ScrollNum, 0.0f, 1.0f);
-				if(pEditor->Input()->KeyPresses(KEY_MOUSE_WHEEL_DOWN))
+				if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN))
 					s_ScrollValue = clamp(s_ScrollValue + 1.0f/ScrollNum, 0.0f, 1.0f);
 			}
 		}
@@ -1282,7 +1307,7 @@ static int s_GametileOpSelected = -1;
 
 int CEditor::PopupSelectGametileOp(CEditor *pEditor, CUIRect View)
 {
-	static const char *s_pButtonNames[] = { "Clear", "Collision", "Death", "Unhookable", "Freeze", "Unfreeze", "Deep Freeze", "Deep Unfreeze", "Check-Tele From", "Evil Check-Tele From" };
+	static const char *s_pButtonNames[] = { "Air", "Hookable", "Death", "Unhookable", "Hookthrough", "Freeze", "Unfreeze", "Deep Freeze", "Deep Unfreeze", "Blue Check-Tele", "Red Check-Tele" };
 	static unsigned s_NumButtons = sizeof(s_pButtonNames) / sizeof(char*);
 	CUIRect Button;
 
@@ -1301,7 +1326,7 @@ void CEditor::PopupSelectGametileOpInvoke(float x, float y)
 {
 	static int s_SelectGametileOpPopupId = 0;
 	s_GametileOpSelected = -1;
-	UiInvokePopupMenu(&s_SelectGametileOpPopupId, 0, x, y, 120.0f, 150.0f, PopupSelectGametileOp);
+	UiInvokePopupMenu(&s_SelectGametileOpPopupId, 0, x, y, 120.0f, 165.0f, PopupSelectGametileOp);
 }
 
 int CEditor::PopupSelectGameTileOpResult()
@@ -1445,14 +1470,14 @@ int CEditor::PopupSwitch(CEditor *pEditor, CUIRect View)
 
 	enum
 	{
-		PROP_SwitchNumber=0,
-		PROP_SwitchDelay,
+		PROP_SwitchDelay=0,
+		PROP_SwitchNumber,
 		NUM_PROPS,
 	};
 
 	CProperty aProps[] = {
-		{"Number", pEditor->m_SwitchNum, PROPTYPE_INT_STEP, 0, 255},
 		{"Delay", pEditor->m_SwitchDelay, PROPTYPE_INT_STEP, 0, 255},
+		{"Number", pEditor->m_SwitchNum, PROPTYPE_INT_STEP, 0, 255},
 		{0},
 	};
 
@@ -1511,6 +1536,108 @@ int CEditor::PopupTune(CEditor *pEditor, CUIRect View)
 
 	if(Prop == PROP_TUNE)
 		pEditor->m_TuningNum = (NewVal - 1 + 255) % 255 + 1;
+
+	return 0;
+}
+
+int CEditor::PopupColorPicker(CEditor *pEditor, CUIRect View)
+{
+	CUIRect SVPicker, HuePicker;
+	View.VSplitRight(20.0f, &SVPicker, &HuePicker);
+	HuePicker.VSplitLeft(4.0f, 0x0, &HuePicker);
+
+	pEditor->Graphics()->TextureSet(-1);
+	pEditor->Graphics()->QuadsBegin();
+
+	// base: white - hue
+	vec3 hsv = pEditor->ms_PickerColor;
+	IGraphics::CColorVertex ColorArray[4];
+
+	vec3 c = HsvToRgb(vec3(hsv.x, 0.0f, 1.0f));
+	ColorArray[0] = IGraphics::CColorVertex(0, c.r, c.g, c.b, 1.0f);
+	c = HsvToRgb(vec3(hsv.x, 1.0f, 1.0f));
+	ColorArray[1] = IGraphics::CColorVertex(1, c.r, c.g, c.b, 1.0f);
+	c = HsvToRgb(vec3(hsv.x, 1.0f, 1.0f));
+	ColorArray[2] = IGraphics::CColorVertex(2, c.r, c.g, c.b, 1.0f);
+	c = HsvToRgb(vec3(hsv.x, 0.0f, 1.0f));
+	ColorArray[3] = IGraphics::CColorVertex(3, c.r, c.g, c.b, 1.0f);
+
+	pEditor->Graphics()->SetColorVertex(ColorArray, 4);
+
+	IGraphics::CQuadItem QuadItem(SVPicker.x, SVPicker.y, SVPicker.w, SVPicker.h);
+	pEditor->Graphics()->QuadsDrawTL(&QuadItem, 1);
+
+	// base: transparent - black
+	ColorArray[0] = IGraphics::CColorVertex(0, 0.0f, 0.0f, 0.0f, 0.0f);
+	ColorArray[1] = IGraphics::CColorVertex(1, 0.0f, 0.0f, 0.0f, 0.0f);
+	ColorArray[2] = IGraphics::CColorVertex(2, 0.0f, 0.0f, 0.0f, 1.0f);
+	ColorArray[3] = IGraphics::CColorVertex(3, 0.0f, 0.0f, 0.0f, 1.0f);
+
+	pEditor->Graphics()->SetColorVertex(ColorArray, 4);
+
+	pEditor->Graphics()->QuadsDrawTL(&QuadItem, 1);
+
+	pEditor->Graphics()->QuadsEnd();
+
+	// marker
+	vec2 Marker = vec2(hsv.y*pEditor->UI()->Scale(), (1.0f - hsv.z)*pEditor->UI()->Scale()) * vec2(SVPicker.w, SVPicker.h);
+	pEditor->Graphics()->QuadsBegin();
+	pEditor->Graphics()->SetColor(0.5f, 0.5f, 0.5f, 1.0f);
+	IGraphics::CQuadItem aMarker[2];
+	aMarker[0] = IGraphics::CQuadItem(SVPicker.x+Marker.x, SVPicker.y+Marker.y - 5.0f*pEditor->UI()->PixelSize(), pEditor->UI()->PixelSize(), 11.0f*pEditor->UI()->PixelSize());
+	aMarker[1] = IGraphics::CQuadItem(SVPicker.x+Marker.x - 5.0f*pEditor->UI()->PixelSize(), SVPicker.y+Marker.y, 11.0f*pEditor->UI()->PixelSize(), pEditor->UI()->PixelSize());
+	pEditor->Graphics()->QuadsDrawTL(aMarker, 2);
+	pEditor->Graphics()->QuadsEnd();
+
+	// logic
+	float X, Y;
+	if(pEditor->UI()->DoPickerLogic(&pEditor->ms_SVPicker, &SVPicker, &X, &Y))
+	{
+		hsv.y = X/SVPicker.w;
+		hsv.z = 1.0f - Y/SVPicker.h;	
+	}
+
+	// hue slider
+	static const float s_aColorIndices[7][3] = {
+		{1.0f, 0.0f, 0.0f}, // red
+		{1.0f, 0.0f, 1.0f},	// magenta
+		{0.0f, 0.0f, 1.0f}, // blue
+		{0.0f, 1.0f, 1.0f}, // cyan
+		{0.0f, 1.0f, 0.0f}, // green
+		{1.0f, 1.0f, 0.0f}, // yellow
+		{1.0f, 0.0f, 0.0f}  // red
+	};
+
+	pEditor->Graphics()->QuadsBegin();
+	vec4 ColorTop, ColorBottom;
+	float Offset = HuePicker.h/6.0f;
+	for(int j = 0; j < 6; j++)
+	{
+		ColorTop = vec4(s_aColorIndices[j][0], s_aColorIndices[j][1], s_aColorIndices[j][2], 1.0f);
+		ColorBottom = vec4(s_aColorIndices[j+1][0], s_aColorIndices[j+1][1], s_aColorIndices[j+1][2], 1.0f);
+
+		ColorArray[0] = IGraphics::CColorVertex(0, ColorTop.r, ColorTop.g, ColorTop.b, ColorTop.a);
+		ColorArray[1] = IGraphics::CColorVertex(1, ColorTop.r, ColorTop.g, ColorTop.b, ColorTop.a);
+		ColorArray[2] = IGraphics::CColorVertex(2, ColorBottom.r, ColorBottom.g, ColorBottom.b, ColorBottom.a);
+		ColorArray[3] = IGraphics::CColorVertex(3, ColorBottom.r, ColorBottom.g, ColorBottom.b, ColorBottom.a);
+		pEditor->Graphics()->SetColorVertex(ColorArray, 4);
+		IGraphics::CQuadItem QuadItem(HuePicker.x, HuePicker.y+Offset*j, HuePicker.w, Offset);
+		pEditor->Graphics()->QuadsDrawTL(&QuadItem, 1);
+	}
+
+	// marker
+	pEditor->Graphics()->SetColor(0.5f, 0.5f, 0.5f, 1.0f);
+	IGraphics::CQuadItem QuadItemMarker(HuePicker.x, HuePicker.y + (1.0f - hsv.x) * HuePicker.h * pEditor->UI()->Scale(), HuePicker.w, pEditor->UI()->PixelSize());
+	pEditor->Graphics()->QuadsDrawTL(&QuadItemMarker, 1);
+
+	pEditor->Graphics()->QuadsEnd();
+
+	if(pEditor->UI()->DoPickerLogic(&pEditor->ms_HuePicker, &HuePicker, &X, &Y))
+	{
+		hsv.x = 1.0f - Y/HuePicker.h;	
+	}
+
+	pEditor->ms_PickerColor = hsv;
 
 	return 0;
 }

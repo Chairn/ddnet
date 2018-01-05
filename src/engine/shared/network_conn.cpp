@@ -16,21 +16,29 @@ void CNetConnection::ResetStats()
 	m_LastUpdateTime = 0;
 }
 
-void CNetConnection::Reset()
+void CNetConnection::Reset(bool Rejoin)
 {
 	m_Sequence = 0;
 	m_Ack = 0;
+	m_PeerAck = 0;
 	m_RemoteClosed = 0;
-	m_TimeoutProtected = false;
-	m_TimeoutSituation = false;
 
-	m_State = NET_CONNSTATE_OFFLINE;
+	if (!Rejoin)
+	{
+		m_TimeoutProtected = false;
+		m_TimeoutSituation = false;
+
+		m_State = NET_CONNSTATE_OFFLINE;
+		m_Token = -1;
+		m_SecurityToken = NET_SECURITY_TOKEN_UNKNOWN;
+	}
+
 	m_LastSendTime = 0;
 	m_LastRecvTime = 0;
 	//m_LastUpdateTime = 0;
-	m_Token = -1;
-	m_SecurityToken = NET_SECURITY_TOKEN_UNKNOWN;
+
 	//mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
+	m_UnknownSeq = false;
 
 	m_Buffer.Init();
 
@@ -97,6 +105,9 @@ int CNetConnection::Flush()
 
 int CNetConnection::QueueChunkEx(int Flags, int DataSize, const void *pData, int Sequence)
 {
+	if (m_State == NET_CONNSTATE_OFFLINE || m_State == NET_CONNSTATE_ERROR)
+		return -1;
+
 	unsigned char *pChunkData;
 
 	// check if we have space for it, if not, flush the connection
@@ -195,12 +206,32 @@ void CNetConnection::Disconnect(const char *pReason)
 		else
 			SendControl(NET_CTRLMSG_CLOSE, 0, 0);
 
-		m_ErrorString[0] = 0;
-		if(pReason && pReason != m_ErrorString)
-			str_copy(m_ErrorString, pReason, sizeof(m_ErrorString));
+		if(pReason != m_ErrorString)
+		{
+			m_ErrorString[0] = 0;
+			if(pReason)
+				str_copy(m_ErrorString, pReason, sizeof(m_ErrorString));
+		}
 	}
 
 	Reset();
+}
+
+void CNetConnection::DirectInit(NETADDR &Addr, SECURITY_TOKEN SecurityToken)
+{
+	Reset();
+
+	m_State = NET_CONNSTATE_ONLINE;
+
+	m_PeerAddr = Addr;
+	mem_zero(m_ErrorString, sizeof(m_ErrorString));
+
+	int64 Now = time_get();
+	m_LastSendTime = Now;
+	m_LastRecvTime = Now;
+	m_LastUpdateTime = Now;
+
+	m_SecurityToken = SecurityToken;
 }
 
 int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_TOKEN SecurityToken)
@@ -218,6 +249,19 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 			return 0;
 		}
 	}
+
+	// check if actual ack value is valid(own sequence..latest peer ack)
+	if(m_Sequence >= m_PeerAck)
+	{
+		if(pPacket->m_Ack < m_PeerAck || pPacket->m_Ack > m_Sequence)
+			return 0;
+	}
+	else
+	{
+		if(pPacket->m_Ack < m_PeerAck && pPacket->m_Ack > m_Sequence)
+			return 0;
+	}
+	m_PeerAck = pPacket->m_Ack;
 
 	int64 Now = time_get();
 
@@ -423,7 +467,7 @@ int CNetConnection::Update()
 	return 0;
 }
 
-void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken)
+void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken, TStaticRingBuffer<CNetChunkResend, NET_CONN_BUFFERSIZE> *pResendBuffer)
 {
 	int64 Now = time_get();
 
@@ -438,5 +482,16 @@ void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SE
 	m_LastRecvTime = Now;
 	m_LastUpdateTime = Now;
 	m_SecurityToken = SecurityToken;
+
+	// copy resend buffer
 	m_Buffer.Init();
+	while (pResendBuffer->First())
+	{
+		CNetChunkResend *First = pResendBuffer->First();
+
+		CNetChunkResend *pResend = m_Buffer.Allocate(sizeof(CNetChunkResend)+First->m_DataSize);
+		mem_copy(pResend, First, sizeof(CNetChunkResend)+First->m_DataSize);
+
+		pResendBuffer->PopFirst();
+	}
 }

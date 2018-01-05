@@ -12,7 +12,7 @@ version = sys.argv[1]
 platform = sys.argv[2]
 exe_ext = ""
 use_zip = 0
-use_gz = 1
+use_xz = 1
 use_dmg = 0
 use_bundle = 0
 include_data = True
@@ -24,7 +24,7 @@ if platform == "src":
 	include_exe = False
 	include_src = True
 	use_zip = 1
-	use_gz = 1
+	use_xz = 1
 
 #if not platform in valid_platforms:
 #	print("not a valid platform")
@@ -34,10 +34,10 @@ if platform == "src":
 if platform == 'win32' or platform == 'win64':
 	exe_ext = ".exe"
 	use_zip = 1
-	use_gz = 0
+	use_xz = 0
 if  platform == 'osx':
 	use_dmg = 1
-	use_gz = 0
+	use_xz = 0
 	use_bundle = 1
 
 def copydir(src, dst, excl=[]):
@@ -61,21 +61,21 @@ os.mkdir(package_dir)
 print("adding files")
 shutil.copy("license.txt", package_dir)
 shutil.copy("storage.cfg", package_dir)
-shutil.copy("autoexec.cfg", package_dir)
+shutil.copy("autoexec_server.cfg", package_dir)
 
 if include_data and not use_bundle:
 	os.mkdir(os.path.join(package_dir, "data"))
 	copydir("data", package_dir)
 	if platform[:3] == "win":
 		shutil.copy("other/config_directory.bat", package_dir)
-		shutil.copy("SDL.dll", package_dir)
+		shutil.copy("SDL2.dll", package_dir)
 		shutil.copy("freetype.dll", package_dir)
 		if platform == "win32":
 		    shutil.copy("libgcc_s_sjlj-1.dll", package_dir)
 		    shutil.copy("libidn-11.dll", package_dir)
 		elif platform == "win64":
-		    shutil.copy("libwinpthread-1.dll", package_dir)
 		    shutil.copy("libgcc_s_seh-1.dll", package_dir)
+		shutil.copy("libwinpthread-1.dll", package_dir)
 		shutil.copy("libogg-0.dll", package_dir)
 		shutil.copy("libopus-0.dll", package_dir)
 		shutil.copy("libopusfile-0.dll", package_dir)
@@ -90,6 +90,8 @@ if include_exe and not use_bundle:
 	shutil.copy(name+exe_ext, package_dir)
 	shutil.copy(name+"-Server"+exe_ext, package_dir)
 	shutil.copy("dilate"+exe_ext, package_dir)
+	shutil.copy("config_store"+exe_ext, package_dir)
+	shutil.copy("config_retrieve"+exe_ext, package_dir)
 	#shutil.copy(name+"-Server_sql"+exe_ext, package_dir)
 	
 if include_src:
@@ -100,7 +102,7 @@ if include_src:
 	shutil.copy("configure.lua", package_dir)
 
 if use_bundle:
-	bins = [name, name+'-Server', 'dilate', 'serverlaunch']
+	bins = [name, name+'-Server', 'dilate', 'config_store', 'config_retrieve', 'serverlaunch']
 	platforms = ('x86', 'x86_64', 'ppc')
 	for bin in bins:
 		to_lipo = []
@@ -130,8 +132,8 @@ if use_bundle:
 	#shutil.copy("other/icons/Teeworlds.icns", clientbundle_resource_dir)
 	shutil.copy(name+exe_ext, clientbundle_bin_dir)
 	os.system("install_name_tool -change /opt/X11/lib/libfreetype.6.dylib @executable_path/../Frameworks/libfreetype.6.dylib " + binary_path)
-	os.system("install_name_tool -change /Library/Frameworks/SDL.framework/SDL @executable_path/../Frameworks/SDL.framework/SDL  " + binary_path)
-	os.system("cp -R /Library/Frameworks/SDL.framework " + clientbundle_framework_dir)
+	os.system("install_name_tool -change @rpath/SDL2.framework/Versions/A/SDL2 @executable_path/../Frameworks/SDL2.framework/SDL2 " + binary_path)
+	os.system("cp -R /Library/Frameworks/SDL2.framework " + clientbundle_framework_dir)
 	os.system("cp /opt/X11/lib/libfreetype.6.dylib " + clientbundle_framework_dir)
 	file(os.path.join(clientbundle_content_dir, "Info.plist"), "w").write("""
 <?xml version="1.0" encoding="UTF-8"?>
@@ -152,6 +154,10 @@ if use_bundle:
         <string>????</string>
         <key>CFBundleVersion</key>
         <string>%s</string>
+        <key>CFBundleIdentifier</key>
+        <string>org.DDNetClient.app</string>
+        <key>NSHighResolutionCapable</key>
+        <true/>
 </dict>
 </plist>
 	""" % (version))
@@ -207,9 +213,9 @@ if use_zip:
 	#zf.printdir()
 	zf.close()
 	
-if use_gz:
-	print("making tar.gz archive")
-	os.system("tar czf %s.tar.gz %s" % (package, package_dir))
+if use_xz:
+	print("making tar.xz archive")
+	os.system("XZ_OPT=-9 tar cJf %s.tar.xz %s" % (package, package_dir))
 
 if use_dmg:
 	print("making disk image")

@@ -72,6 +72,7 @@ CMenus::CMenus()
 	m_NeedSendDummyinfo = false;
 	m_MenuActive = true;
 	m_UseMouseButtons = true;
+	m_MouseSlow = false;
 
 	m_EscapePressed = false;
 	m_EnterPressed = false;
@@ -86,9 +87,8 @@ CMenus::CMenus()
 	m_FriendlistSelectedIndex = -1;
 	m_DoubleClickIndex = -1;
 
-	m_DDRacePage = PAGE_BROWSER;
-
 	m_DemoPlayerState = DEMOPLAYER_NONE;
+	m_Dummy = false;
 }
 
 vec4 CMenus::ButtonColorMul(const void *pID)
@@ -238,6 +238,29 @@ int CMenus::DoEditBox(void *pID, const CUIRect *pRect, char *pStr, unsigned StrS
 		int Len = str_length(pStr);
 		if(Len == 0)
 			s_AtIndex = 0;
+
+		if(Input()->KeyIsPressed(KEY_LCTRL) && Input()->KeyPress(KEY_V))
+		{
+			const char *Text = Input()->GetClipboardText();
+			if(Text)
+			{
+				int Offset = str_length(pStr);
+				int CharsLeft = StrSize - Offset - 1;
+				for(int i = 0; i < str_length(Text) && i < CharsLeft; i++)
+				{
+					if(Text[i] == '\n')
+						pStr[i + Offset] = ' ';
+					else
+						pStr[i + Offset] = Text[i];
+				}
+				s_AtIndex = str_length(pStr);
+			}
+		}
+
+		if(Input()->KeyIsPressed(KEY_LCTRL) && Input()->KeyPress(KEY_C))
+		{
+			Input()->SetClipboardText(pStr);
+		}
 
 		if(Inside && UI()->MouseButton(0))
 		{
@@ -410,6 +433,9 @@ float CMenus::DoScrollbarV(const void *pID, const CUIRect *pRect, float Current)
 		if(!UI()->MouseButton(0))
 			UI()->SetActiveItem(0);
 
+		if(Input()->KeyIsPressed(KEY_LSHIFT) || Input()->KeyIsPressed(KEY_RSHIFT))
+			m_MouseSlow = true;
+
 		float Min = pRect->y;
 		float Max = pRect->h-Handle.h;
 		float Cur = UI()->MouseY()-OffsetY;
@@ -465,6 +491,9 @@ float CMenus::DoScrollbarH(const void *pID, const CUIRect *pRect, float Current)
 	{
 		if(!UI()->MouseButton(0))
 			UI()->SetActiveItem(0);
+
+		if(Input()->KeyIsPressed(KEY_LSHIFT) || Input()->KeyIsPressed(KEY_RSHIFT))
+			m_MouseSlow = true;
 
 		float Min = pRect->x;
 		float Max = pRect->w-Handle.w;
@@ -666,10 +695,22 @@ int CMenus::RenderMenubar(CUIRect r)
 		if(DoButton_MenuTab(&s_ServerInfoButton, Localize("Server info"), m_ActivePage==PAGE_SERVER_INFO, &Button, 0))
 			NewPage = PAGE_SERVER_INFO;
 
-		Box.VSplitLeft(100.0f, &Button, &Box);
-		static int s_GhostButton=0;
-		if(DoButton_MenuTab(&s_GhostButton, "Network", m_ActivePage==PAGE_DDRace, &Button, 0))
-			NewPage = PAGE_DDRace;
+		Box.VSplitLeft(90.0f, &Button, &Box);
+		static int s_NetworkButton=0;
+		if(DoButton_MenuTab(&s_NetworkButton, Localize("Browser"), m_ActivePage==PAGE_NETWORK, &Button, 0))
+			NewPage = PAGE_NETWORK;
+
+		{
+			CServerInfo Info;
+			Client()->GetServerInfo(&Info);
+			static int s_GhostButton=0;
+			if(IsRace(&Info) || IsDDNet(&Info))
+			{
+				Box.VSplitLeft(70.0f, &Button, &Box);
+				if(DoButton_MenuTab(&s_GhostButton, Localize("Ghost"), m_ActivePage==PAGE_GHOST, &Button, 0))
+					NewPage = PAGE_GHOST;
+			}
+		}
 
 		Box.VSplitLeft(100.0f, &Button, &Box);
 		Box.VSplitLeft(4.0f, 0, &Box);
@@ -883,11 +924,17 @@ int CMenus::Render()
 	CUIRect Screen = *UI()->Screen();
 	Graphics()->MapScreen(Screen.x, Screen.y, Screen.w, Screen.h);
 
-	static bool s_First = true;
-	if(s_First)
+	m_MouseSlow = false;
+
+	static int s_Frame = 0;
+	if(s_Frame == 0)
+	{
+		s_Frame++;
+	}
+	else if(s_Frame == 1)
 	{
 		m_pClient->m_pSounds->Enqueue(CSounds::CHN_MUSIC, SOUND_MENU);
-		s_First = false;
+		s_Frame++;
 		m_DoubleClickIndex = -1;
 
 		if(g_Config.m_UiPage == PAGE_INTERNET)
@@ -954,16 +1001,16 @@ int CMenus::Render()
 				RenderPlayers(MainView);
 			else if(m_GamePage == PAGE_SERVER_INFO)
 				RenderServerInfo(MainView);
-			else if(m_GamePage == PAGE_DDRace)
-				RenderInGameDDRace(MainView);
+			else if(m_GamePage == PAGE_NETWORK)
+				RenderInGameNetwork(MainView);
+			else if(m_GamePage == PAGE_GHOST)
+				RenderGhost(MainView);
 			else if(m_GamePage == PAGE_CALLVOTE)
 				RenderServerControl(MainView);
 			else if(m_GamePage == PAGE_SETTINGS)
 				RenderSettings(MainView);
 			else if(m_GamePage == PAGE_GHOST)
 				RenderGhost(MainView);
-			else if(m_GamePage == PAGE_BROWSER)
-				RenderInGameBrowser(MainView);
 		}
 		else if(g_Config.m_UiPage == PAGE_NEWS)
 			RenderNews(MainView);
@@ -1014,29 +1061,12 @@ int CMenus::Render()
 			pTitle = Localize("Disconnected");
 			pExtraText = Client()->ErrorString();
 			pButtonText = Localize("Ok");
-			if ((str_find_nocase(Client()->ErrorString(), "full")) || (str_find_nocase(Client()->ErrorString(), "reserved")))
+			if(Client()->m_ReconnectTime > 0)
 			{
-				if (g_Config.m_ClReconnectFull)
-				{
-					if (_my_rtime == 0)
-						_my_rtime = time_get();
-					str_format(aBuf, sizeof(aBuf), Localize("\n\nReconnect in %d sec"), ((_my_rtime - time_get()) / time_freq() + g_Config.m_ClReconnectFullTimeout));
-					pTitle = Client()->ErrorString();
-					pExtraText = aBuf;
-					pButtonText = Localize("Abort");
-				}
-			}
-			else if (str_find_nocase(Client()->ErrorString(), "ban"))
-			{
-				if (g_Config.m_ClReconnectBan)
-				{
-					if (_my_rtime == 0)
-						_my_rtime = time_get();
-					str_format(aBuf, sizeof(aBuf), Localize("\n\nReconnect in %d sec"), ((_my_rtime - time_get()) / time_freq() + g_Config.m_ClReconnectBanTimeout));
-					pTitle = Client()->ErrorString();
-					pExtraText = aBuf;
-					pButtonText = Localize("Abort");
-				}
+				str_format(aBuf, sizeof(aBuf), Localize("\n\nReconnect in %d sec"), ((Client()->m_ReconnectTime - time_get()) / time_freq() + g_Config.m_ClReconnectFull));
+				pTitle = Client()->ErrorString();
+				pExtraText = aBuf;
+				pButtonText = Localize("Abort");
 			}
 			ExtraAlign = 0;
 		}
@@ -1571,28 +1601,15 @@ int CMenus::Render()
 
 			static int s_Button = 0;
 			if(DoButton_Menu(&s_Button, pButtonText, 0, &Part) || m_EscapePressed || m_EnterPressed)
+			{
+				if(m_Popup == POPUP_DISCONNECTED && Client()->m_ReconnectTime > 0)
+					Client()->m_ReconnectTime = 0;
 				m_Popup = POPUP_NONE;
+			}
 		}
 
 		if(m_Popup == POPUP_NONE)
 			UI()->SetActiveItem(0);
-	}
-
-	if (m_Popup == POPUP_DISCONNECTED)
-	{
-		if (str_find_nocase(Client()->ErrorString(), "full") || str_find_nocase(Client()->ErrorString(), "reserved"))
-		{
-			if (g_Config.m_ClReconnectFull && time_get() > _my_rtime + time_freq() * g_Config.m_ClReconnectFullTimeout)
-				Client()->Connect(g_Config.m_UiServerAddress);
-		}
-		else if (str_find_nocase(Client()->ErrorString(), "ban") || str_find_nocase(Client()->ErrorString(), "kick"))
-		{
-			if (g_Config.m_ClReconnectBan && time_get() > _my_rtime + time_freq() * g_Config.m_ClReconnectBanTimeout)
-				Client()->Connect(g_Config.m_UiServerAddress);
-		}
-	}
-	else if (_my_rtime != 0) {
-		_my_rtime = 0;
 	}
 	return 0;
 }
@@ -1645,8 +1662,16 @@ bool CMenus::OnMouseMove(float x, float y)
 	m_MousePos.y = y;
 #else
 	UI()->ConvertMouseMove(&x, &y);
-	m_MousePos.x += x;
-	m_MousePos.y += y;
+	if(m_MouseSlow)
+	{
+		m_MousePos.x += x * 0.05f;
+		m_MousePos.y += y * 0.05f;
+	}
+	else
+	{
+		m_MousePos.x += x;
+		m_MousePos.y += y;
+	}
 #endif
 	if(m_MousePos.x < 0) m_MousePos.x = 0;
 	if(m_MousePos.y < 0) m_MousePos.y = 0;
@@ -1804,9 +1829,9 @@ void CMenus::OnRender()
 	int Buttons = 0;
 	if(m_UseMouseButtons)
 	{
-		if(Input()->KeyPressed(KEY_MOUSE_1)) Buttons |= 1;
-		if(Input()->KeyPressed(KEY_MOUSE_2)) Buttons |= 2;
-		if(Input()->KeyPressed(KEY_MOUSE_3)) Buttons |= 4;
+		if(Input()->KeyIsPressed(KEY_MOUSE_1)) Buttons |= 1;
+		if(Input()->KeyIsPressed(KEY_MOUSE_2)) Buttons |= 2;
+		if(Input()->KeyIsPressed(KEY_MOUSE_3)) Buttons |= 4;
 	}
 
 #if defined(__ANDROID__)
@@ -1897,7 +1922,7 @@ void CMenus::RenderBackground()
 	// render border fade
 	Graphics()->TextureSet(gs_TextureBlob);
 	Graphics()->QuadsBegin();
-		Graphics()->SetColor(0,0,0,0.5f);
+		Graphics()->SetColor(1,1,1,1);
 		QuadItem = IGraphics::CQuadItem(-100, -100, sw+200, sh+200);
 		Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();

@@ -20,10 +20,15 @@ class CInput : public IEngineInput
 	void Clear();
 	bool IsEventValid(CEvent *pEvent) const { return pEvent->m_InputCount == m_InputCounter; };
 
-	//quick access to input
+	// quick access to input
 	unsigned short m_aInputCount[g_MaxKeys];	// tw-KEY
 	unsigned char m_aInputState[g_MaxKeys];	// SDL_SCANCODE
 	int m_InputCounter;
+
+	// IME support
+	int m_CountEditingText;
+	char m_aEditingText[32];
+	int m_EditingCursor;
 
 	bool KeyState(int Key) const;
 
@@ -48,6 +53,11 @@ public:
 	virtual void NextFrame();
 
 	virtual int VideoRestartNeeded();
+
+	virtual bool GetIMEState();
+	virtual void SetIMEState(bool Activate);
+	virtual const char* GetIMECandidate();
+	virtual int GetEditingCursor();
 };
 
 #endif

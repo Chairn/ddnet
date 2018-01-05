@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <engine/server/server.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/server/score.h>
 #include "light.h"
@@ -180,11 +179,7 @@ void CCharacter::HandleNinja()
 	if ((Server()->Tick() - m_Ninja.m_ActivationTick) > (g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000))
 	{
 		// time's up, return
-		m_Ninja.m_CurrentMoveTime = 0;
-		m_aWeapons[WEAPON_NINJA].m_Got = false;
-		m_Core.m_ActiveWeapon = m_LastWeapon;
-
-		SetWeapon(m_Core.m_ActiveWeapon);
+		RemoveNinja();
 		return;
 	}
 
@@ -650,18 +645,6 @@ void CCharacter::HandleWeapons()
 	return;
 }
 
-bool CCharacter::GiveWeapon(int Weapon, int Ammo)
-{
-	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
-	{
-		m_aWeapons[Weapon].m_Got = true;
-		if(!m_FreezeTime)
-			m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
-		return true;
-	}
-	return false;
-}
-
 void CCharacter::GiveNinja()
 {
 	m_Ninja.m_ActivationTick = Server()->Tick();
@@ -676,6 +659,15 @@ void CCharacter::GiveNinja()
 		GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, Teams()->TeamMask(Team(), -1, m_pPlayer->GetCID()));
 }
 
+void CCharacter::RemoveNinja()
+{
+	m_Ninja.m_CurrentMoveTime = 0;
+	m_aWeapons[WEAPON_NINJA].m_Got = false;
+	m_Core.m_ActiveWeapon = m_LastWeapon;
+
+		SetWeapon(m_Core.m_ActiveWeapon);
+}
+
 void CCharacter::SetEmote(int Emote, int Tick)
 {
 	m_EmoteType = Emote;
@@ -685,7 +677,7 @@ void CCharacter::SetEmote(int Emote, int Tick)
 void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 {
 	// check for changes
-	if(mem_comp(&m_Input, pNewInput, sizeof(CNetObj_PlayerInput)) != 0)
+	if(mem_comp(&m_SavedInput, pNewInput, sizeof(CNetObj_PlayerInput)) != 0)
 		m_LastAction = Server()->Tick();
 
 	// copy new input
@@ -695,6 +687,8 @@ void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
 	// it is not allowed to aim in the center
 	if(m_Input.m_TargetX == 0 && m_Input.m_TargetY == 0)
 		m_Input.m_TargetY = -1;
+
+	mem_copy(&m_SavedInput, &m_Input, sizeof(m_SavedInput));
 }
 
 void CCharacter::OnDirectInput(CNetObj_PlayerInput *pNewInput)
@@ -1031,15 +1025,15 @@ void CCharacter::Snap(int SnappingClient)
 		CCharacter* SnapChar = GameServer()->GetPlayerChar(SnappingClient);
 		CPlayer* SnapPlayer = GameServer()->m_apPlayers[SnappingClient];
 
-		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->m_Paused) && SnapPlayer->m_SpectatorID != -1
+		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID != -1
 			&& !CanCollide(SnapPlayer->m_SpectatorID) && !SnapPlayer->m_ShowOthers)
 			return;
 
-		if( SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->m_Paused && SnapChar && !SnapChar->m_Super
+		if( SnapPlayer->GetTeam() != TEAM_SPECTATORS && !SnapPlayer->IsPaused() && SnapChar && !SnapChar->m_Super
 			&& !CanCollide(SnappingClient) && !SnapPlayer->m_ShowOthers)
 			return;
 
-		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->m_Paused) && SnapPlayer->m_SpectatorID == -1
+		if((SnapPlayer->GetTeam() == TEAM_SPECTATORS || SnapPlayer->IsPaused()) && SnapPlayer->m_SpectatorID == -1
 			&& !CanCollide(SnappingClient) && SnapPlayer->m_SpecTeam)
 			return;
 	}
@@ -1140,8 +1134,13 @@ void CCharacter::Snap(int SnappingClient)
 			pCharacter->m_AmmoCount = (!m_FreezeTime)?m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo:0;
 	}
 
-	if(GetPlayer()->m_Afk || GetPlayer()->m_Paused)
-		pCharacter->m_Emote = EMOTE_BLINK;
+	if(GetPlayer()->m_Afk || GetPlayer()->IsPaused())
+	{
+		if(m_FreezeTime > 0 || m_FreezeTime == -1 || m_DeepFreeze)
+			pCharacter->m_Emote = EMOTE_NORMAL;
+		else
+			pCharacter->m_Emote = EMOTE_BLINK;
+	}
 
 	if(pCharacter->m_Emote == EMOTE_NORMAL)
 	{
@@ -1217,7 +1216,7 @@ void CCharacter::HandleBroadcast()
 		m_CpLastBroadcast = m_CpActive;
 		m_LastBroadcast = Server()->Tick();
 	}
-	else if ((m_pPlayer->m_TimerType == 1 || m_pPlayer->m_TimerType == 2) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
+	else if ((m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_BROADCAST || m_pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && m_DDRaceState == DDRACE_STARTED && m_LastBroadcast + Server()->TickSpeed() * g_Config.m_SvTimeInBroadcastInterval <= Server()->Tick())
 	{
 		char aBuftime[64];
 		int IntTime = (int)((float)(Server()->Tick() - m_StartTime) / ((float)Server()->TickSpeed()));
@@ -1590,20 +1589,24 @@ void CCharacter::HandleTiles(int Index)
 	}
 
 	// unlock team
-	else if((m_TileIndex == TILE_UNLOCK_TEAM) || (m_TileFIndex == TILE_UNLOCK_TEAM))
+	else if(((m_TileIndex == TILE_UNLOCK_TEAM) || (m_TileFIndex == TILE_UNLOCK_TEAM)) && Teams()->TeamLocked(Team()))
 	{
 		Teams()->SetTeamLock(Team(), false);
+
+		for(int i = 0; i < MAX_CLIENTS; i++)
+			if(Teams()->m_Core.Team(i) == Team())
+				GameServer()->SendChatTarget(i, "Your team was unlocked by an unlock team tile");
 	}
 
 	// solo part
 	if(((m_TileIndex == TILE_SOLO_START) || (m_TileFIndex == TILE_SOLO_START)) && !Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
 	{
-		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now in a solo part.");
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now in a solo part");
 		SetSolo(true);
 	}
 	else if(((m_TileIndex == TILE_SOLO_END) || (m_TileFIndex == TILE_SOLO_END)) && Teams()->m_Core.GetSolo(m_pPlayer->GetCID()))
 	{
-		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now out of the solo part.");
+		GameServer()->SendChatTarget(GetPlayer()->GetCID(), "You are now out of the solo part");
 		SetSolo(false);
 	}
 
@@ -1878,14 +1881,19 @@ void CCharacter::HandleTiles(int Index)
 		{
 			if(Controller->m_TeleCheckOuts[k].size())
 			{
-				m_Core.m_HookedPlayer = -1;
-				m_Core.m_HookState = HOOK_RETRACTED;
-				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
 				m_Core.m_Vel = vec2(0,0);
-				m_Core.m_HookPos = m_Core.m_Pos;
+
+				if(!g_Config.m_SvTeleportHoldHook)
+				{
+					m_Core.m_HookedPlayer = -1;
+					m_Core.m_HookState = HOOK_RETRACTED;
+					m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+					GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
+					m_Core.m_HookPos = m_Core.m_Pos;
+				}
+
 				return;
 			}
 		}
@@ -1893,13 +1901,17 @@ void CCharacter::HandleTiles(int Index)
 		vec2 SpawnPos;
 		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
-			m_Core.m_HookedPlayer = -1;
-			m_Core.m_HookState = HOOK_RETRACTED;
-			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 			m_Core.m_Pos = SpawnPos;
-			GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
 			m_Core.m_Vel = vec2(0,0);
-			m_Core.m_HookPos = m_Core.m_Pos;
+
+			if(!g_Config.m_SvTeleportHoldHook)
+			{
+				m_Core.m_HookedPlayer = -1;
+				m_Core.m_HookState = HOOK_RETRACTED;
+				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+				GameWorld()->ReleaseHooked(GetPlayer()->GetCID());
+				m_Core.m_HookPos = m_Core.m_Pos;
+			}
 		}
 		return;
 	}
@@ -1912,12 +1924,17 @@ void CCharacter::HandleTiles(int Index)
 		{
 			if(Controller->m_TeleCheckOuts[k].size())
 			{
-				m_Core.m_HookedPlayer = -1;
-				m_Core.m_HookState = HOOK_RETRACTED;
-				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 				int Num = Controller->m_TeleCheckOuts[k].size();
 				m_Core.m_Pos = Controller->m_TeleCheckOuts[k][(!Num)?Num:rand() % Num];
-				m_Core.m_HookPos = m_Core.m_Pos;
+
+				if(!g_Config.m_SvTeleportHoldHook)
+				{
+					m_Core.m_HookedPlayer = -1;
+					m_Core.m_HookState = HOOK_RETRACTED;
+					m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+					m_Core.m_HookPos = m_Core.m_Pos;
+				}
+
 				return;
 			}
 		}
@@ -1925,11 +1942,15 @@ void CCharacter::HandleTiles(int Index)
 		vec2 SpawnPos;
 		if(GameServer()->m_pController->CanSpawn(m_pPlayer->GetTeam(), &SpawnPos))
 		{
-			m_Core.m_HookedPlayer = -1;
-			m_Core.m_HookState = HOOK_RETRACTED;
-			m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
 			m_Core.m_Pos = SpawnPos;
-			m_Core.m_HookPos = m_Core.m_Pos;
+
+			if(!g_Config.m_SvTeleportHoldHook)
+			{
+				m_Core.m_HookedPlayer = -1;
+				m_Core.m_HookState = HOOK_RETRACTED;
+				m_Core.m_TriggeredEvents |= COREEVENT_HOOK_RETRACT;
+				m_Core.m_HookPos = m_Core.m_Pos;
+			}
 		}
 		return;
 	}
@@ -1957,39 +1978,41 @@ void CCharacter::HandleTuneLayer()
 void CCharacter::SendZoneMsgs()
 {
 	// send zone leave msg
-	if (m_TuneZoneOld >= 0 && GameServer()->m_ZoneLeaveMsg[m_TuneZoneOld]) // m_TuneZoneOld >= 0: avoid zone leave msgs on spawn
+	// (m_TuneZoneOld >= 0: avoid zone leave msgs on spawn)
+	if (m_TuneZoneOld >= 0 && GameServer()->m_aaZoneLeaveMsg[m_TuneZoneOld])
 	{
-		const char* cur = GameServer()->m_ZoneLeaveMsg[m_TuneZoneOld];
-		const char* pos;
-		while ((pos = str_find(cur, "\\n")))
+		const char *pCur = GameServer()->m_aaZoneLeaveMsg[m_TuneZoneOld];
+		const char *pPos;
+		while ((pPos = str_find(pCur, "\\n")))
 		{
 			char aBuf[256];
-			str_copy(aBuf, cur, pos - cur + 1);
-			aBuf[pos - cur + 1] = '\0';
-			cur = pos + 2;
+			str_copy(aBuf, pCur, pPos - pCur + 1);
+			aBuf[pPos - pCur + 1] = '\0';
+			pCur = pPos + 2;
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 		}
-		GameServer()->SendChatTarget(m_pPlayer->GetCID(), cur);
+		GameServer()->SendChatTarget(m_pPlayer->GetCID(), pCur);
 	}
 	// send zone enter msg
-	if (GameServer()->m_ZoneEnterMsg[m_TuneZone])
+	if (GameServer()->m_aaZoneEnterMsg[m_TuneZone])
 	{
-		const char* cur = GameServer()->m_ZoneEnterMsg[m_TuneZone];
-		const char* pos;
-		while ((pos = str_find(cur, "\\n")))
+		const char* pCur = GameServer()->m_aaZoneEnterMsg[m_TuneZone];
+		const char* pPos;
+		while ((pPos = str_find(pCur, "\\n")))
 		{
 			char aBuf[256];
-			str_copy(aBuf, cur, pos - cur + 1);
-			aBuf[pos - cur + 1] = '\0';
-			cur = pos + 2;
+			str_copy(aBuf, pCur, pPos - pCur + 1);
+			aBuf[pPos - pCur + 1] = '\0';
+			pCur = pPos + 2;
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 		}
-		GameServer()->SendChatTarget(m_pPlayer->GetCID(), cur);
+		GameServer()->SendChatTarget(m_pPlayer->GetCID(), pCur);
 	}
 }
 
 void CCharacter::DDRaceTick()
 {
+	mem_copy(&m_Input, &m_SavedInput, sizeof(m_Input));
 	m_Armor=(m_FreezeTime >= 0)?10-(m_FreezeTime/15):0;
 	if(m_Input.m_Direction != 0 || m_Input.m_Jump != 0)
 		m_LastMove = Server()->Tick();
@@ -2115,14 +2138,37 @@ bool CCharacter::UnFreeze()
 	return false;
 }
 
+void CCharacter::GiveWeapon(int Weapon, bool Remove)
+{
+	if (Weapon == WEAPON_NINJA)
+	{
+		if (Remove)
+			RemoveNinja();
+		else
+			GiveNinja();
+		return;
+	}
+
+	if (Remove)
+	{
+		if (GetActiveWeapon()== Weapon)
+			SetActiveWeapon(WEAPON_GUN);
+	}
+	else
+	{
+		if (!m_FreezeTime)
+			m_aWeapons[Weapon].m_Ammo = -1;
+	}
+
+	m_aWeapons[Weapon].m_Got = !Remove;
+}
+
 void CCharacter::GiveAllWeapons()
 {
 	for(int i=WEAPON_GUN;i<NUM_WEAPONS-1;i++)
 	{
-		m_aWeapons[i].m_Got = true;
-		if(!m_FreezeTime) m_aWeapons[i].m_Ammo = -1;
+		GiveWeapon(i);
 	}
-	return;
 }
 
 void CCharacter::Pause(bool Pause)
@@ -2196,7 +2242,7 @@ void CCharacter::Rescue()
 		if (m_LastRescue + g_Config.m_SvRescueDelay * Server()->TickSpeed() > Server()->Tick())
 		{
 			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "You have to wait %d seconds until you can rescue yourself", (m_LastRescue + g_Config.m_SvRescueDelay * Server()->TickSpeed() - Server()->Tick()) / Server()->TickSpeed());
+			str_format(aBuf, sizeof(aBuf), "You have to wait %d seconds until you can rescue yourself", (int)((m_LastRescue + g_Config.m_SvRescueDelay * Server()->TickSpeed() - Server()->Tick()) / Server()->TickSpeed()));
 			GameServer()->SendChatTarget(GetPlayer()->GetCID(), aBuf);
 			return;
 		}

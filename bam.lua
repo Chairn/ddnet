@@ -1,4 +1,3 @@
-CheckVersion("0.4")
 
 target_family = os.getenv("TARGET_FAMILY")
 if target_family then
@@ -14,13 +13,11 @@ if target_arch then
 end
 
 Import("configure.lua")
-Import("other/sdl/sdl.lua")
-Import("other/freetype/freetype.lua")
-Import("other/curl/curl.lua")
-Import("other/opus/opusfile.lua")
-Import("other/opus/opus.lua")
-Import("other/opus/ogg.lua")
-Import("other/mysql/mysql.lua")
+Import("other/sdl.lua")
+Import("other/freetype.lua")
+Import("other/curl.lua")
+Import("other/opusfile.lua")
+Import("other/mysql.lua")
 
 --- Setup Config -------
 config = NewConfig()
@@ -33,8 +30,6 @@ config:Add(SDL.OptFind("sdl", true))
 config:Add(FreeType.OptFind("freetype", true))
 config:Add(Curl.OptFind("curl", true))
 config:Add(Opusfile.OptFind("opusfile", true))
-config:Add(Opus.OptFind("opus", true))
-config:Add(Ogg.OptFind("ogg", true))
 config:Add(Mysql.OptFind("mysql", false))
 config:Add(OptString("websockets", false))
 config:Finalize("config.lua")
@@ -147,45 +142,28 @@ server_sql_depends = {}
 
 if family == "windows" then
 	if platform == "win32" then
-		table.insert(client_depends, CopyToDirectory(".", "other/freetype/lib32/freetype.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/sdl/lib32/SDL2.dll"))
-
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib32/libcurl.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib32/libeay32.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib32/libidn-11.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib32/ssleay32.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib32/zlib1.dll"))
-
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib32/libwinpthread-1.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib32/libgcc_s_sjlj-1.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib32/libogg-0.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib32/libopus-0.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib32/libopusfile-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/freetype/windows/lib32/libfreetype.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/sdl/windows/lib32/SDL2.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/curl/windows/lib32/libcurl.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib32/libwinpthread-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib32/libgcc_s_sjlj-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib32/libogg.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib32/libopus.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib32/libopusfile.dll"))
 	else
-		table.insert(client_depends, CopyToDirectory(".", "other/freetype/lib64/freetype.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/sdl/lib64/SDL2.dll"))
-
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib64/libcurl.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib64/libeay32.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib64/ssleay32.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/curl/windows/lib64/zlib1.dll"))
-
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib64/libwinpthread-1.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib64/libgcc_s_seh-1.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib64/libogg-0.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib64/libopus-0.dll"))
-		table.insert(client_depends, CopyToDirectory(".", "other/opus/windows/lib64/libopusfile-0.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/freetype/windows/lib64/libfreetype.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/sdl/windows/lib64/SDL2.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/curl/windows/lib64/libcurl.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib64/libwinpthread-1.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib64/libogg.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib64/libopus.dll"))
+		table.insert(client_depends, CopyToDirectory(".", "ddnet-libs/opus/windows/lib64/libopusfile.dll"))
 	end
-	table.insert(server_sql_depends, CopyToDirectory(".", "other/mysql/vc2005libs/mysqlcppconn.dll"))
-	table.insert(server_sql_depends, CopyToDirectory(".", "other/mysql/vc2005libs/libmysql.dll"))
+	table.insert(server_sql_depends, CopyToDirectory(".", "ddnet-libs/mysql/windows/mysqlcppconn.dll"))
+	table.insert(server_sql_depends, CopyToDirectory(".", "ddnet-libs/mysql/windows/libmysql.dll"))
 
-	if config.compiler.driver == "cl" then
-		client_link_other = {ResCompile("other/icons/teeworlds_cl.rc")}
-		server_link_other = {ResCompile("other/icons/teeworlds_srv_cl.rc")}
-	elseif config.compiler.driver == "gcc" then
-		client_link_other = {ResCompile("other/icons/teeworlds_gcc.rc")}
-		server_link_other = {ResCompile("other/icons/teeworlds_srv_gcc.rc")}
-	end
+	client_link_other = {ResCompile("other/icons/DDNet.rc")}
+	server_link_other = {ResCompile("other/icons/DDNet-Server.rc")}
 end
 
 function Intermediate_Output(settings, input)
@@ -219,14 +197,17 @@ function build(settings)
 	end
 
 	if config.websockets.value then
-		settings.cc.defines:Add("WEBSOCKETS")
+		settings.cc.defines:Add("CONF_WEBSOCKETS")
 	end
 
 	if config.compiler.driver == "cl" then
 		settings.cc.flags:Add("/wd4244")
 		settings.cc.flags:Add("/EHsc")
 	else
-		settings.cc.flags:Add("-Wall")
+		settings.cc.flags:Add("-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
+		if config.compiler.driver == "gcc" then
+			settings.cc.flags_cxx:Add("-std=c++11")
+		end
 		if family == "windows" then
 			if config.compiler.driver == "gcc" then
 				settings.link.flags:Add("-static-libgcc")
@@ -257,7 +238,7 @@ function build(settings)
 		if platform == "macosx" then
 			settings.link.frameworks:Add("Carbon")
 			settings.link.frameworks:Add("AppKit")
-			settings.link.libs:Add("crypto")
+			-- settings.link.libs:Add("crypto")
 		else
 			settings.link.libs:Add("pthread")
 		end
@@ -279,6 +260,12 @@ function build(settings)
 		settings.link.libs:Add("advapi32")
 	end
 
+	external_settings = settings:Copy()
+	if config.compiler.driver == "cl" then
+		external_settings.cc.flags:Add("/w")
+	else
+		external_settings.cc.flags:Add("-w")
+	end
 	-- compile zlib if needed
 	if config.zlib.value == 1 then
 		settings.link.libs:Add("z")
@@ -287,17 +274,27 @@ function build(settings)
 		end
 		zlib = {}
 	else
-		zlib = Compile(settings, Collect("src/engine/external/zlib/*.c"))
+		zlib = Compile(external_settings, Collect("src/engine/external/zlib/*.c"))
 		settings.cc.includes:Add("src/engine/external/zlib")
 	end
 
+	external_settings = settings:Copy()
+	if config.compiler.driver == "cl" then
+		external_settings.cc.flags:Add("/w")
+	else
+		external_settings.cc.flags:Add("-w")
+	end
 	-- build the small libraries
-	wavpack = Compile(settings, Collect("src/engine/external/wavpack/*.c"))
-	pnglite = Compile(settings, Collect("src/engine/external/pnglite/*.c"))
-	jsonparser = Compile(settings, Collect("src/engine/external/json-parser/*.c"))
-	md5 = Compile(settings, "src/engine/external/md5/md5.c")
+	wavpack = Compile(external_settings, Collect("src/engine/external/wavpack/*.c"))
+	pnglite = Compile(external_settings, Collect("src/engine/external/pnglite/*.c"))
+	jsonparser = Compile(external_settings, Collect("src/engine/external/json-parser/*.c"))
+	md5 = Compile(external_settings, "src/engine/external/md5/md5.c")
+
+	external_settings.cc.flags:Add("-I src/engine/external/glew")
+	glew = Compile(external_settings, Collect("src/engine/external/glew/*.c"))
+
 	if config.websockets.value then
-		libwebsockets = Compile(settings, Collect("src/engine/external/libwebsockets/*.c"))
+		libwebsockets = Compile(external_settings, Collect("src/engine/external/libwebsockets/*.c"))
 	end
 
 	-- build game components
@@ -321,18 +318,20 @@ function build(settings)
 		end
 
 	elseif family == "windows" then
+		client_settings.cc.defines:Add("GLEW_STATIC")
+
 		if arch == "amd64" then
-			client_settings.link.libpath:Add("other/curl/windows/lib64")
+			client_settings.link.libpath:Add("ddnet-libs/curl/windows/lib64")
 		else
-			client_settings.link.libpath:Add("other/curl/windows/lib32")
+			client_settings.link.libpath:Add("ddnet-libs/curl/windows/lib32")
 		end
 		client_settings.link.libs:Add("opengl32")
 		client_settings.link.libs:Add("glu32")
 		client_settings.link.libs:Add("winmm")
-		client_settings.link.libs:Add("libopusfile-0")
+		client_settings.link.libs:Add("opusfile")
 		client_settings.link.libs:Add("curl")
 		if string.find(settings.config_name, "sql") then
-			server_settings.link.libpath:Add("other/mysql/vc2005libs")
+			server_settings.link.libpath:Add("ddnet-libs/mysql/vc2005libs")
 			server_settings.link.libs:Add("mysqlcppconn")
 		end
 	end
@@ -341,8 +340,6 @@ function build(settings)
 	config.freetype:Apply(client_settings)
 	config.curl:Apply(client_settings)
 	config.opusfile:Apply(client_settings)
-	config.opus:Apply(client_settings)
-	config.ogg:Apply(client_settings)
 
 	if family == "unix" and (platform == "macosx" or platform == "linux") then
 		engine_settings.link.libs:Add("dl")
@@ -355,7 +352,6 @@ function build(settings)
 	client = Compile(client_settings, Collect("src/engine/client/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
 
-	versionserver = Compile(settings, Collect("src/versionsrv/*.cpp"))
 	masterserver = Compile(settings, Collect("src/mastersrv/*.cpp"))
 	twping = Compile(settings, Collect("src/twping/*.cpp"))
 	game_shared = Compile(settings, Collect("src/game/*.cpp"), nethash, network_source)
@@ -380,12 +376,13 @@ function build(settings)
 	tools = {}
 	for i,v in ipairs(tools_src) do
 		toolname = PathFilename(PathBase(v))
-		tools[i] = Link(settings, toolname, Compile(settings, v), engine, zlib, pnglite, md5)
+		tools[i] = Link(settings, toolname, Compile(settings, v), engine,
+			zlib, pnglite, md5, game_shared, libwebsockets)
 	end
 
 	-- build client, server, version server and master server
 	client_exe = Link(client_settings, "DDNet", game_shared, game_client,
-		engine, client, game_editor, zlib, pnglite, wavpack,
+		engine, client, game_editor, zlib, pnglite, wavpack, glew,
 		client_link_other, client_osxlaunch, jsonparser, libwebsockets, md5, client_notification)
 
 	server_exe = Link(server_settings, "DDNet-Server", engine, server,
@@ -396,14 +393,11 @@ function build(settings)
 		serverlaunch = Link(launcher_settings, "serverlaunch", server_osxlaunch)
 	end
 
-	versionserver_exe = Link(server_settings, "versionsrv", versionserver,
-		engine, zlib, libwebsockets, md5)
-
 	masterserver_exe = Link(server_settings, "mastersrv", masterserver,
-		engine, zlib, md5)
+		engine, zlib, libwebsockets, md5, game_shared)
 
 	twping_exe = Link(server_settings, "twping", twping,
-		engine, zlib, md5)
+		engine, zlib, libwebsockets, md5, game_shared)
 
 	-- make targets
 	c = PseudoTarget("client".."_"..settings.config_name, client_exe, client_depends)

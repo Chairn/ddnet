@@ -4,6 +4,8 @@
 #define ENGINE_CLIENT_SERVERBROWSER_H
 
 #include <engine/serverbrowser.h>
+#include <engine/shared/memheap.h>
+#include <engine/external/json-parser/json.h>
 
 class CServerBrowser : public IServerBrowser
 {
@@ -13,8 +15,8 @@ public:
 	public:
 		NETADDR m_Addr;
 		int64 m_RequestTime;
-		bool m_Is64;
 		int m_GotInfo;
+		bool m_Request64Legacy;
 		CServerInfo m_Info;
 
 		CServerEntry *m_pNextIp; // ip hashed list
@@ -56,6 +58,7 @@ public:
 	};
 
 	CServerBrowser();
+	virtual ~CServerBrowser();
 
 	// interface functions
 	void Refresh(int Type);
@@ -72,7 +75,11 @@ public:
 	void AddFavorite(const NETADDR &Addr);
 	void RemoveFavorite(const NETADDR &Addr);
 
-	void LoadDDNet();
+	void LoadDDNetRanks();
+	void LoadDDNetServers();
+	void LoadDDNetInfoJson();
+	const json_value *LoadDDNetInfo();
+	int HasRank(const char *pMap);
 	int NumDDNetCountries() { return m_NumDDNetCountries; };
 	int GetDDNetCountryFlag(int Index) { return m_aDDNetCountries[Index].m_FlagID; };
 	const char *GetDDNetCountryName(int Index) { return m_aDDNetCountries[Index].m_aName; };
@@ -89,7 +96,7 @@ public:
 	//
 	void Update(bool ForceResort);
 	void Set(const NETADDR &Addr, int Type, int Token, const CServerInfo *pInfo);
-	void Request(const NETADDR &Addr) const;
+	void RequestCurrentServer(const NETADDR &Addr) const;
 
 	void SetBaseInfo(class CNetClient *pClient, const char *pNetVersion);
 
@@ -118,6 +125,8 @@ private:
 	char m_aDDNetTypes[MAX_DDNET_TYPES][32];
 	int m_NumDDNetTypes;
 
+	json_value *m_pDDNetInfo;
+
 	CServerEntry *m_aServerlistIp[256]; // ip hash list
 
 	CServerEntry *m_pFirstReqServer; // request list
@@ -141,13 +150,16 @@ private:
 	char m_aFilterString[64];
 	char m_aFilterGametypeString[128];
 
-	// the token is to keep server refresh separated from each other
-	int m_CurrentToken;
-
 	int m_ServerlistType;
 	int64 m_BroadcastTime;
+	int m_RequestNumber;
+	unsigned char m_aTokenSeed[16];
 
-	// sorting criterions
+	int GenerateToken(const NETADDR &Addr) const;
+	static int GetBasicToken(int Token);
+	static int GetExtraToken(int Token);
+
+	// sorting criteria
 	bool SortCompareName(int Index1, int Index2) const;
 	bool SortCompareMap(int Index1, int Index2) const;
 	bool SortComparePing(int Index1, int Index2) const;

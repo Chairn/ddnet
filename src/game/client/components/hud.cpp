@@ -47,12 +47,17 @@ void CHud::RenderGameTimer()
 	{
 		char Buf[32];
 		int Time = 0;
-		if(m_pClient->m_Snap.m_pGameInfoObj->m_TimeLimit && !m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer)
+		if(m_pClient->m_Snap.m_pGameInfoObj->m_TimeLimit && (m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer <= 0))
 		{
 			Time = m_pClient->m_Snap.m_pGameInfoObj->m_TimeLimit*60 - ((Client()->GameTick()-m_pClient->m_Snap.m_pGameInfoObj->m_RoundStartTick)/Client()->GameTickSpeed());
 
 			if(m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER)
 				Time = 0;
+		}
+		else if(m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_RACETIME)
+		{
+			//The Warmup timer is negative in this case to make sure that incompatible clients will not see a warmup timer
+			Time = (Client()->GameTick()+m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer)/Client()->GameTickSpeed();
 		}
 		else
 			Time = (Client()->GameTick()-m_pClient->m_Snap.m_pGameInfoObj->m_RoundStartTick)/Client()->GameTickSpeed();
@@ -77,7 +82,7 @@ void CHud::RenderGameTimer()
 		else
 			w = TextRender()->TextWidth(0, 12,"00:00",-1);
 		// last 60 sec red, last 10 sec blink
-		if(m_pClient->m_Snap.m_pGameInfoObj->m_TimeLimit && Time <= 60 && !m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer)
+		if(m_pClient->m_Snap.m_pGameInfoObj->m_TimeLimit && Time <= 60 && (m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer <= 0))
 		{
 			float Alpha = Time <= 10 && (2*time_get()/time_freq()) % 2 ? 0.5f : 1.0f;
 			TextRender()->TextColor(1.0f, 0.25f, 0.25f, Alpha);
@@ -283,7 +288,7 @@ void CHud::RenderScoreHud()
 void CHud::RenderWarmupTimer()
 {
 	// render warmup timer
-	if(m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer)
+	if(m_pClient->m_Snap.m_pGameInfoObj->m_WarmupTimer > 0 && !(m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_RACETIME))
 	{
 		char Buf[256];
 		float FontSize = 20.0f;
@@ -310,13 +315,16 @@ void CHud::MapscreenToGroup(float CenterX, float CenterY, CMapItemGroup *pGroup)
 
 void CHud::RenderTextInfo()
 {
-	if(g_Config.m_ClShowfps)
+	if(g_Config.m_ClShowfps > 0)
 	{
 		// calculate avg. fps
 		float FPS = 1.0f / Client()->RenderFrameTime();
 		m_AverageFPS = (m_AverageFPS*(1.0f-(1.0f/m_AverageFPS))) + (FPS*(1.0f/m_AverageFPS));
 		char Buf[512];
-		str_format(Buf, sizeof(Buf), "%d", (int)m_AverageFPS);
+		if(g_Config.m_ClShowfps == 2)
+			str_format(Buf, sizeof(Buf), "%d", (int)m_AverageFPS);
+		else
+			str_format(Buf, sizeof(Buf), "%d", (int)FPS);
 		TextRender()->Text(0, m_Width-10-TextRender()->TextWidth(0,12,Buf,-1), 5, 12, Buf, -1);
 	}
 	if(g_Config.m_ClShowpred)
@@ -551,15 +559,10 @@ void CHud::RenderLocalTime(float x)
 	RenderTools()->DrawRoundRectExt(x-30.0f, 0.0f, 25.0f, 12.5f, 3.75f, CUI::CORNER_B);
 	Graphics()->QuadsEnd();
 
-	time_t rawtime;
-	struct tm *timeinfo;
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
 	//draw the text
-	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min);
-	TextRender()->Text(0, x-25.0f, 2.5f, 5.0f, aBuf, -1);
+	char aTimeStr[6];
+	str_timestamp_format(aTimeStr, sizeof(aTimeStr), "%H:%M");
+	TextRender()->Text(0, x-25.0f, 2.5f, 5.0f, aTimeStr, -1);
 }
 
 void CHud::OnRender()

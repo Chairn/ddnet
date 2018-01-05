@@ -14,6 +14,7 @@
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "player.h"
+#include "teehistorian.h"
 
 #include "score.h"
 #ifdef _MSC_VER
@@ -48,18 +49,29 @@ typedef unsigned __int64 uint64_t;
 
 enum
 {
-	NUM_TUNINGZONES = 256
+	NUM_TUNEZONES = 256
 };
+
+class IStorage;
 
 class CGameContext : public IGameServer
 {
 	IServer *m_pServer;
 	class IConsole *m_pConsole;
+	IStorage *m_pStorage;
 	CLayers m_Layers;
 	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
-	CTuningParams m_TuningList[NUM_TUNINGZONES];
+	CTuningParams m_aTuningList[NUM_TUNEZONES];
+
+	bool m_TeeHistorianActive;
+	CTeeHistorian m_TeeHistorian;
+	ASYNCIO *m_pTeeHistorianFile;
+	CUuid m_GameUuid;
+
+	static void CommandCallback(int ClientID, int FlagMask, const char *pCmd, IConsole::IResult *pResult, void *pUser);
+	static void TeeHistorianWrite(const void *pData, int DataSize, void *pUser);
 
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneReset(IConsole::IResult *pResult, void *pUserData);
@@ -98,9 +110,10 @@ class CGameContext : public IGameServer
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
+	IStorage *Storage() { return m_pStorage; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
-	CTuningParams *TuningList() { return &m_TuningList[0]; }
+	CTuningParams *TuningList() { return &m_aTuningList[0]; }
 
 	CGameContext();
 	~CGameContext();
@@ -134,8 +147,8 @@ public:
 	char m_aVoteReason[VOTE_REASON_LENGTH];
 	int m_NumVoteOptions;
 	int m_VoteEnforce;
-	char m_ZoneEnterMsg[NUM_TUNINGZONES][256]; // 0 is used for switching from or to area without tunings
-	char m_ZoneLeaveMsg[NUM_TUNINGZONES][256];
+	char m_aaZoneEnterMsg[NUM_TUNEZONES][256]; // 0 is used for switching from or to area without tunings
+	char m_aaZoneLeaveMsg[NUM_TUNEZONES][256];
 
 	char m_aDeleteTempfile[128];
 	void DeleteTempfile();
@@ -212,6 +225,9 @@ public:
 	virtual void OnClientDirectInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedInput(int ClientID, void *pInput);
 
+	virtual void OnClientEngineJoin(int ClientID);
+	virtual void OnClientEngineDrop(int ClientID, const char *pReason);
+
 	virtual bool IsClientReady(int ClientID);
 	virtual bool IsClientPlayer(int ClientID);
 
@@ -226,6 +242,9 @@ public:
 	// Describes the time when the first player joined the server.
 	int64 m_NonEmptySince;
 	int64 m_LastMapVote;
+	int GetClientVersion(int ClientID);
+	void SetClientVersion(int ClientID, int Version);
+	bool PlayerExists(int ClientID) { return m_apPlayers[ClientID]; };
 
 private:
 
@@ -246,10 +265,12 @@ private:
 	static void ConShotgun(IConsole::IResult *pResult, void *pUserData);
 	static void ConGrenade(IConsole::IResult *pResult, void *pUserData);
 	static void ConRifle(IConsole::IResult *pResult, void *pUserData);
+	static void ConJetpack(IConsole::IResult *pResult, void *pUserData);
 	static void ConWeapons(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnShotgun(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnGrenade(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnRifle(IConsole::IResult *pResult, void *pUserData);
+	static void ConUnJetpack(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnWeapons(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddWeapon(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveWeapon(IConsole::IResult *pResult, void *pUserData);
@@ -296,6 +317,7 @@ private:
 	static void ConBroadTime(IConsole::IResult *pResult, void *pUserData);
 	static void ConJoinTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConLockTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConInviteTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConMe(IConsole::IResult *pResult, void *pUserData);
 	static void ConWhisper(IConsole::IResult *pResult, void *pUserData);
 	static void ConConverse(IConsole::IResult *pResult, void *pUserData);
@@ -322,6 +344,7 @@ private:
 	static void ConMutes(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConList(IConsole::IResult *pResult, void *pUserData);
+	static void ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnFreezeHammer(IConsole::IResult *pResult, void *pUserData);
 

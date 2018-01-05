@@ -31,7 +31,6 @@
 #include <game/client/lineinput.h>
 #include <game/localization.h>
 #include <mastersrv/mastersrv.h>
-#include <versionsrv/versionsrv.h>
 
 #include "countryflags.h"
 #include "menus.h"
@@ -365,6 +364,31 @@ int CMenus::DoEditBox(void *pID, const CUIRect *pRect, char *pStr, unsigned StrS
 		pDisplayStr = aStars;
 	}
 
+	char aInputing[32] = {0};
+	if(UI()->HotItem() == pID && Input()->GetIMEState())
+	{
+		str_copy(aInputing, pStr, sizeof(aInputing));
+		const char *Text = Input()->GetIMECandidate();
+		if (str_length(Text))
+		{
+		int NewTextLen = str_length(Text);
+		int CharsLeft = StrSize - str_length(aInputing) - 1;
+		int FillCharLen = min(NewTextLen, CharsLeft);
+		//Push Char Backward
+		for(int i = str_length(aInputing); i >= s_AtIndex ; i--)
+			aInputing[i+FillCharLen] = aInputing[i];
+		for(int i = 0; i < FillCharLen; i++)
+		{
+			if(Text[i] == '\n')
+				aInputing[s_AtIndex + i] = ' ';
+			else
+				aInputing[s_AtIndex + i] = Text[i];
+		}
+		//s_AtIndex = s_AtIndex+FillCharLen;
+		pDisplayStr = aInputing;
+		}
+	}
+
 	// check if the text has to be moved
 	if(UI()->LastActiveItem() == pID && !JustGotActive && (UpdateOffset || m_NumInputEvents))
 	{
@@ -399,6 +423,15 @@ int CMenus::DoEditBox(void *pID, const CUIRect *pRect, char *pStr, unsigned StrS
 	// render the cursor
 	if(UI()->LastActiveItem() == pID && !JustGotActive)
 	{
+		if (str_length(aInputing))
+		{
+			float w = TextRender()->TextWidth(0, FontSize, pDisplayStr, s_AtIndex + Input()->GetEditingCursor());
+			Textbox = *pRect;
+			Textbox.VSplitLeft(2.0f, 0, &Textbox);
+			Textbox.x += (w-*Offset-TextRender()->TextWidth(0, FontSize, "|", -1)/2);
+
+			UI()->DoLabel(&Textbox, "|", FontSize, -1);
+		}
 		float w = TextRender()->TextWidth(0, FontSize, pDisplayStr, s_AtIndex);
 		Textbox = *pRect;
 		Textbox.VSplitLeft(2.0f, 0, &Textbox);
@@ -662,7 +695,10 @@ int CMenus::RenderMenubar(CUIRect r)
 		if(DoButton_MenuTab(&s_DDNetButton, Localize("DDNet"), m_ActivePage==PAGE_DDNET, &Button, CUI::CORNER_TR))
 		{
 			if(ServerBrowser()->GetCurrentType() != IServerBrowser::TYPE_DDNET)
+			{
+				Client()->RequestDDNetInfo();
 				ServerBrowser()->Refresh(IServerBrowser::TYPE_DDNET);
+			}
 			NewPage = PAGE_DDNET;
 			m_DoubleClickIndex = -1;
 		}
@@ -742,7 +778,7 @@ int CMenus::RenderMenubar(CUIRect r)
 	Box.VSplitRight(10.0f, &Box, &Button);
 	Box.VSplitRight(30.0f, &Box, &Button);
 	static int s_EditorButton=0;
-	if(DoButton_MenuTab(&s_EditorButton, Localize("✎"), 0, &Button, CUI::CORNER_T))
+	if(DoButton_MenuTab(&s_EditorButton, "✎", 0, &Button, CUI::CORNER_T))
 	{
 		g_Config.m_ClEditor = 1;
 	}
@@ -889,11 +925,7 @@ void CMenus::OnInit()
 	// */
 
 	if(g_Config.m_ClShowWelcome)
-	{
 		m_Popup = POPUP_LANGUAGE;
-		str_copy(g_Config.m_BrFilterString, "Novice [DDraceNetwork]", sizeof(g_Config.m_BrFilterString));
-	}
-	g_Config.m_ClShowWelcome = 0;
 
 	Console()->Chain("add_favorite", ConchainServerbrowserUpdate, this);
 	Console()->Chain("remove_favorite", ConchainServerbrowserUpdate, this);
@@ -975,16 +1007,13 @@ int CMenus::Render()
 
 	if(m_Popup == POPUP_NONE)
 	{
-		// do tab bar
 #if defined(__ANDROID__)
 		Screen.HSplitTop(100.0f, &TabBar, &MainView);
 #else
 		Screen.HSplitTop(24.0f, &TabBar, &MainView);
 #endif
-		TabBar.VMargin(20.0f, &TabBar);
-		RenderMenubar(TabBar);
 
-		// news is not implemented yet
+		// render news
 		if(g_Config.m_UiPage < PAGE_NEWS || g_Config.m_UiPage > PAGE_SETTINGS || (Client()->State() == IClient::STATE_OFFLINE && g_Config.m_UiPage >= PAGE_GAME && g_Config.m_UiPage <= PAGE_CALLVOTE))
 		{
 			ServerBrowser()->Refresh(IServerBrowser::TYPE_INTERNET);
@@ -1026,6 +1055,10 @@ int CMenus::Render()
 			RenderServerbrowser(MainView);
 		else if(g_Config.m_UiPage == PAGE_SETTINGS)
 			RenderSettings(MainView);
+
+		// do tab bar
+		TabBar.VMargin(20.0f, &TabBar);
+		RenderMenubar(TabBar);
 	}
 	else
 	{
@@ -1063,7 +1096,7 @@ int CMenus::Render()
 			pButtonText = Localize("Ok");
 			if(Client()->m_ReconnectTime > 0)
 			{
-				str_format(aBuf, sizeof(aBuf), Localize("\n\nReconnect in %d sec"), ((Client()->m_ReconnectTime - time_get()) / time_freq() + g_Config.m_ClReconnectFull));
+				str_format(aBuf, sizeof(aBuf), Localize("\n\nReconnect in %d sec"), (int)((Client()->m_ReconnectTime - time_get()) / time_freq() + g_Config.m_ClReconnectFull));
 				pTitle = Client()->ErrorString();
 				pExtraText = aBuf;
 				pButtonText = Localize("Abort");
@@ -1122,7 +1155,7 @@ int CMenus::Render()
 		}
 		else if(m_Popup == POPUP_FIRST_LAUNCH)
 		{
-			pTitle = Localize("Welcome to Teeworlds");
+			pTitle = Localize("Welcome to DDNet");
 			pExtraText = Localize("As this is the first time you launch the game, please enter your nick name below. It's recommended that you check the settings to adjust them to your liking before joining a server.");
 			pButtonText = Localize("Ok");
 			ExtraAlign = -1;
@@ -1243,7 +1276,7 @@ int CMenus::Render()
 			static int s_ButtonTryAgain = 0;
 			if(DoButton_Menu(&s_ButtonTryAgain, Localize("Try again"), 0, &TryAgain) || m_EnterPressed)
 			{
-				Client()->Connect(g_Config.m_UiServerAddress);
+				Client()->Connect(g_Config.m_UiServerAddress, g_Config.m_Password);
 			}
 
 			Box.HSplitBottom(60.f, &Box, &Part);
@@ -1309,18 +1342,18 @@ int CMenus::Render()
 				UI()->DoLabel(&Part, aBuf, 20.f, 0, -1);
 
 				// time left
-				const char *pTimeLeftString;
 				int TimeLeft = max(1, m_DownloadSpeed > 0.0f ? static_cast<int>((Client()->MapDownloadTotalsize()-Client()->MapDownloadAmount())/m_DownloadSpeed) : 1);
 				if(TimeLeft >= 60)
 				{
 					TimeLeft /= 60;
-					pTimeLeftString = TimeLeft == 1 ? Localize("%i minute left") : Localize("%i minutes left");
+					str_format(aBuf, sizeof(aBuf), TimeLeft == 1 ? Localize("%i minute left") : Localize("%i minutes left"), TimeLeft);
 				}
 				else
-					pTimeLeftString = TimeLeft == 1 ? Localize("%i second left") : Localize("%i seconds left");
+				{
+					str_format(aBuf, sizeof(aBuf), TimeLeft == 1 ? Localize("%i second left") : Localize("%i seconds left"), TimeLeft);
+				}
 				Box.HSplitTop(20.f, 0, &Box);
 				Box.HSplitTop(24.f, &Part, &Box);
-				str_format(aBuf, sizeof(aBuf), pTimeLeftString, TimeLeft);
 				UI()->DoLabel(&Part, aBuf, 20.f, 0, -1);
 
 				// progress bar
@@ -1572,9 +1605,22 @@ int CMenus::Render()
 
 			static int s_EnterButton = 0;
 			if(DoButton_Menu(&s_EnterButton, Localize("Enter"), 0, &Part) || m_EnterPressed)
+			{
+				Client()->RequestDDNetInfo();
 				m_Popup = POPUP_NONE;
+			}
 
-			Box.HSplitBottom(40.f, &Box, &Part);
+			Box.HSplitBottom(20.f, &Box, &Part);
+#if defined(__ANDROID__)
+			Box.HSplitBottom(60.f, &Box, &Part);
+#else
+			Box.HSplitBottom(24.f, &Box, &Part);
+#endif
+
+			Part.VSplitLeft(60.0f, 0, &Part);
+			if (DoButton_CheckBox(&g_Config.m_BrIndicateFinished, Localize("Show DDNet map finishes in server browser\n(transmits your player name to info.ddnet.tw)"), g_Config.m_BrIndicateFinished, &Part))
+				g_Config.m_BrIndicateFinished ^= 1;
+
 #if defined(__ANDROID__)
 			Box.HSplitBottom(60.f, &Box, &Part);
 #else
@@ -1617,6 +1663,8 @@ int CMenus::Render()
 
 void CMenus::SetActive(bool Active)
 {
+	if(Active != m_MenuActive)
+		Input()->SetIMEState(Active);
 	m_MenuActive = Active;
 #if defined(__ANDROID__)
 	UI()->AndroidShowScreenKeys(!m_MenuActive && !m_pClient->m_pControls->m_UsingGamepad);

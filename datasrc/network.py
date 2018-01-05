@@ -3,7 +3,7 @@ from datatypes import *
 Emotes = ["NORMAL", "PAIN", "HAPPY", "SURPRISE", "ANGRY", "BLINK"]
 PlayerFlags = ["PLAYING", "IN_MENU", "CHATTING", "SCOREBOARD", "AIM"]
 GameFlags = ["TEAMS", "FLAGS"]
-GameStateFlags = ["GAMEOVER", "SUDDENDEATH", "PAUSED"]
+GameStateFlags = ["GAMEOVER", "SUDDENDEATH", "PAUSED", "RACETIME"]
 
 Emoticons = ["OOP", "EXCLAMATION", "HEARTS", "DROP", "DOTDOT", "MUSIC", "SORRY", "GHOST", "SUSHI", "SPLATTEE", "DEVILTEE", "ZOMG", "ZZZ", "WTF", "EYES", "QUESTION"]
 
@@ -12,6 +12,7 @@ Powerups = ["HEALTH", "ARMOR", "WEAPON", "NINJA"]
 RawHeader = '''
 
 #include <engine/message.h>
+#include <engine/shared/protocol_ex.h>
 
 enum
 {
@@ -106,7 +107,7 @@ Objects = [
 		NetIntRange("m_GameFlags", 0, 256),
 		NetIntRange("m_GameStateFlags", 0, 256),
 		NetTick("m_RoundStartTick"),
-		NetIntRange("m_WarmupTimer", 0, 'max_int'),
+		NetIntRange("m_WarmupTimer", 'min_int', 'max_int'),
 
 		NetIntRange("m_ScoreLimit", 0, 'max_int'),
 		NetIntRange("m_TimeLimit", 0, 'max_int'),
@@ -189,6 +190,10 @@ Objects = [
 		NetIntAny("m_Y"),
 	]),
 
+	NetObjectEx("MyOwnObject", "my-own-object@heinrich5991.de", [
+		NetIntAny("m_Test"),
+	]),
+
 	## Events
 
 	NetEvent("Common", [
@@ -215,6 +220,10 @@ Objects = [
 
 	NetEvent("DamageInd:Common", [
 		NetIntAny("m_Angle"),
+	]),
+
+	NetObjectEx("MyOwnEvent", "my-own-event@heinrich5991.de", [
+		NetIntAny("m_Test"),
 	]),
 ]
 
@@ -296,7 +305,7 @@ Messages = [
 	NetMessage("Cl_Say", [
 		NetBool("m_Team"),
 		NetStringHalfStrict("m_pMessage"),
-	]),
+	], teehistorian=False),
 
 	NetMessage("Cl_SetTeam", [
 		NetIntRange("m_Team", 'TEAM_SPECTATORS', 'TEAM_BLUE'),
@@ -334,13 +343,13 @@ Messages = [
 
 	NetMessage("Cl_Vote", [
 		NetIntRange("m_Vote", -1, 1),
-	]),
+	], teehistorian=False),
 
 	NetMessage("Cl_CallVote", [
 		NetStringStrict("m_Type"),
 		NetStringStrict("m_Value"),
 		NetStringStrict("m_Reason"),
-	]),
+	], teehistorian=False),
 
 	NetMessage("Cl_IsDDNet", []),
 
@@ -364,6 +373,10 @@ Messages = [
 
 	NetMessage("Cl_ShowOthers", [
 		NetBool("m_Show"),
-	])
+	]),
 # Can't add any NetMessages here!
+
+	NetMessageEx("Sv_MyOwnMessage", "my-own-message@heinrich5991.de", [
+		NetIntAny("m_Test"),
+	]),
 ]

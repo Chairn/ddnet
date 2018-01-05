@@ -5,6 +5,7 @@
 #include <base/math.h>
 #include <base/system.h>
 
+#include <engine/external/md5/md5.h>
 #include <engine/shared/config.h>
 #include <engine/shared/memheap.h>
 #include <engine/shared/network.h>
@@ -56,11 +57,18 @@ CServerBrowser::CServerBrowser()
 	m_aFilterString[0] = 0;
 	m_aFilterGametypeString[0] = 0;
 
-	// the token is to keep server refresh separated from each other
-	m_CurrentToken = 1;
-
 	m_ServerlistType = 0;
 	m_BroadcastTime = 0;
+	secure_random_fill(m_aTokenSeed, sizeof(m_aTokenSeed));
+	m_RequestNumber = 0;
+
+	m_pDDNetInfo = 0;
+}
+
+CServerBrowser::~CServerBrowser()
+{
+	if(m_pDDNetInfo)
+		json_value_free(m_pDDNetInfo);
 }
 
 void CServerBrowser::SetBaseInfo(class CNetClient *pClient, const char *pNetVersion)
@@ -82,6 +90,28 @@ const CServerInfo *CServerBrowser::SortedGet(int Index) const
 	return &m_ppServerlist[m_pSortedServerlist[Index]]->m_Info;
 }
 
+int CServerBrowser::GenerateToken(const NETADDR &Addr) const
+{
+	md5_state_t Md5;
+	md5_byte_t aDigest[16];
+
+	md5_init(&Md5);
+	md5_append(&Md5, m_aTokenSeed, sizeof(m_aTokenSeed));
+	md5_append(&Md5, (unsigned char *)&Addr, sizeof(Addr));
+	md5_finish(&Md5, aDigest);
+
+	return (aDigest[0] << 16) | (aDigest[1] << 8) | aDigest[2];
+}
+
+int CServerBrowser::GetBasicToken(int Token)
+{
+	return Token & 0xff;
+}
+
+int CServerBrowser::GetExtraToken(int Token)
+{
+	return Token >> 8;
+}
 
 bool CServerBrowser::SortCompareName(int Index1, int Index2) const
 {
@@ -188,6 +218,8 @@ void CServerBrowser::Filter()
 			Filtered = 1;
 		else if(!g_Config.m_BrFilterGametypeStrict && g_Config.m_BrFilterGametype[0] && !str_find_nocase(m_ppServerlist[i]->m_Info.m_aGameType, g_Config.m_BrFilterGametype))
 			Filtered = 1;
+		else if(g_Config.m_BrFilterUnfinishedMap && m_ppServerlist[i]->m_Info.m_HasRank != 0)
+			Filtered = 1;
 		else
 		{
 			if(g_Config.m_BrFilterCountry)
@@ -255,6 +287,12 @@ void CServerBrowser::Filter()
 				{
 					MatchFound = 1;
 				}
+				
+				// match against gametype
+				if(str_find_nocase(m_ppServerlist[i]->m_Info.m_aGameType, g_Config.m_BrExcludeString))
+				{
+					MatchFound = 1;
+				}
 
 				if(MatchFound)
 					Filtered = 1;
@@ -291,8 +329,9 @@ int CServerBrowser::SortHash() const
 	i |= g_Config.m_BrFilterPure<<11;
 	i |= g_Config.m_BrFilterPureMap<<12;
 	i |= g_Config.m_BrFilterGametypeStrict<<13;
-	i |= g_Config.m_BrFilterCountry<<14;
-	i |= g_Config.m_BrFilterPing<<15;
+	i |= g_Config.m_BrFilterUnfinishedMap<<14;
+	i |= g_Config.m_BrFilterCountry<<15;
+	i |= g_Config.m_BrFilterPing<<16;
 	return i;
 }
 
@@ -409,6 +448,7 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR &Addr)
 	pEntry->m_Info.m_NetAddr = Addr;
 
 	pEntry->m_Info.m_Latency = 999;
+	pEntry->m_Info.m_HasRank = -1;
 	net_addr_str(&Addr, pEntry->m_Info.m_aAddress, sizeof(pEntry->m_Info.m_aAddress), true);
 	str_copy(pEntry->m_Info.m_aName, pEntry->m_Info.m_aAddress, sizeof(pEntry->m_Info.m_aName));
 
@@ -443,14 +483,12 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR &Addr)
 
 void CServerBrowser::Set(const NETADDR &Addr, int Type, int Token, const CServerInfo *pInfo)
 {
-	static int temp = 0;
 	CServerEntry *pEntry = 0;
 	if(Type == IServerBrowser::SET_MASTER_ADD)
 	{
 		if(m_ServerlistType != IServerBrowser::TYPE_INTERNET)
 			return;
 		m_LastPacketTick = 0;
-		++temp;
 		if(!Find(Addr))
 		{
 			pEntry = Add(Addr);
@@ -481,14 +519,48 @@ void CServerBrowser::Set(const NETADDR &Addr, int Type, int Token, const CServer
 	}
 	else if(Type == IServerBrowser::SET_TOKEN)
 	{
-		if(Token != m_CurrentToken)
-			return;
+		int BasicToken = Token;
+		int ExtraToken = 0;
+		if(pInfo->m_Type == SERVERINFO_EXTENDED)
+		{
+			BasicToken = Token & 0xff;
+			ExtraToken = Token >> 8;
+		}
 
 		pEntry = Find(Addr);
+		if(m_ServerlistType != IServerBrowser::TYPE_LAN)
+		{
+			if(!pEntry)
+			{
+				return;
+			}
+			int Token = GenerateToken(Addr);
+			bool Drop = false;
+			Drop = Drop || BasicToken != GetBasicToken(Token);
+			Drop = Drop || (pInfo->m_Type == SERVERINFO_EXTENDED && ExtraToken != GetExtraToken(Token));
+			if(Drop)
+			{
+				return;
+			}
+		}
 		if(!pEntry)
 			pEntry = Add(Addr);
 		if(pEntry)
 		{
+			if(m_ServerlistType == IServerBrowser::TYPE_LAN)
+			{
+				NETADDR Broadcast;
+				mem_zero(&Broadcast, sizeof(Broadcast));
+				Broadcast.type = m_pNetClient->NetType()|NETTYPE_LINK_BROADCAST;
+				int Token = GenerateToken(Broadcast);
+				bool Drop = false;
+				Drop = Drop || BasicToken != GetBasicToken(Token);
+				Drop = Drop || (pInfo->m_Type == SERVERINFO_EXTENDED && ExtraToken != GetExtraToken(Token));
+				if(Drop)
+				{
+					return;
+				}
+			}
 			SetInfo(pEntry, *pInfo);
 			if (m_ServerlistType == IServerBrowser::TYPE_LAN)
 				pEntry->m_Info.m_Latency = min(static_cast<int>((time_get()-m_BroadcastTime)*1000/time_freq()), 999);
@@ -515,10 +587,8 @@ void CServerBrowser::Refresh(int Type)
 	m_pLastReqServer = 0;
 	m_NumRequests = 0;
 	m_CurrentMaxRequests = g_Config.m_BrMaxRequests;
-	// next token
-	m_CurrentToken = (m_CurrentToken+1)&0xff;
+	m_RequestNumber++;
 
-	//
 	m_ServerlistType = Type;
 
 	if(Type == IServerBrowser::TYPE_LAN)
@@ -527,16 +597,22 @@ void CServerBrowser::Refresh(int Type)
 		CNetChunk Packet;
 		int i;
 
-		mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
-		Buffer[sizeof(SERVERBROWSE_GETINFO)] = m_CurrentToken;
-
 		/* do the broadcast version */
 		Packet.m_ClientID = -1;
 		mem_zero(&Packet, sizeof(Packet));
 		Packet.m_Address.type = m_pNetClient->NetType()|NETTYPE_LINK_BROADCAST;
-		Packet.m_Flags = NETSENDFLAG_CONNLESS;
+		Packet.m_Flags = NETSENDFLAG_CONNLESS|NETSENDFLAG_EXTENDED;
 		Packet.m_DataSize = sizeof(Buffer);
 		Packet.m_pData = Buffer;
+		mem_zero(&Packet.m_aExtraData, sizeof(Packet.m_aExtraData));
+
+		int Token = GenerateToken(Packet.m_Address);
+		mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
+		Buffer[sizeof(SERVERBROWSE_GETINFO)] = GetBasicToken(Token);
+
+		Packet.m_aExtraData[0] = GetExtraToken(Token) >> 8;
+		Packet.m_aExtraData[1] = GetExtraToken(Token) & 0xff;
+
 		m_BroadcastTime = time_get();
 
 		for(i = 8303; i <= 8310; i++)
@@ -557,8 +633,6 @@ void CServerBrowser::Refresh(int Type)
 	}
 	else if(Type == IServerBrowser::TYPE_DDNET)
 	{
-		LoadDDNet();
-
 		// remove unknown elements of exclude list
 		DDNetCountryFilterClean();
 		DDNetTypeFilterClean();
@@ -594,14 +668,19 @@ void CServerBrowser::RequestImpl(const NETADDR &Addr, CServerEntry *pEntry) cons
 		m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client_srvbrowse", aBuf);
 	}
 
+	int Token = GenerateToken(Addr);
+
 	mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
-	Buffer[sizeof(SERVERBROWSE_GETINFO)] = m_CurrentToken;
+	Buffer[sizeof(SERVERBROWSE_GETINFO)] = GetBasicToken(Token);
 
 	Packet.m_ClientID = -1;
 	Packet.m_Address = Addr;
-	Packet.m_Flags = NETSENDFLAG_CONNLESS;
+	Packet.m_Flags = NETSENDFLAG_CONNLESS|NETSENDFLAG_EXTENDED;
 	Packet.m_DataSize = sizeof(Buffer);
 	Packet.m_pData = Buffer;
+	mem_zero(&Packet.m_aExtraData, sizeof(Packet.m_aExtraData));
+	Packet.m_aExtraData[0] = GetExtraToken(Token) >> 8;
+	Packet.m_aExtraData[1] = GetExtraToken(Token) & 0xff;
 
 	m_pNetClient->Send(&Packet);
 
@@ -611,7 +690,7 @@ void CServerBrowser::RequestImpl(const NETADDR &Addr, CServerEntry *pEntry) cons
 
 void CServerBrowser::RequestImpl64(const NETADDR &Addr, CServerEntry *pEntry) const
 {
-	unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO64)+1];
+	unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO_64_LEGACY)+1];
 	CNetChunk Packet;
 
 	if(g_Config.m_Debug)
@@ -623,8 +702,8 @@ void CServerBrowser::RequestImpl64(const NETADDR &Addr, CServerEntry *pEntry) co
 		m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client_srvbrowse", aBuf);
 	}
 
-	mem_copy(Buffer, SERVERBROWSE_GETINFO64, sizeof(SERVERBROWSE_GETINFO64));
-	Buffer[sizeof(SERVERBROWSE_GETINFO64)] = m_CurrentToken;
+	mem_copy(Buffer, SERVERBROWSE_GETINFO_64_LEGACY, sizeof(SERVERBROWSE_GETINFO_64_LEGACY));
+	Buffer[sizeof(SERVERBROWSE_GETINFO_64_LEGACY)] = GetBasicToken(GenerateToken(Addr));
 
 	Packet.m_ClientID = -1;
 	Packet.m_Address = Addr;
@@ -638,10 +717,8 @@ void CServerBrowser::RequestImpl64(const NETADDR &Addr, CServerEntry *pEntry) co
 		pEntry->m_RequestTime = time_get();
 }
 
-void CServerBrowser::Request(const NETADDR &Addr) const
+void CServerBrowser::RequestCurrentServer(const NETADDR &Addr) const
 {
-	// Call both because we can't know what kind the server is
-	RequestImpl64(Addr, 0);
 	RequestImpl(Addr, 0);
 }
 
@@ -774,7 +851,7 @@ void CServerBrowser::Update(bool ForceResort)
 
 		if(pEntry->m_RequestTime == 0)
 		{
-			if (pEntry->m_Is64)
+			if (pEntry->m_Request64Legacy)
 				RequestImpl64(pEntry->m_Addr, pEntry);
 			else
 				RequestImpl(pEntry->m_Addr, pEntry);
@@ -883,91 +960,170 @@ void CServerBrowser::RemoveFavorite(const NETADDR &Addr)
 	}
 }
 
-void CServerBrowser::LoadDDNet()
+void CServerBrowser::LoadDDNetServers()
 {
+	if (!m_pDDNetInfo)
+		return;
+
+	// parse JSON
+	const json_value *pServers = json_object_get(m_pDDNetInfo, "servers");
+
+	if (!pServers || pServers->type != json_array)
+		return;
+
 	// reset servers / countries
 	m_NumDDNetCountries = 0;
 	m_NumDDNetTypes = 0;
 
-	// load ddnet server list
-	IStorage *pStorage = Kernel()->RequestInterface<IStorage>();
-	IOHANDLE File = pStorage->OpenFile("ddnet-servers.json", IOFLAG_READ, IStorage::TYPE_ALL);
-
-	if(File)
+	for (int i = 0; i < json_array_length(pServers) && m_NumDDNetCountries < MAX_DDNET_COUNTRIES; i++)
 	{
-		char aBuf[4096*4];
-		mem_zero(aBuf, sizeof(aBuf));
+		// pSrv - { name, flagId, servers }
+		const json_value *pSrv = json_array_get(pServers, i);
+		const json_value *pTypes = json_object_get(pSrv, "servers");
+		const json_value *pName = json_object_get(pSrv, "name");
+		const json_value *pFlagID = json_object_get(pSrv, "flagId");
 
-		io_read(File, aBuf, sizeof(aBuf));
-		io_close(File);
-
-
-		// parse JSON
-		json_value *pCountries = json_parse(aBuf);
-
-		if (pCountries && pCountries->type == json_array)
+		if (pSrv->type != json_object || pTypes->type != json_object || pName->type != json_string || pFlagID->type != json_integer)
 		{
-			for (int i = 0; i < json_array_length(pCountries) && m_NumDDNetCountries < MAX_DDNET_COUNTRIES; i++)
-			{
-				// pSrv - { name, flagId, servers }
-				const json_value *pSrv = json_array_get(pCountries, i);
-				const json_value *pTypes = json_object_get(pSrv, "servers");
-				const json_value *pName = json_object_get(pSrv, "name");
-				const json_value *pFlagID = json_object_get(pSrv, "flagId");
+			dbg_msg("client_srvbrowse", "invalid attributes");
+			continue;
+		}
 
-				if (pSrv->type != json_object || pTypes->type != json_object || pName->type != json_string || pFlagID->type != json_integer)
+		// build structure
+		CDDNetCountry *pCntr = &m_aDDNetCountries[m_NumDDNetCountries];
+
+		pCntr->Reset();
+
+		str_copy(pCntr->m_aName, json_string_get(pName), sizeof(pCntr->m_aName));
+		pCntr->m_FlagID = json_int_get(pFlagID);
+
+		// add country
+		for (unsigned int t = 0; t < pTypes->u.object.length; t++)
+		{
+			const char *pType = pTypes->u.object.values[t].name;
+			const json_value *pAddrs = pTypes->u.object.values[t].value;
+
+			if (pAddrs->type != json_array)
+			{
+				dbg_msg("client_srvbrowse", "invalid attributes");
+				continue;
+			}
+
+			// add type
+			if(json_array_length(pAddrs) > 0 && m_NumDDNetTypes < MAX_DDNET_TYPES)
+			{
+				int Pos;
+				for(Pos = 0; Pos < m_NumDDNetTypes; Pos++)
+				{
+					if(!str_comp(m_aDDNetTypes[Pos], pType))
+						break;
+				}
+				if(Pos == m_NumDDNetTypes)
+				{
+					str_copy(m_aDDNetTypes[m_NumDDNetTypes], pType, sizeof(m_aDDNetTypes[m_NumDDNetTypes]));
+					m_NumDDNetTypes++;
+				}
+			}
+
+			// add addresses
+			for (int g = 0; g < json_array_length(pAddrs); g++, pCntr->m_NumServers++)
+			{
+				const json_value *pAddr = json_array_get(pAddrs, g);
+				if (pAddr->type != json_string)
 				{
 					dbg_msg("client_srvbrowse", "invalid attributes");
 					continue;
 				}
-
-				// build structure
-				CDDNetCountry *pCntr = &m_aDDNetCountries[m_NumDDNetCountries];
-
-				pCntr->Reset();
-
-				str_copy(pCntr->m_aName, json_string_get(pName), sizeof(pCntr->m_aName));
-				pCntr->m_FlagID = json_int_get(pFlagID);
-
-				// add country
-				for (unsigned int t = 0; t < pTypes->u.object.length; t++)
-				{
-					const char *pType = pTypes->u.object.values[t].name;
-					const json_value *pAddrs = pTypes->u.object.values[t].value;
-
-					// add type
-					if(json_array_length(pAddrs) > 0 && m_NumDDNetTypes < MAX_DDNET_TYPES)
-					{
-						int pos;
-						for(pos = 0; pos < m_NumDDNetTypes; pos++)
-						{
-							if(!str_comp(m_aDDNetTypes[pos], pType))
-								break;
-						}
-						if(pos == m_NumDDNetTypes)
-						{
-							str_copy(m_aDDNetTypes[m_NumDDNetTypes], pType, sizeof(m_aDDNetTypes[m_NumDDNetTypes]));
-							m_NumDDNetTypes++;
-						}
-					}
-
-					// add addresses
-					for (int g = 0; g < json_array_length(pAddrs); g++, pCntr->m_NumServers++)
-					{
-						const json_value *pAddr = json_array_get(pAddrs, g);
-						const char* pStr = json_string_get(pAddr);
-						net_addr_from_str(&pCntr->m_aServers[pCntr->m_NumServers], pStr);
-						str_copy(pCntr->m_aTypes[pCntr->m_NumServers], pType, sizeof(pCntr->m_aTypes[pCntr->m_NumServers]));
-					}
-				}
-
-				m_NumDDNetCountries++;
+				const char *pStr = json_string_get(pAddr);
+				net_addr_from_str(&pCntr->m_aServers[pCntr->m_NumServers], pStr);
+				str_copy(pCntr->m_aTypes[pCntr->m_NumServers], pType, sizeof(pCntr->m_aTypes[pCntr->m_NumServers]));
 			}
 		}
 
-		if (pCountries)
-			json_value_free(pCountries);
+		m_NumDDNetCountries++;
 	}
+}
+
+void CServerBrowser::LoadDDNetRanks()
+{
+	for(int i = 0; i < m_NumServers; i++)
+	{
+		if(m_ppServerlist[i]->m_Info.m_aMap[0])
+			m_ppServerlist[i]->m_Info.m_HasRank = HasRank(m_ppServerlist[i]->m_Info.m_aMap);
+	}
+}
+
+int CServerBrowser::HasRank(const char *pMap)
+{
+	if(m_ServerlistType != IServerBrowser::TYPE_DDNET || !m_pDDNetInfo)
+		return -1;
+
+	const json_value *pDDNetRanks = json_object_get(m_pDDNetInfo, "maps");
+
+	if(!pDDNetRanks || pDDNetRanks->type != json_array)
+		return -1;
+
+	for (int i = 0; i < json_array_length(pDDNetRanks); i++)
+	{
+		const json_value *pJson = json_array_get(pDDNetRanks, i);
+		if(!pJson || pJson->type != json_string)
+			continue;
+
+		const char *pStr = json_string_get(pJson);
+
+		if(str_comp(pMap, pStr) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
+void CServerBrowser::LoadDDNetInfoJson()
+{
+	IStorage *pStorage = Kernel()->RequestInterface<IStorage>();
+	IOHANDLE File = pStorage->OpenFile("ddnet-info.json", IOFLAG_READ, IStorage::TYPE_ALL);
+
+	if(!File)
+		return;
+
+	const int Length = io_length(File);
+	if(Length <= 0)
+	{
+		io_close(File);
+		return;
+	}
+
+	char *pBuf = (char *)mem_alloc(Length, 1);
+	pBuf[0] = '\0';
+
+	io_read(File, pBuf, Length);
+	io_close(File);
+
+	if(m_pDDNetInfo)
+		json_value_free(m_pDDNetInfo);
+
+	m_pDDNetInfo = json_parse(pBuf, Length);
+
+	mem_free(pBuf);
+
+	if(m_pDDNetInfo && m_pDDNetInfo->type != json_object)
+	{
+		json_value_free(m_pDDNetInfo);
+		m_pDDNetInfo = 0;
+	}
+}
+
+const json_value *CServerBrowser::LoadDDNetInfo()
+{
+	LoadDDNetInfoJson();
+	LoadDDNetServers();
+
+	if(m_NumServers == 0)
+		Refresh(m_ServerlistType);
+	else
+		LoadDDNetRanks();
+
+	return m_pDDNetInfo;
 }
 
 bool CServerBrowser::IsRefreshing() const

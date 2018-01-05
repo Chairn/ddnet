@@ -305,16 +305,18 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 			if(pImg->m_Format == CImageInfo::FORMAT_RGB)
 			{
 				// Convert to RGBA
-				unsigned char *pData = (unsigned char*) mem_alloc(Item.m_Width*Item.m_Height*4, 1);
+				unsigned char *pDataRGBA = (unsigned char *)mem_alloc(Item.m_Width*Item.m_Height*4, 1);
+				unsigned char *pDataRGB = (unsigned char *)pImg->m_pData;
 				for(int i = 0; i < Item.m_Width*Item.m_Height; i++)
 				{
-					pData[i*4] = ((unsigned char*)(pImg->m_pData))[i*3];
-					pData[i*4+1] = ((unsigned char*)(pImg->m_pData))[i*3+1];
-					pData[i*4+2] = ((unsigned char*)(pImg->m_pData))[i*3+2];
-					pData[i*4+3] = 255;
+
+					pDataRGBA[i*4] = pDataRGB[i*3];
+					pDataRGBA[i*4+1] = pDataRGB[i*3+1];
+					pDataRGBA[i*4+2] = pDataRGB[i*3+2];
+					pDataRGBA[i*4+3] = 255;
 				}
-				Item.m_ImageData = df.AddData(Item.m_Width*Item.m_Height*4, pData);
-				mem_free(pData);
+				Item.m_ImageData = df.AddData(Item.m_Width*Item.m_Height*4, pDataRGBA);
+				mem_free(pDataRGBA);
 			}
 			else
 			{
@@ -413,48 +415,27 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 					Item.m_Flags = pLayer->m_Game ? TILESLAYERFLAG_GAME : 0;
 
 				Item.m_Image = pLayer->m_Image;
-				if(pLayer->m_Tele)
+
+				if (Item.m_Flags && !(pLayer->m_Game))
 				{
-					CTile *Tiles = new CTile[pLayer->m_Width*pLayer->m_Height];
-					mem_zero(Tiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
-					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), Tiles);
-					Item.m_Tele = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTeleTile), ((CLayerTele *)pLayer)->m_pTeleTile);
-					delete[] Tiles;
-				}
-				else if(pLayer->m_Speedup)
-				{
-					CTile *Tiles = new CTile[pLayer->m_Width*pLayer->m_Height];
-					mem_zero(Tiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
-					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), Tiles);
-					Item.m_Speedup = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CSpeedupTile), ((CLayerSpeedup *)pLayer)->m_pSpeedupTile);
-					delete[] Tiles;
-				}
-				else if(pLayer->m_Front)
-				{
-					CTile *Tiles = new CTile[pLayer->m_Width*pLayer->m_Height];
-					mem_zero(Tiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
-					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), Tiles);
-					Item.m_Front = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), pLayer->m_pTiles);
-					delete[] Tiles;
-				}
-				else if(pLayer->m_Switch)
-				{
-					CTile *Tiles = new CTile[pLayer->m_Width*pLayer->m_Height];
-					mem_zero(Tiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
-					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), Tiles);
-					Item.m_Switch = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CSwitchTile), ((CLayerSwitch *)pLayer)->m_pSwitchTile);
-					delete[] Tiles;
-				}
-				else if(pLayer->m_Tune)
-				{
-					CTile *Tiles = new CTile[pLayer->m_Width*pLayer->m_Height];
-					mem_zero(Tiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
-					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), Tiles);
-					Item.m_Tune = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTuneTile), ((CLayerTune *)pLayer)->m_pTuneTile);
-					delete[] Tiles;
+					CTile *pEmptyTiles = (CTile*)mem_alloc(sizeof(CTile)*pLayer->m_Width*pLayer->m_Height, 1);
+					mem_zero(pEmptyTiles, pLayer->m_Width*pLayer->m_Height*sizeof(CTile));
+					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), pEmptyTiles);
+					mem_free(pEmptyTiles);
+
+					if(pLayer->m_Tele)
+						Item.m_Tele = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTeleTile), ((CLayerTele *)pLayer)->m_pTeleTile);
+					else if(pLayer->m_Speedup)
+						Item.m_Speedup = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CSpeedupTile), ((CLayerSpeedup *)pLayer)->m_pSpeedupTile);
+					else if(pLayer->m_Front)
+						Item.m_Front = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), pLayer->m_pTiles);
+					else if(pLayer->m_Switch)
+						Item.m_Switch = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CSwitchTile), ((CLayerSwitch *)pLayer)->m_pSwitchTile);
+					else if(pLayer->m_Tune)
+						Item.m_Tune = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTuneTile), ((CLayerTune *)pLayer)->m_pTuneTile);
 				}
 				else
-				Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), pLayer->m_pTiles);
+					Item.m_Data = df.AddData(pLayer->m_Width*pLayer->m_Height*sizeof(CTile), pLayer->m_pTiles);
 
 				// save layer name
 				StrToInts(Item.m_aName, sizeof(Item.m_aName)/sizeof(int), pLayer->m_aName);
@@ -569,7 +550,7 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 		|| !mem_comp(CurrentServerInfo.m_NetAddr.ip, ipv6Localhost, sizeof(ipv6Localhost)))
 		{
 			char aMapName[128];
-			m_pEditor->ExtractName(pFileName, aMapName, sizeof(aMapName));
+			IStorage::StripPathAndExtension(pFileName, aMapName, sizeof(aMapName));
 			if(!str_comp(aMapName, CurrentServerInfo.m_aMap))
 				m_pEditor->Client()->Rcon("reload");
 		}
@@ -578,10 +559,27 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	return 1;
 }
 
+void CEditor::LoadCurrentMap()
+{
+	Load(m_pClient->GetCurrentMapPath(), IStorage::TYPE_ALL);
+	m_ValidSaveFilename = true;
+}
+
 int CEditor::Load(const char *pFileName, int StorageType)
 {
 	Reset();
-	return m_Map.Load(Kernel()->RequestInterface<IStorage>(), pFileName, StorageType);
+	int result = m_Map.Load(Kernel()->RequestInterface<IStorage>(), pFileName, StorageType);
+	if (result)
+	{
+		str_copy(m_aFileName, pFileName, 512);
+		SortImages();
+	}
+	else
+	{
+		m_aFileName[0] = 0;
+		Reset();
+	}
+	return result;
 }
 
 int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int StorageType)
@@ -614,7 +612,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 			DataFile.GetType(MAPITEMTYPE_INFO, &Start, &Num);
 			for(int i = Start; i < Start + Num; i++)
 			{
-				int ItemSize = DataFile.GetItemSize(Start) - 8;
+				int ItemSize = DataFile.GetItemSize(Start);
 				int ItemID;
 				CMapItemInfoSettings *pItem = (CMapItemInfoSettings *)DataFile.GetItem(i, 0, &ItemID);
 				if(!pItem || ItemID != 0)
@@ -635,7 +633,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				if(!(pItem->m_Settings > -1))
 					break;
 
-				int Size = DataFile.GetUncompressedDataSize(pItem->m_Settings);
+				const unsigned Size = DataFile.GetDataSize(pItem->m_Settings);
 				char *pSettings = (char *)DataFile.GetData(pItem->m_Settings);
 				char *pNext = pSettings;
 				while(pNext < pSettings + Size)
@@ -869,7 +867,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 
 						pGroup->AddLayer(pTiles);
 						void *pData = DataFile.GetData(pTilemapItem->m_Data);
-						unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Data);
+						unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Data);
 						pTiles->m_Image = pTilemapItem->m_Image;
 						pTiles->m_Game = pTilemapItem->m_Flags&TILESLAYERFLAG_GAME;
 
@@ -880,33 +878,30 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						if(pTiles->m_Tele)
 						{
 							void *pTeleData = DataFile.GetData(pTilemapItem->m_Tele);
-							unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Tele);
+							unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Tele);
 							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CTeleTile))
 							{
-								mem_copy(((CLayerTele*)pTiles)->m_pTeleTile, pTeleData, pTiles->m_Width*pTiles->m_Height*sizeof(CTeleTile));
+								static const int s_aTilesRep[] = {
+									TILE_TELEIN,
+									TILE_TELEINEVIL,
+									TILE_TELEOUT,
+									TILE_TELECHECK,
+									TILE_TELECHECKIN,
+									TILE_TELECHECKINEVIL,
+									TILE_TELECHECKOUT,
+									TILE_TELEINWEAPON,
+									TILE_TELEINHOOK
+								};
+								mem_copy(((CLayerTele *)pTiles)->m_pTeleTile, pTeleData, pTiles->m_Width*pTiles->m_Height*sizeof(CTeleTile));
 
 								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
 								{
-									if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELEIN)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELEIN;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELEINEVIL)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELEINEVIL;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELEOUT)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELEOUT;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELECHECK)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELECHECK;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELECHECKIN)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELECHECKIN;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELECHECKINEVIL)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELECHECKINEVIL;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELECHECKOUT)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELECHECKOUT;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELEINWEAPON)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELEINWEAPON;
-									else if(((CLayerTele*)pTiles)->m_pTeleTile[i].m_Type == TILE_TELEINHOOK)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TELEINHOOK;
-									else
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Index = 0;
+									for (unsigned e = 0; e < sizeof(s_aTilesRep) / sizeof(s_aTilesRep[0]); e++)
+									{
+										if (((CLayerTele *)pTiles)->m_pTeleTile[i].m_Type == s_aTilesRep[e])
+											pTiles->m_pTiles[i].m_Index = s_aTilesRep[e];
+									}
 								}
 							}
 							DataFile.UnloadData(pTilemapItem->m_Tele);
@@ -914,7 +909,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						else if(pTiles->m_Speedup)
 						{
 							void *pSpeedupData = DataFile.GetData(pTilemapItem->m_Speedup);
-							unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Speedup);
+							unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Speedup);
 
 							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CSpeedupTile))
 							{
@@ -923,9 +918,9 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
 								{
 									if(((CLayerSpeedup*)pTiles)->m_pSpeedupTile[i].m_Force > 0)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_BOOST;
+										pTiles->m_pTiles[i].m_Index = TILE_BOOST;
 									else
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = 0;
+										pTiles->m_pTiles[i].m_Index = 0;
 								}
 							}
 
@@ -934,7 +929,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						else if(pTiles->m_Front)
 						{
 							void *pFrontData = DataFile.GetData(pTilemapItem->m_Front);
-							unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Front);
+							unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Front);
 							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CTile))
 								mem_copy(((CLayerFront*)pTiles)->m_pTiles, pFrontData, pTiles->m_Width*pTiles->m_Height*sizeof(CTile));
 
@@ -943,79 +938,44 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						else if(pTiles->m_Switch)
 						{
 							void *pSwitchData = DataFile.GetData(pTilemapItem->m_Switch);
-							unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Switch);
+							unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Switch);
 							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CSwitchTile))
 							{
-								mem_copy(((CLayerSwitch*)pTiles)->m_pSwitchTile, pSwitchData, pTiles->m_Width*pTiles->m_Height*sizeof(CSwitchTile));
+								const int s_aTilesComp[] = {
+									TILE_SWITCHTIMEDOPEN,
+									TILE_SWITCHTIMEDCLOSE,
+									TILE_SWITCHOPEN,
+									TILE_SWITCHCLOSE,
+									TILE_FREEZE,
+									TILE_DFREEZE,
+									TILE_DUNFREEZE,
+									TILE_HIT_START,
+									TILE_HIT_END,
+									TILE_JUMP,
+									TILE_PENALTY,
+									TILE_BONUS
+								};
+								CSwitchTile *pLayerSwitchTiles = ((CLayerSwitch *)pTiles)->m_pSwitchTile;
+								mem_copy(((CLayerSwitch *)pTiles)->m_pSwitchTile, pSwitchData, pTiles->m_Width*pTiles->m_Height*sizeof(CSwitchTile));
 
 								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
 								{
-									if(((((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type > (ENTITY_CRAZY_SHOTGUN + ENTITY_OFFSET) && ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type < (ENTITY_DRAGGER_WEAK + ENTITY_OFFSET)) || ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == (ENTITY_LASER_O_FAST + 1 + ENTITY_OFFSET)))
+									if(((pLayerSwitchTiles[i].m_Type > (ENTITY_CRAZY_SHOTGUN + ENTITY_OFFSET) && ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type < (ENTITY_DRAGGER_WEAK + ENTITY_OFFSET)) || ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == (ENTITY_LASER_O_FAST + 1 + ENTITY_OFFSET)))
 										continue;
-									if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_SWITCHTIMEDOPEN)
+									else if(pLayerSwitchTiles[i].m_Type >= (ENTITY_ARMOR_1 + ENTITY_OFFSET) && pLayerSwitchTiles[i].m_Type <= (ENTITY_DOOR + ENTITY_OFFSET))
 									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_SWITCHTIMEDOPEN;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
+										pTiles->m_pTiles[i].m_Index = pLayerSwitchTiles[i].m_Type;
+										pTiles->m_pTiles[i].m_Flags = pLayerSwitchTiles[i].m_Flags;
+										continue;
 									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_SWITCHTIMEDCLOSE)
+
+									for (unsigned e = 0; e < sizeof(s_aTilesComp) / sizeof(s_aTilesComp[0]); e++)
 									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_SWITCHTIMEDCLOSE;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_SWITCHOPEN)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_SWITCHOPEN;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_SWITCHCLOSE)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_SWITCHCLOSE;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_FREEZE)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_FREEZE;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_DFREEZE)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_DFREEZE;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_DUNFREEZE)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_DUNFREEZE;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type >= (ENTITY_ARMOR_1 + ENTITY_OFFSET) && ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type <= (ENTITY_DOOR + ENTITY_OFFSET))
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_HIT_START)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_HIT_START;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_HIT_END)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_HIT_END;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_JUMP)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_JUMP;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_PENALTY)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_PENALTY;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
-									}
-									else if(((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Type == TILE_BONUS)
-									{
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_BONUS;
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Flags = ((CLayerSwitch*)pTiles)->m_pSwitchTile[i].m_Flags;
+										if(pLayerSwitchTiles[i].m_Type == s_aTilesComp[e])
+										{
+											pTiles->m_pTiles[i].m_Index = s_aTilesComp[e];
+											pTiles->m_pTiles[i].m_Flags = pLayerSwitchTiles[i].m_Flags;
+										}
 									}
 								}
 							}
@@ -1024,17 +984,18 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						else if(pTiles->m_Tune)
 						{
 							void *pTuneData = DataFile.GetData(pTilemapItem->m_Tune);
-							unsigned int Size = DataFile.GetUncompressedDataSize(pTilemapItem->m_Tune);
+							unsigned int Size = DataFile.GetDataSize(pTilemapItem->m_Tune);
 							if (Size >= pTiles->m_Width*pTiles->m_Height*sizeof(CTuneTile))
 							{
-								mem_copy(((CLayerTune*)pTiles)->m_pTuneTile, pTuneData, pTiles->m_Width*pTiles->m_Height*sizeof(CTuneTile));
+								CTuneTile *pLayerTuneTiles = ((CLayerTune *)pTiles)->m_pTuneTile;
+								mem_copy(((CLayerTune *)pTiles)->m_pTuneTile, pTuneData, pTiles->m_Width*pTiles->m_Height*sizeof(CTuneTile));
 
 								for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
 								{
-									if(((CLayerTune*)pTiles)->m_pTuneTile[i].m_Type == TILE_TUNE1)
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = TILE_TUNE1;
+									if(pLayerTuneTiles[i].m_Type == TILE_TUNE1)
+										pTiles->m_pTiles[i].m_Index = TILE_TUNE1;
 									else
-										((CLayerTiles*)pTiles)->m_pTiles[i].m_Index = 0;
+										pTiles->m_pTiles[i].m_Index = 0;
 								}
 							}
 							DataFile.UnloadData(pTilemapItem->m_Tune);
@@ -1065,17 +1026,80 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 							{
 								if(!IsValidGameTile(pTiles->m_pTiles[i].m_Index))
 								{
+									if(pTiles->m_pTiles[i].m_Index) {
+										char aBuf[256];
+										str_format(aBuf, sizeof(aBuf), "game layer, tile %d", pTiles->m_pTiles[i].m_Index);
+										m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor", aBuf);
+										Changed = true;
+									}
 									pTiles->m_pTiles[i].m_Index = 0;
 									pTiles->m_pTiles[i].m_Flags = 0;
 								}
 							}
 						}
-						if(pTiles->m_Front)
+						else if(pTiles->m_Front)
 						{
 							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
 							{
 								if(!IsValidFrontTile(pTiles->m_pTiles[i].m_Index))
 								{
+									if(pTiles->m_pTiles[i].m_Index) {
+										char aBuf[256];
+										str_format(aBuf, sizeof(aBuf), "front layer, tile %d", pTiles->m_pTiles[i].m_Index);
+										m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor", aBuf);
+										Changed = true;
+									}
+									pTiles->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}
+						else if(pTiles->m_Tele)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(!IsValidTeleTile(pTiles->m_pTiles[i].m_Index))
+								{
+									if(pTiles->m_pTiles[i].m_Index) {
+										char aBuf[256];
+										str_format(aBuf, sizeof(aBuf), "tele layer, tile %d", pTiles->m_pTiles[i].m_Index);
+										m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor", aBuf);
+										Changed = true;
+									}
+									pTiles->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}
+						else if(pTiles->m_Speedup)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(!IsValidSpeedupTile(pTiles->m_pTiles[i].m_Index))
+								{
+									if(pTiles->m_pTiles[i].m_Index) {
+										char aBuf[256];
+										str_format(aBuf, sizeof(aBuf), "speedup layer, tile %d", pTiles->m_pTiles[i].m_Index);
+										m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor", aBuf);
+										Changed = true;
+									}
+									pTiles->m_pTiles[i].m_Index = 0;
+									pTiles->m_pTiles[i].m_Flags = 0;
+								}
+							}
+						}
+						else if(pTiles->m_Switch)
+						{
+							for(int i = 0; i < pTiles->m_Width*pTiles->m_Height; i++)
+							{
+								if(!IsValidSwitchTile(pTiles->m_pTiles[i].m_Index))
+								{
+									if(pTiles->m_pTiles[i].m_Index) {
+										char aBuf[256];
+										str_format(aBuf, sizeof(aBuf), "switch layer, tile %d", pTiles->m_pTiles[i].m_Index);
+										m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor", aBuf);
+										Changed = true;
+									}
 									pTiles->m_pTiles[i].m_Index = 0;
 									pTiles->m_pTiles[i].m_Flags = 0;
 								}

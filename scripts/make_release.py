@@ -69,22 +69,14 @@ if include_data and not use_bundle:
 	if platform[:3] == "win":
 		shutil.copy("other/config_directory.bat", package_dir)
 		shutil.copy("SDL2.dll", package_dir)
-		shutil.copy("freetype.dll", package_dir)
+		shutil.copy("libfreetype.dll", package_dir)
 		if platform == "win32":
-		    shutil.copy("libgcc_s_sjlj-1.dll", package_dir)
-		    shutil.copy("libidn-11.dll", package_dir)
-		elif platform == "win64":
-		    shutil.copy("libgcc_s_seh-1.dll", package_dir)
+			shutil.copy("libgcc_s_sjlj-1.dll", package_dir)
 		shutil.copy("libwinpthread-1.dll", package_dir)
-		shutil.copy("libogg-0.dll", package_dir)
-		shutil.copy("libopus-0.dll", package_dir)
-		shutil.copy("libopusfile-0.dll", package_dir)
-		#shutil.copy("libmysql.dll", package_dir)
-		#shutil.copy("mysqlcppconn.dll", package_dir)
+		shutil.copy("libogg.dll", package_dir)
+		shutil.copy("libopus.dll", package_dir)
+		shutil.copy("libopusfile.dll", package_dir)
 		shutil.copy("libcurl.dll", package_dir)
-		shutil.copy("libeay32.dll", package_dir)
-		shutil.copy("ssleay32.dll", package_dir)
-		shutil.copy("zlib1.dll", package_dir)
 
 if include_exe and not use_bundle:
 	shutil.copy(name+exe_ext, package_dir)
@@ -92,6 +84,8 @@ if include_exe and not use_bundle:
 	shutil.copy("dilate"+exe_ext, package_dir)
 	shutil.copy("config_store"+exe_ext, package_dir)
 	shutil.copy("config_retrieve"+exe_ext, package_dir)
+	shutil.copy("map_extract"+exe_ext, package_dir)
+	shutil.copy("map_diff"+exe_ext, package_dir)
 	#shutil.copy(name+"-Server_sql"+exe_ext, package_dir)
 	
 if include_src:
@@ -102,7 +96,7 @@ if include_src:
 	shutil.copy("configure.lua", package_dir)
 
 if use_bundle:
-	bins = [name, name+'-Server', 'dilate', 'config_store', 'config_retrieve', 'serverlaunch']
+	bins = [name, name+'-Server', 'dilate', 'config_store', 'config_retrieve', 'map_extract', 'map_diff', 'serverlaunch']
 	platforms = ('x86', 'x86_64', 'ppc')
 	for bin in bins:
 		to_lipo = []
@@ -129,7 +123,6 @@ if use_bundle:
 
 
 	shutil.copy("other/icons/DDNet.icns", clientbundle_resource_dir)
-	#shutil.copy("other/icons/Teeworlds.icns", clientbundle_resource_dir)
 	shutil.copy(name+exe_ext, clientbundle_bin_dir)
 	os.system("install_name_tool -change /opt/X11/lib/libfreetype.6.dylib @executable_path/../Frameworks/libfreetype.6.dylib " + binary_path)
 	os.system("install_name_tool -change @rpath/SDL2.framework/Versions/A/SDL2 @executable_path/../Frameworks/SDL2.framework/SDL2 " + binary_path)

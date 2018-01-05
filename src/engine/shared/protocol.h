@@ -30,7 +30,7 @@
 
 enum
 {
-	NETMSG_NULL=0,
+	NETMSG_EX=0,
 
 	// the first thing sent by the client
 	// contains the version info for the client
@@ -70,6 +70,8 @@ enum
 	// sent by server (todo: move it up)
 	NETMSG_RCON_CMD_ADD,
 	NETMSG_RCON_CMD_REM,
+
+	NUM_NETMSGS,
 };
 
 // this should be revised
@@ -108,6 +110,7 @@ enum
 	VERSION_DDNET_HOOKDURATION_TUNE = 607,
 	VERSION_DDNET_FIREDELAY_TUNE = 701,
 	VERSION_DDNET_UPDATER_FIXED = 707,
+	VERSION_DDNET_GAMETICK = 10042,
 };
 
 #endif

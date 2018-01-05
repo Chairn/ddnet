@@ -7,20 +7,21 @@
 
 class CBinds : public CComponent
 {
-	char m_aaKeyBindings[KEY_LAST][128];
+	char *m_apKeyBindings[KEY_LAST];
 
 	int GetKeyID(const char *pKeyName);
 
 	static void ConBind(IConsole::IResult *pResult, void *pUserData);
+	static void ConDumpBinds(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnbind(IConsole::IResult *pResult, void *pUserData);
 	static void ConUnbindAll(IConsole::IResult *pResult, void *pUserData);
-	static void ConDumpBinds(IConsole::IResult *pResult, void *pUserData);
 	class IConsole *GetConsole() const { return Console(); }
 
 	static void ConfigSaveCallback(class IConfig *pConfig, void *pUserData);
 
 public:
 	CBinds();
+	~CBinds();
 
 	class CBindsSpecial : public CComponent
 	{
@@ -31,7 +32,7 @@ public:
 
 	CBindsSpecial m_SpecialBinds;
 
-	void Bind(int KeyID, const char *pStr);
+	void Bind(int KeyID, const char *pStr, bool FreeOnly = false);
 	void SetDefaults();
 	void UnbindAll();
 	const char *Get(int KeyID);

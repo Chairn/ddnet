@@ -8,12 +8,11 @@
 #include <time.h>
 
 #include "system.h"
-#include "confusables.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	#include "engine/shared/websockets.h"
 #endif
 
@@ -41,6 +40,7 @@
 		#define _task_user_
 
 		#include <Carbon/Carbon.h>
+		#include <mach/mach_time.h>
 	#endif
 
 	#if defined(__ANDROID__)
@@ -82,7 +82,14 @@ IOHANDLE io_stdin() { return (IOHANDLE)stdin; }
 IOHANDLE io_stdout() { return (IOHANDLE)stdout; }
 IOHANDLE io_stderr() { return (IOHANDLE)stderr; }
 
-static DBG_LOGGER loggers[16];
+typedef struct
+{
+	DBG_LOGGER logger;
+	DBG_LOGGER_FINISH finish;
+	void *user;
+} DBG_LOGGER_DATA;
+
+static DBG_LOGGER_DATA loggers[16];
 static int num_loggers = 0;
 
 static NETSTATS network_stats = {0};
@@ -92,99 +99,23 @@ static NETSOCKET invalid_socket = {NETTYPE_INVALID, -1, -1};
 
 #define AF_WEBSOCKET_INET (0xee)
 
-void dbg_logger(DBG_LOGGER logger)
-{
-	loggers[num_loggers++] = logger;
-}
-
 void dbg_assert_imp(const char *filename, int line, int test, const char *msg)
 {
 	if(!test)
 	{
 		dbg_msg("assert", "%s(%d): %s", filename, line, msg);
-		dbg_break();
+		dbg_break_imp();
 	}
 }
 
-void dbg_break()
+void dbg_break_imp()
 {
+#ifdef __GNUC__
+	__builtin_trap();
+#else
 	*((volatile unsigned*)0) = 0x0;
-}
-
-#if !defined(CONF_PLATFORM_MACOSX)
-#define QUEUE_SIZE 16
-
-typedef struct
-{
-	char q[QUEUE_SIZE][1024*4];
-	int begin;
-	int end;
-	SEMAPHORE mutex;
-	SEMAPHORE notempty;
-	SEMAPHORE notfull;
-} Queue;
-
-static int dbg_msg_threaded = 0;
-static Queue log_queue;
-
-int queue_empty(Queue *q)
-{
-	return q->begin == q->end;
-}
-
-int queue_full(Queue *q)
-{
-	return ((q->end+1) % QUEUE_SIZE) == q->begin;
-}
-
-void dbg_msg_thread(void *v)
-{
-	char str[1024*4];
-	int i;
-	int f;
-	while(1)
-	{
-		semaphore_wait(&log_queue.notempty);
-		semaphore_wait(&log_queue.mutex);
-		f = queue_full(&log_queue);
-
-		str_copy(str, log_queue.q[log_queue.begin], sizeof(str));
-
-		log_queue.begin = (log_queue.begin + 1) % QUEUE_SIZE;
-
-		if(f)
-			semaphore_signal(&log_queue.notfull);
-
-		if(!queue_empty(&log_queue))
-			semaphore_signal(&log_queue.notempty);
-
-		semaphore_signal(&log_queue.mutex);
-
-		for(i = 0; i < num_loggers; i++)
-			loggers[i](str);
-	}
-}
-
-void dbg_enable_threaded()
-{
-	Queue *q;
-	void *Thread;
-
-	q = &log_queue;
-	q->begin = 0;
-	q->end = 0;
-	semaphore_init(&q->mutex);
-	semaphore_init(&q->notempty);
-	semaphore_init(&q->notfull);
-	semaphore_signal(&q->mutex);
-	semaphore_signal(&q->notfull);
-
-	dbg_msg_threaded = 1;
-
-	Thread = thread_init(dbg_msg_thread, 0);
-	thread_detach(Thread);
-}
 #endif
+}
 
 void dbg_msg(const char *sys, const char *fmt, ...)
 {
@@ -192,105 +123,110 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 	char *msg;
 	int len;
 
+	char str[1024*4];
+	int i;
+
 	//str_format(str, sizeof(str), "[%08x][%s]: ", (int)time(0), sys);
-	time_t rawtime;
-	struct tm* timeinfo;
-	char timestr [80];
+	char timestr[80];
+	str_timestamp_format(timestr, sizeof(timestr), FORMAT_SPACE);
 
-	time ( &rawtime );
-	timeinfo = localtime ( &rawtime );
+	str_format(str, sizeof(str), "[%s][%s]: ", timestr, sys);
 
-	strftime (timestr,sizeof(timestr),"%y-%m-%d %H:%M:%S",timeinfo);
+	len = strlen(str);
+	msg = (char *)str + len;
 
-#if !defined(CONF_PLATFORM_MACOSX)
-	if(dbg_msg_threaded)
-	{
-		int e;
-		semaphore_wait(&log_queue.notfull);
-		semaphore_wait(&log_queue.mutex);
-		e = queue_empty(&log_queue);
-
-		str_format(log_queue.q[log_queue.end], sizeof(log_queue.q[log_queue.end]), "[%s][%s]: ", timestr, sys);
-
-		len = strlen(log_queue.q[log_queue.end]);
-		msg = (char *)log_queue.q[log_queue.end] + len;
-
-		va_start(args, fmt);
+	va_start(args, fmt);
 #if defined(CONF_FAMILY_WINDOWS)
-		_vsnprintf(msg, sizeof(log_queue.q[log_queue.end])-len, fmt, args);
+	_vsnprintf(msg, sizeof(str)-len, fmt, args);
 #else
-		vsnprintf(msg, sizeof(log_queue.q[log_queue.end])-len, fmt, args);
+	vsnprintf(msg, sizeof(str)-len, fmt, args);
 #endif
-		va_end(args);
+	va_end(args);
 
-		log_queue.end = (log_queue.end + 1) % QUEUE_SIZE;
-
-		if(e)
-			semaphore_signal(&log_queue.notempty);
-
-		if(!queue_full(&log_queue))
-			semaphore_signal(&log_queue.notfull);
-
-		semaphore_signal(&log_queue.mutex);
-	}
-	else
-#endif
-	{
-		char str[1024*4];
-		int i;
-
-		str_format(str, sizeof(str), "[%s][%s]: ", timestr, sys);
-
-		len = strlen(str);
-		msg = (char *)str + len;
-
-		va_start(args, fmt);
-#if defined(CONF_FAMILY_WINDOWS)
-		_vsnprintf(msg, sizeof(str)-len, fmt, args);
-#else
-		vsnprintf(msg, sizeof(str)-len, fmt, args);
-#endif
-		va_end(args);
-
-		for(i = 0; i < num_loggers; i++)
-			loggers[i](str);
-	}
+	for(i = 0; i < num_loggers; i++)
+		loggers[i].logger(str, loggers[i].user);
 }
 
-static void logger_stdout(const char *line)
+#if defined(CONF_FAMILY_WINDOWS) || defined(__ANDROID__)
+static void logger_debugger(const char *line, void *user)
 {
-	printf("%s\n", line);
-	fflush(stdout);
-#if defined(__ANDROID__)
-	__android_log_print(ANDROID_LOG_INFO, "DDNet", "%s", line);
-#endif
-}
-
-static void logger_debugger(const char *line)
-{
+	(void)user;
 #if defined(CONF_FAMILY_WINDOWS)
 	OutputDebugString(line);
 	OutputDebugString("\n");
+#elif defined(__ANDROID__)
+	__android_log_print(ANDROID_LOG_INFO, "DDNet", "%s", line);
+#endif
+}
+#endif
+
+
+static void logger_file(const char *line, void *user)
+{
+	ASYNCIO *logfile = (ASYNCIO *)user;
+	aio_lock(logfile);
+	aio_write_unlocked(logfile, line, strlen(line));
+	aio_write_newline_unlocked(logfile);
+	aio_unlock(logfile);
+}
+
+static void logger_stdout_finish(void *user)
+{
+	ASYNCIO *logfile = (ASYNCIO *)user;
+	aio_wait(logfile);
+	aio_free(logfile);
+}
+
+static void logger_file_finish(void *user)
+{
+	ASYNCIO *logfile = (ASYNCIO *)user;
+	aio_close(logfile);
+	logger_stdout_finish(user);
+}
+
+static void dbg_logger_finish(void)
+{
+	int i;
+	for(i = 0; i < num_loggers; i++)
+	{
+		if(loggers[i].finish)
+		{
+			loggers[i].finish(loggers[i].user);
+		}
+	}
+}
+
+void dbg_logger(DBG_LOGGER logger, DBG_LOGGER_FINISH finish, void *user)
+{
+	DBG_LOGGER_DATA data;
+	if(num_loggers == 0)
+	{
+		atexit(dbg_logger_finish);
+	}
+	data.logger = logger;
+	data.finish = finish;
+	data.user = user;
+	loggers[num_loggers] = data;
+	num_loggers++;
+}
+
+void dbg_logger_stdout()
+{
+	dbg_logger(logger_file, logger_stdout_finish, aio_new(io_stdout()));
+}
+
+void dbg_logger_debugger()
+{
+#if defined(CONF_FAMILY_WINDOWS) || defined(__ANDROID__)
+	dbg_logger(logger_debugger, 0, 0);
 #endif
 }
 
-
-static IOHANDLE logfile = 0;
-static void logger_file(const char *line)
-{
-	io_write(logfile, line, strlen(line));
-	io_write_newline(logfile);
-	io_flush(logfile);
-}
-
-void dbg_logger_stdout() { dbg_logger(logger_stdout); }
-
-void dbg_logger_debugger() { dbg_logger(logger_debugger); }
 void dbg_logger_file(const char *filename)
 {
-	logfile = io_open(filename, IOFLAG_WRITE);
+	IOHANDLE logfile = io_open(filename, IOFLAG_WRITE);
 	if(logfile)
-		dbg_logger(logger_file);
+		dbg_logger(logger_file, logger_file_finish, aio_new(logfile));
 	else
 		dbg_msg("dbg/logger", "failed to open '%s' for logging", filename);
 
@@ -480,6 +416,11 @@ long int io_length(IOHANDLE io)
 	return length;
 }
 
+int io_error(IOHANDLE io)
+{
+	return ferror((FILE*)io);
+}
+
 unsigned io_write(IOHANDLE io, const void *buffer, unsigned size)
 {
 	return fwrite(buffer, 1, size, (FILE*)io);
@@ -496,8 +437,7 @@ unsigned io_write_newline(IOHANDLE io)
 
 int io_close(IOHANDLE io)
 {
-	fclose((FILE*)io);
-	return 1;
+	return fclose((FILE*)io) != 0;
 }
 
 int io_flush(IOHANDLE io)
@@ -506,11 +446,328 @@ int io_flush(IOHANDLE io)
 	return 0;
 }
 
+
+#define ASYNC_BUFSIZE 8 * 1024
+
+struct ASYNCIO
+{
+	LOCK lock;
+	IOHANDLE io;
+	SEMAPHORE sphore;
+	void *thread;
+
+	unsigned char *old_buffer;
+
+	unsigned char *buffer;
+	unsigned int buffer_size;
+	unsigned int read_pos;
+	unsigned int write_pos;
+
+	int error;
+	unsigned char finish;
+	unsigned char refcount;
+};
+
+enum
+{
+	ASYNCIO_RUNNING,
+	ASYNCIO_CLOSE,
+	ASYNCIO_EXIT,
+};
+
+struct BUFFERS
+{
+	unsigned char *buf1;
+	unsigned int len1;
+	unsigned char *buf2;
+	unsigned int len2;
+};
+
+static void buffer_ptrs(ASYNCIO *aio, struct BUFFERS *buffers)
+{
+	mem_zero(buffers, sizeof(*buffers));
+	if(aio->read_pos < aio->write_pos)
+	{
+		buffers->buf1 = aio->buffer + aio->read_pos;
+		buffers->len1 = aio->write_pos - aio->read_pos;
+	}
+	else if(aio->read_pos > aio->write_pos)
+	{
+		buffers->buf1 = aio->buffer + aio->read_pos;
+		buffers->len1 = aio->buffer_size - aio->read_pos;
+		buffers->buf2 = aio->buffer;
+		buffers->len2 = aio->write_pos;
+	}
+}
+
+static void aio_handle_free_and_unlock(ASYNCIO *aio)
+{
+	int do_free;
+	aio->refcount--;
+
+	do_free = aio->refcount == 0;
+	lock_unlock(aio->lock);
+	if(do_free)
+	{
+		mem_free(aio->buffer);
+		sphore_destroy(&aio->sphore);
+		lock_destroy(aio->lock);
+		mem_free(aio);
+	}
+}
+
+static void aio_thread(void *user)
+{
+	ASYNCIO *aio = user;
+
+	lock_wait(aio->lock);
+	while(1)
+	{
+		struct BUFFERS buffers;
+		int result_io_error;
+
+		if(aio->read_pos == aio->write_pos)
+		{
+			if(aio->finish != ASYNCIO_RUNNING)
+			{
+				if(aio->finish == ASYNCIO_CLOSE)
+				{
+					io_close(aio->io);
+				}
+				aio_handle_free_and_unlock(aio);
+				break;
+			}
+			lock_unlock(aio->lock);
+			sphore_wait(&aio->sphore);
+			lock_wait(aio->lock);
+			continue;
+		}
+
+		buffer_ptrs(aio, &buffers);
+		lock_unlock(aio->lock);
+
+		io_write(aio->io, buffers.buf1, buffers.len1);
+		if(buffers.buf2)
+		{
+			io_write(aio->io, buffers.buf2, buffers.len2);
+		}
+		io_flush(aio->io);
+		result_io_error = io_error(aio->io);
+
+		lock_wait(aio->lock);
+		aio->error = result_io_error;
+		aio->read_pos = (aio->read_pos + buffers.len1 + buffers.len2) % aio->buffer_size;
+		if(aio->old_buffer)
+		{
+			mem_free(aio->old_buffer);
+			aio->old_buffer = 0;
+		}
+	}
+}
+
+ASYNCIO *aio_new(IOHANDLE io)
+{
+	ASYNCIO *aio = mem_alloc(sizeof(*aio), sizeof(void *));
+	if(!aio)
+	{
+		return 0;
+	}
+	aio->io = io;
+	aio->lock = lock_create();
+	sphore_init(&aio->sphore);
+	aio->thread = 0;
+
+	aio->old_buffer = 0;
+	aio->buffer = mem_alloc(ASYNC_BUFSIZE, 1);
+	if(!aio->buffer)
+	{
+		sphore_destroy(&aio->sphore);
+		lock_destroy(aio->lock);
+		mem_free(aio);
+		return 0;
+	}
+	aio->buffer_size = ASYNC_BUFSIZE;
+	aio->read_pos = 0;
+	aio->write_pos = 0;
+	aio->error = 0;
+	aio->finish = ASYNCIO_RUNNING;
+	aio->refcount = 2;
+
+	aio->thread = thread_init(aio_thread, aio);
+	if(!aio->thread)
+	{
+		mem_free(aio->buffer);
+		sphore_destroy(&aio->sphore);
+		lock_destroy(aio->lock);
+		mem_free(aio);
+		return 0;
+	}
+	return aio;
+}
+
+static unsigned int buffer_len(ASYNCIO *aio)
+{
+	if(aio->write_pos >= aio->read_pos)
+	{
+		return aio->write_pos - aio->read_pos;
+	}
+	else
+	{
+		return aio->buffer_size + aio->write_pos - aio->read_pos;
+	}
+}
+
+static unsigned int next_buffer_size(unsigned int cur_size, unsigned int need_size)
+{
+	while(cur_size < need_size)
+	{
+		cur_size *= 2;
+	}
+	return cur_size;
+}
+
+void aio_lock(ASYNCIO *aio)
+{
+	lock_wait(aio->lock);
+}
+
+void aio_unlock(ASYNCIO *aio)
+{
+	lock_unlock(aio->lock);
+	sphore_signal(&aio->sphore);
+}
+
+void aio_write_unlocked(ASYNCIO *aio, const void *buffer, unsigned size)
+{
+	unsigned int remaining;
+	remaining = aio->buffer_size - buffer_len(aio);
+
+	// Don't allow full queue to distinguish between empty and full queue.
+	if(size < remaining)
+	{
+		unsigned int remaining_contiguous = aio->buffer_size - aio->write_pos;
+		if(size > remaining_contiguous)
+		{
+			mem_copy(aio->buffer + aio->write_pos, buffer, remaining_contiguous);
+			size -= remaining_contiguous;
+			buffer = ((unsigned char *)buffer) + remaining_contiguous;
+			aio->write_pos = 0;
+		}
+		mem_copy(aio->buffer + aio->write_pos, buffer, size);
+		aio->write_pos = (aio->write_pos + size) % aio->buffer_size;
+	}
+	else
+	{
+		// Add 1 so the new buffer isn't completely filled.
+		unsigned int new_written = buffer_len(aio) + size + 1;
+		unsigned int next_size = next_buffer_size(aio->buffer_size, new_written);
+		unsigned int next_len = 0;
+		unsigned char *next_buffer = mem_alloc(next_size, 1);
+
+		struct BUFFERS buffers;
+		buffer_ptrs(aio, &buffers);
+		if(buffers.buf1)
+		{
+			mem_copy(next_buffer + next_len, buffers.buf1, buffers.len1);
+			next_len += buffers.len1;
+			if(buffers.buf2)
+			{
+				mem_copy(next_buffer + next_len, buffers.buf2, buffers.len2);
+				next_len += buffers.len2;
+			}
+		}
+		mem_copy(next_buffer + next_len, buffer, size);
+		next_len += size;
+
+		if(!aio->old_buffer)
+		{
+			aio->old_buffer = aio->buffer;
+		}
+		else
+		{
+			mem_free(aio->buffer);
+		}
+		aio->buffer = next_buffer;
+		aio->buffer_size = next_size;
+		aio->read_pos = 0;
+		aio->write_pos = next_len;
+	}
+}
+
+void aio_write(ASYNCIO *aio, const void *buffer, unsigned size)
+{
+	aio_lock(aio);
+	aio_write_unlocked(aio, buffer, size);
+	aio_unlock(aio);
+}
+
+void aio_write_newline_unlocked(ASYNCIO *aio)
+{
+#if defined(CONF_FAMILY_WINDOWS)
+	aio_write_unlocked(aio, "\r\n", 2);
+#else
+	aio_write_unlocked(aio, "\n", 1);
+#endif
+}
+
+void aio_write_newline(ASYNCIO *aio)
+{
+	aio_lock(aio);
+	aio_write_newline_unlocked(aio);
+	aio_unlock(aio);
+}
+
+int aio_error(ASYNCIO *aio)
+{
+	int result;
+	lock_wait(aio->lock);
+	result = aio->error;
+	lock_unlock(aio->lock);
+	return result;
+}
+
+void aio_free(ASYNCIO *aio)
+{
+	lock_wait(aio->lock);
+	if(aio->thread)
+	{
+		thread_detach(aio->thread);
+		aio->thread = 0;
+	}
+	aio_handle_free_and_unlock(aio);
+}
+
+void aio_close(ASYNCIO *aio)
+{
+	lock_wait(aio->lock);
+	aio->finish = ASYNCIO_CLOSE;
+	lock_unlock(aio->lock);
+	sphore_signal(&aio->sphore);
+}
+
+void aio_wait(ASYNCIO *aio)
+{
+	void *thread;
+	lock_wait(aio->lock);
+	thread = aio->thread;
+	aio->thread = 0;
+	if(aio->finish == ASYNCIO_RUNNING)
+	{
+		aio->finish = ASYNCIO_EXIT;
+	}
+	lock_unlock(aio->lock);
+	sphore_signal(&aio->sphore);
+	thread_wait(thread);
+}
+
 void *thread_init(void (*threadfunc)(void *), void *u)
 {
 #if defined(CONF_FAMILY_UNIX)
 	pthread_t id;
-	pthread_create(&id, NULL, (void *(*)(void*))threadfunc, u);
+	if(pthread_create(&id, NULL, (void *(*)(void*))threadfunc, u) != 0)
+	{
+		return 0;
+	}
 	return (void*)id;
 #elif defined(CONF_FAMILY_WINDOWS)
 	return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadfunc, u, 0, NULL);
@@ -522,21 +779,14 @@ void *thread_init(void (*threadfunc)(void *), void *u)
 void thread_wait(void *thread)
 {
 #if defined(CONF_FAMILY_UNIX)
-	pthread_join((pthread_t)thread, NULL);
+	int result = pthread_join((pthread_t)thread, NULL);
+	if(result != 0)
+		dbg_msg("thread", "!! %d", result);
 #elif defined(CONF_FAMILY_WINDOWS)
 	WaitForSingleObject((HANDLE)thread, INFINITE);
+	CloseHandle(thread);
 #else
 	#error not implemented
-#endif
-}
-
-void thread_destroy(void *thread)
-{
-#if defined(CONF_FAMILY_UNIX)
-	void *r = 0;
-	pthread_join((pthread_t)thread, &r);
-#else
-	/*#error not implemented*/
 #endif
 }
 
@@ -643,20 +893,32 @@ void lock_unlock(LOCK lock)
 #endif
 }
 
-#if !defined(CONF_PLATFORM_MACOSX)
-	#if defined(CONF_FAMILY_UNIX)
-	void semaphore_init(SEMAPHORE *sem) { sem_init(sem, 0, 0); }
-	void semaphore_wait(SEMAPHORE *sem) { sem_wait(sem); }
-	void semaphore_signal(SEMAPHORE *sem) { sem_post(sem); }
-	void semaphore_destroy(SEMAPHORE *sem) { sem_destroy(sem); }
-	#elif defined(CONF_FAMILY_WINDOWS)
-	void semaphore_init(SEMAPHORE *sem) { *sem = CreateSemaphore(0, 0, 10000, 0); }
-	void semaphore_wait(SEMAPHORE *sem) { WaitForSingleObject((HANDLE)*sem, INFINITE); }
-	void semaphore_signal(SEMAPHORE *sem) { ReleaseSemaphore((HANDLE)*sem, 1, NULL); }
-	void semaphore_destroy(SEMAPHORE *sem) { CloseHandle((HANDLE)*sem); }
-	#else
-		#error not implemented on this platform
-	#endif
+#if defined(CONF_FAMILY_WINDOWS)
+void sphore_init(SEMAPHORE *sem) { *sem = CreateSemaphore(0, 0, 10000, 0); }
+void sphore_wait(SEMAPHORE *sem) { WaitForSingleObject((HANDLE)*sem, INFINITE); }
+void sphore_signal(SEMAPHORE *sem) { ReleaseSemaphore((HANDLE)*sem, 1, NULL); }
+void sphore_destroy(SEMAPHORE *sem) { CloseHandle((HANDLE)*sem); }
+#elif defined(CONF_PLATFORM_MACOSX)
+void sphore_init(SEMAPHORE *sem)
+{
+	char aBuf[64];
+	str_format(aBuf, sizeof(aBuf), "/%d-ddnet.tw-%p", pid(), (void *)sem);
+	*sem = sem_open(aBuf, O_CREAT | O_EXCL, S_IRWXU | S_IRWXG, 0);
+}
+void sphore_wait(SEMAPHORE *sem) { sem_wait(*sem); }
+void sphore_signal(SEMAPHORE *sem) { sem_post(*sem); }
+void sphore_destroy(SEMAPHORE *sem)
+{
+	char aBuf[64];
+	sem_close(*sem);
+	str_format(aBuf, sizeof(aBuf), "/%d-ddnet.tw-%p", pid(), (void *)sem);
+	sem_unlink(aBuf);
+}
+#elif defined(CONF_FAMILY_UNIX)
+void sphore_init(SEMAPHORE *sem) { sem_init(sem, 0, 0); }
+void sphore_wait(SEMAPHORE *sem) { sem_wait(sem); }
+void sphore_signal(SEMAPHORE *sem) { sem_post(sem); }
+void sphore_destroy(SEMAPHORE *sem) { sem_destroy(sem); }
 #endif
 
 static int new_tick = -1;
@@ -675,28 +937,45 @@ int64 time_get()
 	if(new_tick != -1)
 		new_tick = 0;
 
-#if defined(CONF_FAMILY_UNIX)
-	struct timespec spec;
-	clock_gettime(CLOCK_MONOTONIC, &spec);
-	last = (int64)spec.tv_sec*(int64)1000000+(int64)spec.tv_nsec/1000;
-	return last;
-#elif defined(CONF_FAMILY_WINDOWS)
 	{
+#if defined(CONF_PLATFORM_MACOSX)
+		static int got_timebase = 0;
+		mach_timebase_info_data_t timebase;
+		uint64_t time;
+		uint64_t q;
+		uint64_t r;
+		if(!got_timebase)
+		{
+			mach_timebase_info(&timebase);
+		}
+		time = mach_absolute_time();
+		q = time / timebase.denom;
+		r = time % timebase.denom;
+		last = q * timebase.numer + r * timebase.numer / timebase.denom;
+		return last;
+#elif defined(CONF_FAMILY_UNIX)
+		struct timespec spec;
+		clock_gettime(CLOCK_MONOTONIC, &spec);
+		last = (int64)spec.tv_sec*(int64)1000000+(int64)spec.tv_nsec/1000;
+		return last;
+#elif defined(CONF_FAMILY_WINDOWS)
 		int64 t;
 		QueryPerformanceCounter((PLARGE_INTEGER)&t);
 		if(t<last) /* for some reason, QPC can return values in the past */
 			return last;
 		last = t;
 		return t;
-	}
 #else
-	#error not implemented
+		#error not implemented
 #endif
+	}
 }
 
 int64 time_freq()
 {
-#if defined(CONF_FAMILY_UNIX)
+#if defined(CONF_PLATFORM_MACOSX)
+	return 1000000000;
+#elif defined(CONF_FAMILY_UNIX)
 	return 1000000;
 #elif defined(CONF_FAMILY_WINDOWS)
 	int64 t;
@@ -1007,7 +1286,7 @@ static int priv_net_close_all_sockets(NETSOCKET sock)
 		sock.type &= ~NETTYPE_IPV4;
 	}
 
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	/* close down websocket_ipv4 */
 	if(sock.web_ipv4sock >= 0)
 	{
@@ -1108,7 +1387,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 			sock.type |= NETTYPE_IPV4;
 			sock.ipv4sock = socket;
 
-			/* set boardcast */
+			/* set broadcast */
 			setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast));
 
 			/* set receive buffer size */
@@ -1123,15 +1402,15 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 		}
 	}
 
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	if(bindaddr.type&NETTYPE_WEBSOCKET_IPV4)
 	{
 		int socket = -1;
+		char addr_str[NETADDR_MAXSTRSIZE];
 
 		/* bind, we should check for error */
 		tmpbindaddr.type = NETTYPE_WEBSOCKET_IPV4;
 
-		char addr_str[NETADDR_MAXSTRSIZE];
 		net_addr_str(&tmpbindaddr, addr_str, sizeof(addr_str), 0);
 		socket = websocket_create(addr_str, tmpbindaddr.port);
 
@@ -1156,7 +1435,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 			sock.type |= NETTYPE_IPV6;
 			sock.ipv6sock = socket;
 
-			/* set boardcast */
+			/* set broadcast */
 			setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast));
 
 			/* set receive buffer size */
@@ -1212,7 +1491,7 @@ int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size
 			dbg_msg("net", "can't send ipv4 traffic to this socket");
 	}
 
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	if(addr->type&NETTYPE_WEBSOCKET_IPV4)
 	{
 		if(sock.web_ipv4sock >= 0)
@@ -1287,7 +1566,7 @@ int net_udp_recv(NETSOCKET sock, NETADDR *addr, void *data, int maxsize)
 		bytes = recvfrom(sock.ipv6sock, (char*)data, maxsize, 0, (struct sockaddr *)&sockaddrbuf, &fromlen);
 	}
 
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	if(bytes <= 0 && sock.web_ipv4sock >= 0)
 	{
 		fromlen = sizeof(struct sockaddr);
@@ -1570,6 +1849,30 @@ int net_init()
 	return 0;
 }
 
+#if defined(CONF_FAMILY_UNIX)
+UNIXSOCKET net_unix_create_unnamed()
+{
+	return socket(AF_UNIX, SOCK_DGRAM, 0);
+}
+
+int net_unix_send(UNIXSOCKET sock, UNIXSOCKETADDR *addr, void *data, int size)
+{
+	return sendto(sock, data, size, 0, (struct sockaddr *)addr, sizeof(struct sockaddr_un));
+}
+
+void net_unix_set_addr(UNIXSOCKETADDR *addr, const char *path)
+{
+	mem_zero(addr, sizeof(addr));
+	addr->sun_family = AF_UNIX;
+	str_copy(addr->sun_path, path, sizeof(addr->sun_path));
+}
+
+void net_unix_close(UNIXSOCKET sock)
+{
+	close(sock);
+}
+#endif
+
 int fs_listdir_info(const char *dir, FS_LISTDIR_INFO_CALLBACK cb, int type, void *user)
 {
 #if defined(CONF_FAMILY_WINDOWS)
@@ -1825,7 +2128,7 @@ int fs_remove(const char *filename)
 int fs_rename(const char *oldname, const char *newname)
 {
 #if defined(CONF_FAMILY_WINDOWS)
-	if(MoveFileEx(oldname, newname, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) != 0)
+	if(MoveFileEx(oldname, newname, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) == 0)
 		return 1;
 #else
 	if(rename(oldname, newname) != 0)
@@ -1882,7 +2185,7 @@ int net_socket_read_wait(NETSOCKET sock, int time)
 		if(sock.ipv6sock > sockid)
 			sockid = sock.ipv6sock;
 	}
-#if defined(WEBSOCKETS)
+#if defined(CONF_WEBSOCKETS)
 	if(sock.web_ipv4sock >= 0)
 	{
 		int maxfd = websocket_fd_set(sock.web_ipv4sock, &readfds);
@@ -2000,6 +2303,17 @@ void str_sanitize(char *str_in)
 	while(*str)
 	{
 		if(*str < 32 && !(*str == '\r') && !(*str == '\n') && !(*str == '\t'))
+			*str = ' ';
+		str++;
+	}
+}
+
+void str_sanitize_filename(char *str_in)
+{
+	unsigned char *str = (unsigned char *)str_in;
+	while(*str)
+	{
+		if(*str < 32 || *str == '\\' || *str == '/' || *str == '|' || *str == ':' || *str == '*' || *str == '?' || *str == '<' || *str == '>' || *str == '"')
 			*str = ' ';
 		str++;
 	}
@@ -2132,20 +2446,105 @@ void str_hex(char *dst, int dst_size, const void *data, int data_size)
 	}
 }
 
+static int hexval(char x)
+{
+    switch(x)
+    {
+    case '0': return 0;
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    case '4': return 4;
+    case '5': return 5;
+    case '6': return 6;
+    case '7': return 7;
+    case '8': return 8;
+    case '9': return 9;
+    case 'a':
+    case 'A': return 10;
+    case 'b':
+    case 'B': return 11;
+    case 'c':
+    case 'C': return 12;
+    case 'd':
+    case 'D': return 13;
+    case 'e':
+    case 'E': return 14;
+    case 'f':
+    case 'F': return 15;
+    default: return -1;
+    }
+}
+
+static int byteval(const char *byte, unsigned char *dst)
+{
+	int v1 = -1, v2 = -1;
+	v1 = hexval(byte[0]);
+	v2 = hexval(byte[1]);
+
+	if(v1 < 0 || v2 < 0)
+		return 1;
+
+	*dst = v1 * 16 + v2;
+	return 0;
+}
+
+int str_hex_decode(unsigned char *dst, int dst_size, const char *src)
+{
+	int len = str_length(src)/2;
+	int i;
+	if(len != dst_size)
+		return 2;
+
+	for(i = 0; i < len && dst_size; i++, dst_size--)
+	{
+		if(byteval(src + i * 2, dst++))
+			return 1;
+	}
+	return 0;
+}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 void str_timestamp_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
 {
 	struct tm *time_info;
-
 	time_info = localtime(&time_data);
 	strftime(buffer, buffer_size, format, time_info);
 	buffer[buffer_size-1] = 0;	/* assure null termination */
 }
 
-void str_timestamp(char *buffer, int buffer_size)
+void str_timestamp_format(char *buffer, int buffer_size, const char *format)
 {
 	time_t time_data;
 	time(&time_data);
-	str_timestamp_ex(time_data, buffer, buffer_size, "%Y-%m-%d_%H-%M-%S");
+	str_timestamp_ex(time_data, buffer, buffer_size, format);
+}
+
+void str_timestamp(char *buffer, int buffer_size)
+{
+	str_timestamp_format(buffer, buffer_size, FORMAT_NOSPACE);
+}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+void str_escape(char **dst, const char *src, const char *end)
+{
+	while(*src && *dst + 1 < end)
+	{
+		if(*src == '"' || *src == '\\') // escape \ and "
+		{
+			if(*dst + 2 < end)
+				*(*dst)++ = '\\';
+			else
+				break;
+		}
+		*(*dst)++ = *src++;
+	}
+	**dst = 0;
 }
 
 int mem_comp(const void *a, const void *b, int size)
@@ -2163,48 +2562,6 @@ void net_stats(NETSTATS *stats_inout)
 	*stats_inout = network_stats;
 }
 
-void gui_messagebox(const char *title, const char *message)
-{
-#if defined(CONF_PLATFORM_MACOSX)
-	DialogRef theItem;
-	DialogItemIndex itemIndex;
-
-	/* FIXME: really needed? can we rely on glfw? */
-	/* HACK - get events without a bundle */
-	ProcessSerialNumber psn;
-	GetCurrentProcess(&psn);
-	TransformProcessType(&psn,kProcessTransformToForegroundApplication);
-	SetFrontProcess(&psn);
-	/* END HACK */
-
-	CreateStandardAlert(kAlertStopAlert,
-			CFStringCreateWithCString(NULL, title, kCFStringEncodingASCII),
-			CFStringCreateWithCString(NULL, message, kCFStringEncodingASCII),
-			NULL,
-			&theItem);
-
-	RunStandardAlert(theItem, NULL, &itemIndex);
-#elif defined(CONF_FAMILY_UNIX)
-	static char cmd[1024];
-	int err;
-	/* use xmessage which is available on nearly every X11 system */
-	snprintf(cmd, sizeof(cmd), "xmessage -center -title '%s' '%s'",
-		title,
-		message);
-
-	err = system(cmd);
-	dbg_msg("gui/msgbox", "result = %i", err);
-#elif defined(CONF_FAMILY_WINDOWS)
-	MessageBox(NULL,
-		message,
-		title,
-		MB_ICONEXCLAMATION | MB_OK);
-#else
-	/* this is not critical */
-	#warning not implemented
-#endif
-}
-
 int str_isspace(char c) { return c == ' ' || c == '\n' || c == '\t'; }
 
 char str_uppercase(char c)
@@ -2218,36 +2575,6 @@ int str_toint(const char *str) { return atoi(str); }
 int str_toint_base(const char *str, int base) { return strtol(str, NULL, base); }
 float str_tofloat(const char *str) { return atof(str); }
 
-
-int str_utf8_comp_names(const char *a, const char *b)
-{
-	int codeA;
-	int codeB;
-	int diff;
-
-	while(*a && *b)
-	{
-		do
-		{
-			codeA = str_utf8_decode(&a);
-		}
-		while(*a && !str_utf8_isspace(codeA));
-
-		do
-		{
-			codeB = str_utf8_decode(&b);
-		}
-		while(*b && !str_utf8_isspace(codeB));
-
-		diff = codeA - codeB;
-
-		if((diff < 0 && !str_utf8_is_confusable(codeA, codeB))
-		|| (diff > 0 && !str_utf8_is_confusable(codeB, codeA)))
-			return diff;
-	}
-
-	return *a - *b;
-}
 
 int str_utf8_isspace(int code)
 {
@@ -2471,30 +2798,29 @@ void shell_execute(const char *file)
 #if defined(CONF_FAMILY_WINDOWS)
 	ShellExecute(NULL, NULL, file, NULL, NULL, SW_SHOWDEFAULT);
 #elif defined(CONF_FAMILY_UNIX)
-	char* argv[2];
+	char *argv[2];
+	pid_t pid;
 	argv[0] = (char*) file;
 	argv[1] = NULL;
-	pid_t pid = fork();
+	pid = fork();
 	if(!pid)
 		execv(file, argv);
 #endif
 }
 
-int os_compare_version(int major, int minor)
+int os_is_winxp_or_lower(unsigned int major, unsigned int minor)
 {
 #if defined(CONF_FAMILY_WINDOWS)
+	static const DWORD WINXP_MAJOR = 5;
+	static const DWORD WINXP_MINOR = 1;
 	OSVERSIONINFO ver;
 	mem_zero(&ver, sizeof(OSVERSIONINFO));
 	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	GetVersionEx(&ver);
-	if(ver.dwMajorVersion > major || (ver.dwMajorVersion == major && ver.dwMinorVersion > minor))
-		return 1;
-	else if(ver.dwMajorVersion == major && ver.dwMinorVersion == minor)
-		return 0;
-	else
-		return -1;
+	return ver.dwMajorVersion < WINXP_MAJOR
+		|| (ver.dwMajorVersion == WINXP_MAJOR && ver.dwMinorVersion <= WINXP_MINOR);
 #else
-	return 0; // unimplemented
+	return 0;
 #endif
 }
 
@@ -2540,7 +2866,43 @@ int secure_random_init()
 #endif
 }
 
-void secure_random_fill(void *bytes, size_t length)
+void generate_password(char *buffer, unsigned length, unsigned short *random, unsigned random_length)
+{
+	static const char VALUES[] = "ABCDEFGHKLMNPRSTUVWXYZabcdefghjkmnopqt23456789";
+	static const size_t NUM_VALUES = sizeof(VALUES) - 1; // Disregard the '\0'.
+	unsigned i;
+	dbg_assert(length >= random_length * 2 + 1, "too small buffer");
+	dbg_assert(NUM_VALUES * NUM_VALUES >= 2048, "need at least 2048 possibilities for 2-character sequences");
+
+	buffer[random_length * 2] = 0;
+
+	for(i = 0; i < random_length; i++)
+	{
+		unsigned short random_number = random[i] % 2048;
+		buffer[2 * i + 0] = VALUES[random_number / NUM_VALUES];
+		buffer[2 * i + 1] = VALUES[random_number % NUM_VALUES];
+	}
+}
+
+#define MAX_PASSWORD_LENGTH 128
+
+void secure_random_password(char *buffer, unsigned length, unsigned pw_length)
+{
+	unsigned short random[MAX_PASSWORD_LENGTH / 2];
+	// With 6 characters, we get a password entropy of log(2048) * 6/2 = 33bit.
+	dbg_assert(length >= pw_length + 1, "too small buffer");
+	dbg_assert(pw_length >= 6, "too small password length");
+	dbg_assert(pw_length % 2 == 0, "need an even password length");
+	dbg_assert(pw_length <= MAX_PASSWORD_LENGTH, "too large password length");
+
+	secure_random_fill(random, pw_length);
+
+	generate_password(buffer, length, random, pw_length / 2);
+}
+
+#undef MAX_PASSWORD_LENGTH
+
+void secure_random_fill(void *bytes, unsigned length)
 {
 	if(!secure_random_data.initialized)
 	{
@@ -2550,7 +2912,7 @@ void secure_random_fill(void *bytes, size_t length)
 #if defined(CONF_FAMILY_WINDOWS)
 	if(!CryptGenRandom(secure_random_data.provider, length, bytes))
 	{
-		dbg_msg("secure", "CryptGenRandom failed, last_error=%d", GetLastError());
+		dbg_msg("secure", "CryptGenRandom failed, last_error=%ld", GetLastError());
 		dbg_break();
 	}
 #else

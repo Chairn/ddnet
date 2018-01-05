@@ -99,38 +99,40 @@ public:
 		return SendMsg(&Packer, Flags, ClientID);
 	}
 
-	bool Translate(int& target, int client)
+	bool Translate(int& Target, int Client)
 	{
-		CClientInfo info;
-		GetClientInfo(client, &info);
-		if (info.m_ClientVersion >= VERSION_DDNET_OLD)
+		CClientInfo Info;
+		GetClientInfo(Client, &Info);
+		if (Info.m_ClientVersion >= VERSION_DDNET_OLD)
 			return true;
-		int* map = GetIdMap(client);
-		bool found = false;
+		int *pMap = GetIdMap(Client);
+		bool Found = false;
 		for (int i = 0; i < VANILLA_MAX_CLIENTS; i++)
 		{
-			if (target == map[i])
+			if (Target == pMap[i])
 			{
-				target = i;
-				found = true;
+				Target = i;
+				Found = true;
 				break;
 			}
 		}
-		return found;
+		return Found;
 	}
 
-	bool ReverseTranslate(int& target, int client)
+	bool ReverseTranslate(int& Target, int Client)
 	{
-		CClientInfo info;
-		GetClientInfo(client, &info);
-		if (info.m_ClientVersion >= VERSION_DDNET_OLD)
+		CClientInfo Info;
+		GetClientInfo(Client, &Info);
+		if (Info.m_ClientVersion >= VERSION_DDNET_OLD)
 			return true;
-		int* map = GetIdMap(client);
-		if (map[target] == -1)
+		int *pMap = GetIdMap(Client);
+		if (pMap[Target] == -1)
 			return false;
-		target = map[target];
+		Target = pMap[Target];
 		return true;
 	}
+
+	virtual void GetMapInfo(char *pMapName, int MapNameSize, int *pMapSize, int *pMapCrc) = 0;
 
 	virtual void SetClientName(int ClientID, char const *pName) = 0;
 	virtual void SetClientClan(int ClientID, char const *pClan) = 0;
@@ -145,11 +147,16 @@ public:
 
 	enum
 	{
+		AUTHED_NO=0,
+		AUTHED_HELPER,
+		AUTHED_MOD,
+		AUTHED_ADMIN,
+
 		RCON_CID_SERV=-1,
 		RCON_CID_VOTE=-2,
 	};
 	virtual void SetRconCID(int ClientID) = 0;
-	virtual bool IsAuthed(int ClientID) = 0;
+	virtual int GetAuthedState(int ClientID) = 0;
 	virtual void Kick(int ClientID, const char *pReason) = 0;
 
 	virtual void DemoRecorder_HandleAutoStart() = 0;
@@ -166,6 +173,15 @@ public:
 
 	virtual int* GetIdMap(int ClientID) = 0;
 
+	virtual bool DnsblWhite(int ClientID) = 0;
+	virtual const char *GetAnnouncementLine(char const *FileName) = 0;
+	virtual bool ClientPrevIngame(int ClientID) = 0;
+	virtual const char *GetNetErrorString(int ClientID) = 0;
+	virtual void ResetNetErrorString(int ClientID) = 0;
+	virtual bool SetTimedOut(int ClientID, int OrigID) = 0;
+	virtual void SetTimeoutProtected(int ClientID) = 0;
+
+	virtual void SetErrorShutdown(const char *pReason) = 0;
 };
 
 class IGameServer : public IInterface
@@ -203,6 +219,12 @@ public:
 	// DDRace
 
 	virtual void OnSetAuthed(int ClientID, int Level) = 0;
+	virtual int GetClientVersion(int ClientID) = 0;
+	virtual void SetClientVersion(int ClientID, int Version) = 0;
+	virtual bool PlayerExists(int ClientID) = 0;
+
+	virtual void OnClientEngineJoin(int ClientID) = 0;
+	virtual void OnClientEngineDrop(int ClientID, const char *pReason) = 0;
 };
 
 extern IGameServer *CreateGameServer();

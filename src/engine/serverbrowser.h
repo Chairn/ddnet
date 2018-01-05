@@ -31,6 +31,10 @@ public:
 	int m_SortedIndex;
 	int m_ServerIndex;
 
+	int m_Type;
+	uint64 m_ReceivedPackets;
+	int m_NumReceivedClients;
+
 	NETADDR m_NetAddr;
 
 	int m_QuickSearchHit;
@@ -43,9 +47,12 @@ public:
 	int m_Flags;
 	int m_Favorite;
 	int m_Latency; // in ms
+	int m_HasRank;
 	char m_aGameType[16];
 	char m_aName[64];
 	char m_aMap[32];
+	int m_MapCrc;
+	int m_MapSize;
 	char m_aVersion[32];
 	char m_aAddress[NETADDR_MAXSTRSIZE];
 	CClient m_aClients[MAX_CLIENTS];
@@ -56,6 +63,7 @@ bool IsCatch(const CServerInfo *pInfo);
 bool IsInsta(const CServerInfo *pInfo);
 bool IsFNG(const CServerInfo *pInfo);
 bool IsRace(const CServerInfo *pInfo);
+bool IsFastCap(const CServerInfo *pInfo);
 bool IsDDRace(const CServerInfo *pInfo);
 bool IsDDNet(const CServerInfo *pInfo);
 
@@ -121,6 +129,8 @@ public:
 	virtual void DDNetFilterAdd(char *pFilter, const char *pName) = 0;
 	virtual void DDNetFilterRem(char *pFilter, const char *pName) = 0;
 	virtual bool DDNetFiltered(char *pFilter, const char *pName) = 0;
+	virtual void DDNetCountryFilterClean() = 0;
+	virtual void DDNetTypeFilterClean() = 0;
 	virtual int GetCurrentType() = 0;
 };
 

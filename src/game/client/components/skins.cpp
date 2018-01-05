@@ -11,7 +11,7 @@
 
 #include "skins.h"
 
-const char* vanillaSkins[] = {"bluekitty.png", "bluestripe.png", "brownbear.png",
+static const char* s_aaVanillaSkins[] = {"bluekitty.png", "bluestripe.png", "brownbear.png",
 	"cammo.png", "cammostripes.png", "coala.png", "default.png", "limekitty.png",
 	"pinky.png", "redbopp.png", "redstripe.png", "saddo.png", "toptri.png",
 	"twinbop.png", "twintri.png", "warpaint.png", "x_ninja.png"};
@@ -20,16 +20,16 @@ int CSkins::SkinScan(const char *pName, int IsDir, int DirType, void *pUser)
 {
 	if(g_Config.m_ClVanillaSkinsOnly)
 	{
-		bool found = false;
-		for(unsigned int i = 0; i < sizeof(vanillaSkins) / sizeof(vanillaSkins[0]); i++)
+		bool Found = false;
+		for(unsigned int i = 0; i < sizeof(s_aaVanillaSkins) / sizeof(s_aaVanillaSkins[0]); i++)
 		{
-			if(str_comp(pName, vanillaSkins[i]) == 0)
+			if(str_comp(pName, s_aaVanillaSkins[i]) == 0)
 			{
-				found = true;
+				Found = true;
 				break;
 			}
 		}
-		if(!found)
+		if(!Found)
 			return 0;
 	}
 
@@ -176,6 +176,21 @@ const CSkins::CSkin *CSkins::Get(int Index)
 
 int CSkins::Find(const char *pName)
 {
+	char aBuf[24];
+	if(g_Config.m_ClKittySkins)
+	{
+		for(unsigned int i = 0; i < sizeof(s_aaVanillaSkins) / sizeof(s_aaVanillaSkins[0]); i++)
+		{
+			// index 0 and 7 are bluekitty and limekitty
+			if(i != 0 && i != 7 && str_comp_num(pName, s_aaVanillaSkins[i], str_length(s_aaVanillaSkins[i])-4) == 0)
+			{
+				str_format(aBuf, sizeof(aBuf), "kitty_%s", pName);
+				pName = aBuf;
+				break;
+			}
+		}
+	}
+
 	for(int i = 0; i < m_aSkins.size(); i++)
 	{
 		if(str_comp(m_aSkins[i].m_aName, pName) == 0)

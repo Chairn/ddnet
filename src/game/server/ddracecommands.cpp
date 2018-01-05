@@ -1,7 +1,6 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "gamecontext.h"
 #include <engine/shared/config.h>
-#include <engine/server/server.h>
 #include <game/server/teams.h>
 #include <game/server/gamemodes/DDRace.h>
 #include <game/version.h>
@@ -166,6 +165,14 @@ void CGameContext::ConRifle(IConsole::IResult *pResult, void *pUserData)
 	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_RIFLE, false);
 }
 
+void CGameContext::ConJetpack(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CCharacter* pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
+	if (pChr)
+		pChr->m_Jetpack = true;
+}
+
 void CGameContext::ConWeapons(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
@@ -190,6 +197,14 @@ void CGameContext::ConUnRifle(IConsole::IResult *pResult, void *pUserData)
 	pSelf->ModifyWeapons(pResult, pUserData, WEAPON_RIFLE, true);
 }
 
+void CGameContext::ConUnJetpack(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CCharacter* pChr = pSelf->GetPlayerChar(pResult->m_ClientID);
+	if (pChr)
+		pChr->m_Jetpack = false;
+}
+
 void CGameContext::ConUnWeapons(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
@@ -211,10 +226,11 @@ void CGameContext::ConRemoveWeapon(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ModifyWeapons(IConsole::IResult *pResult, void *pUserData,
 		int Weapon, bool Remove)
 {
-	CGameContext *pSelf = (CGameContext *) pUserData;
-	if (!CheckClientID(pResult->m_ClientID))
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CCharacter* pChr = GetPlayerChar(pResult->m_ClientID);
+	if (!pChr)
 		return;
-	int ClientID = pResult->m_ClientID;
+
 	if (clamp(Weapon, -1, NUM_WEAPONS - 1) != Weapon)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
@@ -222,47 +238,15 @@ void CGameContext::ModifyWeapons(IConsole::IResult *pResult, void *pUserData,
 		return;
 	}
 
-	CCharacter* pChr = GetPlayerChar(ClientID);
-	if (!pChr)
-		return;
-
 	if (Weapon == -1)
 	{
-		if (Remove
-				&& (pChr->GetActiveWeapon() == WEAPON_SHOTGUN
-						|| pChr->GetActiveWeapon() == WEAPON_GRENADE
-						|| pChr->GetActiveWeapon() == WEAPON_RIFLE))
-			pChr->SetActiveWeapon(WEAPON_GUN);
-
-		if (Remove)
-		{
-			pChr->SetWeaponGot(WEAPON_SHOTGUN, false);
-			pChr->SetWeaponGot(WEAPON_GRENADE, false);
-			pChr->SetWeaponGot(WEAPON_RIFLE, false);
-		}
-		else
-			pChr->GiveAllWeapons();
-	}
-	else if (Weapon != WEAPON_NINJA)
-	{
-		if (Remove && pChr->GetActiveWeapon() == Weapon)
-			pChr->SetActiveWeapon(WEAPON_GUN);
-
-		if (Remove)
-			pChr->SetWeaponGot(Weapon, false);
-		else
-			pChr->GiveWeapon(Weapon, -1);
+		pChr->GiveWeapon(WEAPON_SHOTGUN, Remove);
+		pChr->GiveWeapon(WEAPON_GRENADE, Remove);
+		pChr->GiveWeapon(WEAPON_RIFLE, Remove);
 	}
 	else
 	{
-		if (Remove)
-		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "info",
-					"you can't remove ninja");
-			return;
-		}
-
-		pChr->GiveNinja();
+		pChr->GiveWeapon(Weapon, Remove);
 	}
 
 	pChr->m_DDRaceState = DDRACE_CHEAT;
@@ -312,21 +296,18 @@ void CGameContext::ConToCheckTeleporter(IConsole::IResult *pResult, void *pUserD
 void CGameContext::ConTeleport(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *) pUserData;
-	int TeleTo = pResult->GetInteger(0);
+	int TeleTo = pResult->GetInteger(1);
 	int Tele = pResult->m_ClientID;
 	if (pResult->NumArguments() > 0)
 		Tele = pResult->GetVictim();
 
-	if (pSelf->m_apPlayers[TeleTo])
+	CCharacter* pChr = pSelf->GetPlayerChar(Tele);
+	if (pChr && pSelf->GetPlayerChar(TeleTo))
 	{
-		CCharacter* pChr = pSelf->GetPlayerChar(Tele);
-		if (pChr && pSelf->GetPlayerChar(TeleTo))
-		{
-			pChr->Core()->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_PrevPos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
-			pChr->m_DDRaceState = DDRACE_CHEAT;
-		}
+		pChr->Core()->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_Pos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_PrevPos = pSelf->m_apPlayers[TeleTo]->m_ViewPos;
+		pChr->m_DDRaceState = DDRACE_CHEAT;
 	}
 }
 
@@ -353,18 +334,16 @@ void CGameContext::ConKill(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConForcePause(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	CServer* pServ = (CServer*)pSelf->Server();
 	int Victim = pResult->GetVictim();
 	int Seconds = 0;
-	if (pResult->NumArguments() > 0)
-		Seconds = clamp(pResult->GetInteger(0), 0, 360);
+	if (pResult->NumArguments() > 1)
+		Seconds = clamp(pResult->GetInteger(1), 0, 360);
 
 	CPlayer *pPlayer = pSelf->m_apPlayers[Victim];
 	if (!pPlayer)
 		return;
 
-	pPlayer->m_ForcePauseTime = Seconds*pServ->TickSpeed();
-	pPlayer->m_Paused = CPlayer::PAUSED_FORCE;
+	pPlayer->ForcePause(Seconds);
 }
 
 void CGameContext::Mute(IConsole::IResult *pResult, NETADDR *Addr, int Secs,
@@ -422,7 +401,7 @@ void CGameContext::ConMuteID(IConsole::IResult *pResult, void *pUserData)
 	NETADDR Addr;
 	pSelf->Server()->GetClientAddr(Victim, &Addr);
 
-	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(0), 1, 86400),
+	pSelf->Mute(pResult, &Addr, clamp(pResult->GetInteger(1), 1, 86400),
 			pSelf->Server()->ClientName(Victim));
 }
 
@@ -493,6 +472,21 @@ void CGameContext::ConList(IConsole::IResult *pResult, void *pUserData)
 		pSelf->List(ClientID, pResult->GetString(0));
 	else
 		pSelf->List(ClientID, &zerochar);
+}
+
+
+void CGameContext::ConSetDDRTeam(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	CGameControllerDDRace *pController = (CGameControllerDDRace *)pSelf->m_pController;
+
+	int Target = pResult->GetVictim();
+	int Team = pResult->GetInteger(1);
+
+	if(pController->m_Teams.m_Core.Team(Target) && pController->m_Teams.GetDDRaceState(pSelf->m_apPlayers[Target]) == DDRACE_STARTED)
+		pSelf->m_apPlayers[Target]->KillCharacter(WEAPON_SELF);
+
+	pController->m_Teams.SetForceCharacterTeam(pResult->GetVictim(), Team);
 }
 
 void CGameContext::ConFreezeHammer(IConsole::IResult *pResult, void *pUserData)

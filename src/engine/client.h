@@ -7,8 +7,6 @@
 #include "message.h"
 #include <engine/friends.h>
 #include <engine/shared/config.h>
-#include <versionsrv/versionsrv.h>
-#include <game/generated/protocol.h>
 
 enum
 {
@@ -17,6 +15,8 @@ enum
 	RECORDER_RACE=2,
 	RECORDER_MAX=3,
 };
+
+typedef bool (*CLIENTFUNC_FILTER)(const void *pData, int DataSize, void *pUser);
 
 class IClient : public IInterface
 {
@@ -39,13 +39,8 @@ protected:
 
 	int m_GameTickSpeed;
 public:
-	int m_LocalIDs[2];
-	char m_aNews[NEWS_SIZE];
+	char m_aNews[3000];
 	int64 m_ReconnectTime;
-
-	CNetObj_PlayerInput m_DummyInput;
-
-	bool m_DummySendConnInfo;
 
 	class CSnapItem
 	{
@@ -91,7 +86,7 @@ public:
 	inline float LocalTime() const { return m_LocalTime; }
 
 	// actions
-	virtual void Connect(const char *pAddress) = 0;
+	virtual void Connect(const char *pAddress, const char *pPassword = NULL) = 0;
 	virtual void Disconnect() = 0;
 
 	// dummy
@@ -109,6 +104,7 @@ public:
 	virtual class IDemoRecorder *DemoRecorder(int Recorder) = 0;
 	virtual void AutoScreenshot_Start() = 0;
 	virtual void AutoStatScreenshot_Start() = 0;
+	virtual void AutoCSV_Start() = 0;
 	virtual void ServerBrowserUpdate() = 0;
 
 	// gfx
@@ -137,8 +133,6 @@ public:
 
 	// server info
 	virtual void GetServerInfo(class CServerInfo *pServerInfo) = 0;
-
-	virtual void CheckVersionUpdate() = 0;
 
 	virtual int GetPredictionTime() = 0;
 
@@ -181,18 +175,22 @@ public:
 
 	//DDRace
 
-	virtual const char* GetCurrentMap() = 0;
-	virtual int GetCurrentMapCrc() = 0;
-	virtual const char* RaceRecordStart(const char *pFilename) = 0;
-	virtual void RaceRecordStop() = 0;
-	virtual bool RaceRecordIsRecording() = 0;
+	virtual const char *GetCurrentMap() = 0;
+	virtual const char *GetCurrentMapPath() = 0;
+	virtual unsigned GetMapCrc() = 0;
+
+	virtual void RaceRecord_Start(const char *pFilename) = 0;
+	virtual void RaceRecord_Stop() = 0;
+	virtual bool RaceRecord_IsRecording() = 0;
 
 	virtual void DemoSliceBegin() = 0;
 	virtual void DemoSliceEnd() = 0;
-	virtual void DemoSlice(const char *pDstPath, bool RemoveChat) = 0;
+	virtual void DemoSlice(const char *pDstPath, CLIENTFUNC_FILTER pfnFilter, void *pUser) = 0;
 
-	virtual void RequestDDNetSrvList() = 0;
+	virtual void RequestDDNetInfo() = 0;
 	virtual bool EditorHasUnsavedData() = 0;
+
+	virtual void GenerateTimeoutSeed() = 0;
 
 	virtual IFriends* Foes() = 0;
 };
@@ -204,6 +202,7 @@ protected:
 public:
 	virtual void OnConsoleInit() = 0;
 
+	virtual void OnRconType(bool UsernameReq) = 0;
 	virtual void OnRconLine(const char *pLine) = 0;
 	virtual void OnInit() = 0;
 	virtual void OnNewSnapshot() = 0;
@@ -217,10 +216,9 @@ public:
 	virtual void OnPredict() = 0;
 	virtual void OnActivateEditor() = 0;
 
-	virtual int OnSnapInput(int *pData) = 0;
+	virtual int OnSnapInput(int *pData, bool Dummy, bool Force) = 0;
+	virtual void OnDummySwap() = 0;
 	virtual void SendDummyInfo(bool Start) = 0;
-	virtual void ResetDummyInput() = 0;
-	virtual const CNetObj_PlayerInput &getPlayerInput(int dummy) = 0;
 
 	virtual const char *GetItemName(int Type) = 0;
 	virtual const char *Version() = 0;

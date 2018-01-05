@@ -560,8 +560,8 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->IncreaseHealth(10);
 
 	// give default weapons
-	pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, -1);
+	pChr->GiveWeapon(WEAPON_HAMMER);
+	pChr->GiveWeapon(WEAPON_GUN);
 }
 
 void IGameController::DoWarmup(int Seconds)
@@ -698,7 +698,7 @@ void IGameController::Tick()
 					break;
 			}
 		#endif
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && !Server()->IsAuthed(i))
+			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && Server()->GetAuthedState(i) == IServer::AUTHED_NO)
 			{
 				if(Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick+g_Config.m_SvInactiveKickTime*Server()->TickSpeed()*60)
 				{
@@ -770,18 +770,22 @@ void IGameController::Snap(int SnappingClient)
 	CPlayer *pPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0;
 	CPlayer *pPlayer2;
 
-	if(pPlayer && (pPlayer->m_TimerType == 0 || pPlayer->m_TimerType == 2))
+	if(pPlayer && (pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER || pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && pPlayer->m_ClientVersion >= VERSION_DDNET_GAMETICK)
 	{
-		if((pPlayer->GetTeam() == -1 || pPlayer->m_Paused)
+		if((pPlayer->GetTeam() == -1 || pPlayer->IsPaused())
 			&& pPlayer->m_SpectatorID != SPEC_FREEVIEW
 			&& (pPlayer2 = GameServer()->m_apPlayers[pPlayer->m_SpectatorID]))
 		{
-			if((pChr = pPlayer2->GetCharacter()))
-				pGameInfoObj->m_RoundStartTick = (pChr->m_DDRaceState == DDRACE_STARTED)?pChr->m_StartTime:m_RoundStartTick;
+			if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
+			{
+				pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
+				pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
+			}
 		}
-		else if((pChr = pPlayer->GetCharacter()))
+		else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
 		{
-			pGameInfoObj->m_RoundStartTick = (pChr->m_DDRaceState == DDRACE_STARTED)?pChr->m_StartTime:m_RoundStartTick;
+			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
+			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
 		}
 	}
 }
@@ -789,8 +793,10 @@ void IGameController::Snap(int SnappingClient)
 int IGameController::GetAutoTeam(int NotThisID)
 {
 	// this will force the auto balancer to work overtime aswell
+#ifdef CONF_DEBUG
 	if(g_Config.m_DbgStress)
 		return 0;
+#endif
 
 	int aNumplayers[2] = {0,0};
 	for(int i = 0; i < MAX_CLIENTS; i++)

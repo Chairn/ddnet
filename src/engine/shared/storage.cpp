@@ -1,5 +1,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include <base/math.h>
 #include <base/system.h>
 #include <engine/storage.h>
 #include "linereader.h"
@@ -67,8 +68,10 @@ public:
 			fs_makedir(GetPath(TYPE_SAVE, "dumps", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "demos", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "demos/auto", aPath, sizeof(aPath)));
+			fs_makedir(GetPath(TYPE_SAVE, "demos/auto/race", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "editor", aPath, sizeof(aPath)));
 			fs_makedir(GetPath(TYPE_SAVE, "ghosts", aPath, sizeof(aPath)));
+			fs_makedir(GetPath(TYPE_SAVE, "teehistorian", aPath, sizeof(aPath)));
 		}
 
 		return m_NumPaths ? 0 : 1;
@@ -203,13 +206,13 @@ public:
 		// 4) check for all default locations
 		{
 			const char *aDirs[] = {
-				"/usr/share/teeworlds/data",
-				"/usr/share/games/teeworlds/data",
-				"/usr/local/share/teeworlds/data",
-				"/usr/local/share/games/teeworlds/data",
-				"/usr/pkg/share/teeworlds/data",
-				"/usr/pkg/share/games/teeworlds/data",
-				"/opt/teeworlds/data"
+				"/usr/share/ddnet",
+				"/usr/share/games/ddnet",
+				"/usr/local/share/ddnet",
+				"/usr/local/share/games/ddnet",
+				"/usr/pkg/share/ddnet",
+				"/usr/pkg/share/games/ddnet",
+				"/opt/ddnet"
 			};
 			const int DirsCount = sizeof(aDirs) / sizeof(aDirs[0]);
 
@@ -217,11 +220,11 @@ public:
 			for (i = 0; i < DirsCount; i++)
 			{
 				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "%s/mapres", aDirs[i]);
+				str_format(aBuf, sizeof(aBuf), "%s/data/mapres", aDirs[i]);
 				if(fs_is_dir(aBuf))
 				{
-					str_copy(m_aBinarydir, aDirs[i], sizeof(aDirs[i])-5);
-					str_copy(m_aDatadir, aDirs[i], sizeof(m_aDatadir));
+					str_copy(m_aBinarydir, aDirs[i], sizeof(m_aDatadir));
+					str_format(m_aDatadir, sizeof(m_aDatadir), "%s/data", aDirs[i]);
 					return;
 				}
 			}
@@ -280,7 +283,22 @@ public:
 			BufferSize = sizeof(aBuffer);
 		}
 
-		if(Flags&IOFLAG_WRITE)
+		if(Type == TYPE_ABSOLUTE)
+		{
+			return io_open(pFilename, Flags);
+		}
+		if(str_comp_num(pFilename, "mapres/../skins/", 16) == 0) {
+			pFilename = pFilename + 10; // just start from skins/
+		}
+		if(pFilename[0] == '/' || pFilename[0] == '\\' || str_find(pFilename, "../") != NULL || str_find(pFilename, "..\\") != NULL
+		#ifdef CONF_FAMILY_WINDOWS
+			|| (pFilename[0] && pFilename[1] == ':')
+		#endif
+		)
+		{
+			// don't escape base directory
+		}
+		else if(Flags&IOFLAG_WRITE)
 		{
 			return io_open(GetPath(TYPE_SAVE, pFilename, pBuffer, BufferSize), Flags);
 		}
@@ -288,7 +306,7 @@ public:
 		{
 			IOHANDLE Handle = 0;
 
-			if(Type == TYPE_ALL)
+			if(Type <= TYPE_ALL)
 			{
 				// check all available directories
 				for(int i = 0; i < m_NumPaths; ++i)
@@ -395,7 +413,7 @@ public:
 		return !fs_remove(GetBinaryPath(pFilename, aBuffer, sizeof(aBuffer)));
 	}
 
-	virtual bool RenameFile(const char* pOldFilename, const char* pNewFilename, int Type)
+	virtual bool RenameFile(const char *pOldFilename, const char *pNewFilename, int Type)
 	{
 		if(Type < 0 || Type >= m_NumPaths)
 			return false;
@@ -404,7 +422,7 @@ public:
 		return !fs_rename(GetPath(Type, pOldFilename, aOldBuffer, sizeof(aOldBuffer)), GetPath(Type, pNewFilename, aNewBuffer, sizeof (aNewBuffer)));
 	}
 
-	virtual bool RenameBinaryFile(const char* pOldFilename, const char* pNewFilename)
+	virtual bool RenameBinaryFile(const char *pOldFilename, const char *pNewFilename)
 	{
 		char aOldBuffer[MAX_PATH_LENGTH];
 		char aNewBuffer[MAX_PATH_LENGTH];
@@ -457,6 +475,28 @@ public:
 		return p;
 	}
 };
+
+void IStorage::StripPathAndExtension(const char *pFilename, char *pBuffer, int BufferSize)
+{
+	const char *pFilenameEnd = pFilename + str_length(pFilename);
+	const char *pExtractedName = pFilename;
+	const char *pEnd = pFilenameEnd;
+	for(const char *pIter = pFilename; *pIter; pIter++)
+	{
+		if(*pIter == '/' || *pIter == '\\')
+		{
+			pExtractedName = pIter + 1;
+			pEnd = pFilenameEnd;
+		}
+		else if(*pIter == '.')
+		{
+			pEnd = pIter;
+		}
+	}
+
+	int Length = min(BufferSize, (int)(pEnd - pExtractedName + 1));
+	str_copy(pBuffer, pExtractedName, Length);
+}
 
 IStorage *CreateStorage(const char *pApplicationName, int StorageType, int NumArgs, const char **ppArguments) { return CStorage::Create(pApplicationName, StorageType, NumArgs, ppArguments); }
 

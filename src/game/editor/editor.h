@@ -343,6 +343,11 @@ public:
 		Clean();
 	}
 
+	~CEditorMap()
+	{
+		Clean();
+	}
+
 	array<CLayerGroup*> m_lGroups;
 	array<CEditorImage*> m_lImages;
 	array<CEnvelope*> m_lEnvelopes;
@@ -751,10 +756,11 @@ public:
 		void (*pfnFunc)(const char *pFilename, int StorageType, void *pUser), void *pUser);
 
 	void Reset(bool CreateDefault=true);
-	int Save(const char *pFilename);
-	int Load(const char *pFilename, int StorageType);
+	virtual int Save(const char *pFilename);
+	virtual int Load(const char *pFilename, int StorageType);
 	int Append(const char *pFilename, int StorageType);
 	int Compare(const char *pFilename, int StorageType);
+	void LoadCurrentMap();
 	void Render();
 
 	CQuad *GetSelectedQuad();
@@ -763,7 +769,7 @@ public:
 	CLayerGroup *GetSelectedGroup();
 	CSoundSource *GetSelectedSource();
 
-	int DoProperties(CUIRect *pToolbox, CProperty *pProps, int *pIDs, int *pNewVal, vec4 color = vec4(1,1,1,0.5f));
+	int DoProperties(CUIRect *pToolbox, CProperty *pProps, int *pIDs, int *pNewVal, vec4 Color = vec4(1,1,1,0.5f));
 
 	int m_Mode;
 	int m_Dialog;
@@ -781,6 +787,7 @@ public:
 	{
 		POPEVENT_EXIT=0,
 		POPEVENT_LOAD,
+		POPEVENT_LOADCURRENT,
 		POPEVENT_NEW,
 		POPEVENT_SAVE,
 		POPEVENT_LARGELAYER,
@@ -811,6 +818,7 @@ public:
 	char m_aFileDialogFileName[MAX_PATH_LENGTH];
 	char m_aFileDialogCurrentFolder[MAX_PATH_LENGTH];
 	char m_aFileDialogCurrentLink[MAX_PATH_LENGTH];
+	char m_aFileDialogSearchText[64];
 	char *m_pFileDialogPath;
 	bool m_aFileDialogActivate;
 	int m_FileDialogFileType;
@@ -926,7 +934,7 @@ public:
 	void UiInvokePopupMenu(void *pID, int Flags, float X, float Y, float W, float H, int (*pfnFunc)(CEditor *pEditor, CUIRect Rect), void *pExtra=0);
 	void UiDoPopupMenu();
 
-	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool isDegree=false, bool isHex=false);
+	int UiDoValueSelector(void *pID, CUIRect *pRect, const char *pLabel, int Current, int Min, int Max, int Step, float Scale, const char *pToolTip, bool IsDegree=false, bool IsHex=false, int corners=CUI::CORNER_ALL, vec4* Color=0);
 
 	static int PopupGroup(CEditor *pEditor, CUIRect View);
 	static int PopupLayer(CEditor *pEditor, CUIRect View);
@@ -997,21 +1005,6 @@ public:
 
 	void AddFileDialogEntry(int Index, CUIRect *pView);
 	void SortImages();
-	static void ExtractName(const char *pFileName, char *pName, int BufferSize)
-	{
-		const char *pExtractedName = pFileName;
-		const char *pEnd = 0;
-		for(; *pFileName; ++pFileName)
-		{
-			if(*pFileName == '/' || *pFileName == '\\')
-				pExtractedName = pFileName+1;
-			else if(*pFileName == '.')
-				pEnd = pFileName;
-		}
-
-		int Length = pEnd > pExtractedName ? min(BufferSize, (int)(pEnd-pExtractedName+1)) : BufferSize;
-		str_copy(pName, pExtractedName, Length);
-	}
 
 	int GetLineDistance();
 	void ZoomMouseTarget(float ZoomFactor);

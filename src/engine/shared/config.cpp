@@ -26,15 +26,9 @@ class CConfig : public IConfig
 	CCallback m_aCallbacks[MAX_CALLBACKS];
 	int m_NumCallbacks;
 
-	void EscapeParam(char *pDst, const char *pSrc, int size)
+	void EscapeParam(char *pDst, const char *pSrc, int Size)
 	{
-		for(int i = 0; *pSrc && i < size - 1; ++i)
-		{
-			if(*pSrc == '"' || *pSrc == '\\') // escape \ and "
-				*pDst++ = '\\';
-			*pDst++ = *pSrc++;
-		}
-		*pDst = 0;
+		str_escape(&pDst, pSrc, pDst + Size);
 	}
 
 public:
@@ -66,7 +60,7 @@ public:
 	{
 		if(!m_pStorage || !g_Config.m_ClSaveSettings)
 			return;
-		m_ConfigFile = m_pStorage->OpenFile(CONFIG_FILE ".tmp", IOFLAG_WRITE, IStorage::TYPE_SAVE);
+		m_ConfigFile = m_pStorage->OpenFile(CONFIG_FILE, IOFLAG_WRITE, IStorage::TYPE_SAVE);
 
 		if(!m_ConfigFile)
 			return;
@@ -74,8 +68,8 @@ public:
 		char aLineBuf[1024*2];
 		char aEscapeBuf[1024*2];
 
-		#define MACRO_CONFIG_INT(Name,ScriptName,def,min,max,flags,desc) if((flags)&CFGFLAG_SAVE){ str_format(aLineBuf, sizeof(aLineBuf), "%s %i", #ScriptName, g_Config.m_##Name); WriteLine(aLineBuf); }
-		#define MACRO_CONFIG_STR(Name,ScriptName,len,def,flags,desc) if((flags)&CFGFLAG_SAVE){ EscapeParam(aEscapeBuf, g_Config.m_##Name, sizeof(aEscapeBuf)); str_format(aLineBuf, sizeof(aLineBuf), "%s \"%s\"", #ScriptName, aEscapeBuf); WriteLine(aLineBuf); }
+		#define MACRO_CONFIG_INT(Name,ScriptName,def,min,max,flags,desc) if((flags)&CFGFLAG_SAVE) { str_format(aLineBuf, sizeof(aLineBuf), "%s %i", #ScriptName, g_Config.m_##Name); WriteLine(aLineBuf); }
+		#define MACRO_CONFIG_STR(Name,ScriptName,len,def,flags,desc) if((flags)&CFGFLAG_SAVE) { EscapeParam(aEscapeBuf, g_Config.m_##Name, sizeof(aEscapeBuf)); str_format(aLineBuf, sizeof(aLineBuf), "%s \"%s\"", #ScriptName, aEscapeBuf); WriteLine(aLineBuf); }
 
 		#include "config_variables.h"
 
@@ -87,7 +81,6 @@ public:
 
 		io_close(m_ConfigFile);
 		m_ConfigFile = 0;
-		m_pStorage->RenameFile(CONFIG_FILE ".tmp", CONFIG_FILE, IStorage::TYPE_SAVE);
 	}
 
 	virtual void RegisterCallback(SAVECALLBACKFUNC pfnFunc, void *pUserData)

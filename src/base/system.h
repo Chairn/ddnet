@@ -12,6 +12,10 @@
 #include "stddef.h"
 #include <time.h>
 
+#ifdef CONF_FAMILY_UNIX
+#include <sys/un.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,13 +30,16 @@ extern "C" {
 		msg - Message that should be printed if the test fails.
 
 	Remarks:
-		Does nothing in release version of the library.
+		Does nothing in release version
 
 	See Also:
 		<dbg_break>
 */
-void dbg_assert(int test, const char *msg);
+#ifdef CONF_DEBUG
 #define dbg_assert(test,msg) dbg_assert_imp(__FILE__, __LINE__, test, msg)
+#else
+#define dbg_assert(test,msg)
+#endif
 void dbg_assert_imp(const char *filename, int line, int test, const char *msg);
 
 
@@ -42,17 +49,28 @@ void dbg_assert_imp(const char *filename, int line, int test, const char *msg);
 #define dbg_assert(test,msg) assert(test)
 #endif
 
+#ifdef __GNUC__
+#define GNUC_ATTRIBUTE(x) __attribute__(x)
+#else
+#define GNUC_ATTRIBUTE(x)
+#endif
+
 /*
 	Function: dbg_break
 		Breaks into the debugger.
 
 	Remarks:
-		Does nothing in release version of the library.
+		Does nothing in release version
 
 	See Also:
 		<dbg_assert>
 */
-void dbg_break();
+#ifdef CONF_DEBUG
+#define dbg_break() dbg_break_imp()
+#else
+#define dbg_break()
+#endif
+void dbg_break_imp();
 
 /*
 	Function: dbg_msg
@@ -64,12 +82,13 @@ void dbg_break();
 		fmt - A printf styled format string.
 
 	Remarks:
-		Does nothing in release version of the library.
+		Also works in release version
 
 	See Also:
 		<dbg_assert>
 */
-void dbg_msg(const char *sys, const char *fmt, ...);
+void dbg_msg(const char *sys, const char *fmt, ...)
+GNUC_ATTRIBUTE((format(printf, 2, 3)));
 
 /* Group: Memory */
 
@@ -100,9 +119,7 @@ void *mem_alloc_debug(const char *filename, int line, unsigned size, unsigned al
 		Frees a block allocated through <mem_alloc>.
 
 	Remarks:
-		- In the debug version of the library the function will assert if
-		a non-valid block is passed, like a null pointer or a block that
-		isn't allocated.
+		- Is safe on null pointers.
 
 	See Also:
 		<mem_alloc>
@@ -323,6 +340,18 @@ int io_close(IOHANDLE io);
 */
 int io_flush(IOHANDLE io);
 
+/*
+	Function: io_error
+		Checks whether an error occured during I/O with the file.
+
+	Parameters:
+		io - Handle to the file.
+
+	Returns:
+		Returns nonzero on error, 0 otherwise.
+*/
+int io_error(IOHANDLE io);
+
 
 /*
 	Function: io_stdin
@@ -342,6 +371,134 @@ IOHANDLE io_stdout();
 */
 IOHANDLE io_stderr();
 
+typedef struct ASYNCIO ASYNCIO;
+
+/*
+	Function: aio_new
+		Wraps a <IOHANDLE> for asynchronous writing.
+
+	Parameters:
+		io - Handle to the file.
+
+	Returns:
+		Returns the handle for asynchronous writing.
+
+*/
+ASYNCIO *aio_new(IOHANDLE io);
+
+/*
+	Function: aio_lock
+		Locks the ASYNCIO structure so it can't be written into by
+		other threads.
+
+	Parameters:
+		aio - Handle to the file.
+*/
+void aio_lock(ASYNCIO *aio);
+
+/*
+	Function: aio_unlock
+		Unlocks the ASYNCIO structure after finishing the contiguous
+		write.
+
+	Parameters:
+		aio - Handle to the file.
+*/
+void aio_unlock(ASYNCIO *aio);
+
+/*
+	Function: aio_write
+		Queues a chunk of data for writing.
+
+	Parameters:
+		aio - Handle to the file.
+		buffer - Pointer to the data that should be written.
+		size - Number of bytes to write.
+
+*/
+void aio_write(ASYNCIO *aio, const void *buffer, unsigned size);
+
+/*
+	Function: aio_write_newline
+		Queues a newline for writing.
+
+	Parameters:
+		aio - Handle to the file.
+
+*/
+void aio_write_newline(ASYNCIO *aio);
+
+/*
+	Function: aio_write_unlocked
+		Queues a chunk of data for writing. The ASYNCIO struct must be
+		locked using `aio_lock` first.
+
+	Parameters:
+		aio - Handle to the file.
+		buffer - Pointer to the data that should be written.
+		size - Number of bytes to write.
+
+*/
+void aio_write_unlocked(ASYNCIO *aio, const void *buffer, unsigned size);
+
+/*
+	Function: aio_write_newline_unlocked
+		Queues a newline for writing. The ASYNCIO struct must be locked
+		using `aio_lock` first.
+
+	Parameters:
+		aio - Handle to the file.
+
+*/
+void aio_write_newline_unlocked(ASYNCIO *aio);
+
+/*
+	Function: aio_error
+		Checks whether errors have occured during the asynchronous
+		writing.
+
+		Call this function regularly to see if there are errors. Call
+		this function after <aio_wait> to see if the process of writing
+		to the file succeeded.
+
+	Parameters:
+		aio - Handle to the file.
+
+	Returns:
+		Returns 0 if no error occured, and nonzero on error.
+
+*/
+int aio_error(ASYNCIO *aio);
+
+/*
+	Function: aio_close
+		Queues file closing.
+
+	Parameters:
+		aio - Handle to the file.
+
+*/
+void aio_close(ASYNCIO *aio);
+
+/*
+	Function: aio_wait
+		Wait for the asynchronous operations to complete.
+
+	Parameters:
+		aio - Handle to the file.
+
+*/
+void aio_wait(ASYNCIO *aio);
+
+/*
+	Function: aio_free
+		Frees the resources associated to the asynchronous file handle.
+
+	Parameters:
+		aio - Handle to the file.
+
+*/
+void aio_free(ASYNCIO *aio);
 
 /* Group: Threads */
 
@@ -375,17 +532,8 @@ void *thread_init(void (*threadfunc)(void *), void *user);
 void thread_wait(void *thread);
 
 /*
-	Function: thread_destroy
-		Destroys a thread.
-
-	Parameters:
-		thread - Thread to destroy.
-*/
-void thread_destroy(void *thread);
-
-/*
-	Function: thread_yeild
-		Yeild the current threads execution slice.
+	Function: thread_yield
+		Yield the current threads execution slice.
 */
 void thread_yield();
 
@@ -412,22 +560,22 @@ void lock_unlock(LOCK lock);
 
 
 /* Group: Semaphores */
-
-#if !defined(CONF_PLATFORM_MACOSX)
-	#if defined(CONF_FAMILY_UNIX)
-		#include <semaphore.h>
-		typedef sem_t SEMAPHORE;
-	#elif defined(CONF_FAMILY_WINDOWS)
-		typedef void* SEMAPHORE;
-	#else
-		#error missing sempahore implementation
-	#endif
-
-	void semaphore_init(SEMAPHORE *sem);
-	void semaphore_wait(SEMAPHORE *sem);
-	void semaphore_signal(SEMAPHORE *sem);
-	void semaphore_destroy(SEMAPHORE *sem);
+#if defined(CONF_FAMILY_WINDOWS)
+	typedef void* SEMAPHORE;
+#elif defined(CONF_PLATFORM_MACOSX)
+	#include <semaphore.h>
+	typedef sem_t* SEMAPHORE;
+#elif defined(CONF_FAMILY_UNIX)
+	#include <semaphore.h>
+	typedef sem_t SEMAPHORE;
+#else
+	#error not implemented on this platform
 #endif
+
+void sphore_init(SEMAPHORE *sem);
+void sphore_wait(SEMAPHORE *sem);
+void sphore_signal(SEMAPHORE *sem);
+void sphore_destroy(SEMAPHORE *sem);
 
 /* Group: Timer */
 #ifdef __GNUC__
@@ -435,8 +583,10 @@ void lock_unlock(LOCK lock);
 	not being a C90 thing.
 */
 __extension__ typedef long long int64;
+__extension__ typedef unsigned long long uint64;
 #else
 typedef long long int64;
+typedef unsigned long long uint64;
 #endif
 
 void set_new_tick();
@@ -499,6 +649,10 @@ typedef struct
 	unsigned short port;
 } NETADDR;
 
+#ifdef CONF_FAMILY_UNIX
+typedef int UNIXSOCKET;
+typedef struct sockaddr_un UNIXSOCKETADDR;
+#endif
 /*
 	Function: net_init
 		Initiates network functionallity.
@@ -723,6 +877,54 @@ int net_tcp_recv(NETSOCKET sock, void *data, int maxsize);
 */
 int net_tcp_close(NETSOCKET sock);
 
+#if defined(CONF_FAMILY_UNIX)
+/* Group: Network Unix Sockets */
+
+/*
+	Function: net_unix_create_unnamed
+		Creates an unnamed unix datagram socket.
+
+	Returns:
+		On success it returns a handle to the socket. On failure it returns -1.
+*/
+UNIXSOCKET net_unix_create_unnamed();
+
+/*
+	Function: net_unix_send
+		Sends data to a Unix socket.
+
+	Parameters:
+		sock - Socket to use.
+		addr - Where to send the packet.
+		data - Pointer to the packet data to send.
+		size - Size of the packet.
+
+	Returns:
+		Number of bytes sent. Negative value on failure.
+*/
+int net_unix_send(UNIXSOCKET sock, UNIXSOCKETADDR *addr, void *data, int size);
+
+/*
+	Function: net_unix_set_addr
+		Sets the unixsocketaddress for a path to a socket file.
+
+	Parameters:
+		addr - Pointer to the addressstruct to fill.
+		path - Path to the (named) unix socket.
+*/
+void net_unix_set_addr(UNIXSOCKETADDR *addr, const char *path);
+
+/*
+	Function: net_unix_close
+		Closes a Unix socket.
+
+	Parameters:
+		sock - Socket to close.
+*/
+void net_unix_close(UNIXSOCKET sock);
+
+#endif
+
 /* Group: Strings */
 
 /*
@@ -785,7 +987,8 @@ int str_length(const char *str);
 		- The strings are treated as zero-termineted strings.
 		- Garantees that dst string will contain zero-termination.
 */
-int str_format(char *buffer, int buffer_size, const char *format, ...);
+int str_format(char *buffer, int buffer_size, const char *format, ...)
+GNUC_ATTRIBUTE((format(printf, 3, 4)));
 
 /*
 	Function: str_trim_words
@@ -839,6 +1042,18 @@ void str_sanitize_cc(char *str);
 		- The strings are treated as zero-termineted strings.
 */
 void str_sanitize(char *str);
+
+/*
+	Function: str_sanitize_filename
+		Replaces all invalid filename characters with whitespace.
+
+	Parameters:
+		str - String to sanitize.
+
+	Remarks:
+		- The strings are treated as zero-termineted strings.
+*/
+void str_sanitize_filename(char *str);
 
 /*
 	Function: str_skip_to_whitespace
@@ -913,7 +1128,7 @@ int str_comp_nocase_num(const char *a, const char *b, const int num);
 
 /*
 	Function: str_comp
-		Compares to strings case sensitive.
+		Compares two strings case sensitive.
 
 	Parameters:
 		a - String to compare.
@@ -1017,6 +1232,24 @@ const char *str_find(const char *haystack, const char *needle);
 void str_hex(char *dst, int dst_size, const void *data, int data_size);
 
 /*
+	Function: str_hex_decode
+		Takes a hex string and returns a byte array.
+
+		Parameters:
+			dst - Buffer for the byte array
+			dst_size - size of the buffer
+			data - String to decode
+
+		Returns:
+			2 - String doesn't exactly fit the buffer
+			1 - Invalid character in string
+			0 - Success
+
+		Remarks:
+			- The contents of the buffer is only valid on success
+*/
+int str_hex_decode(unsigned char *dst, int dst_size, const char *src);
+/*
 	Function: str_timestamp
 		Copies a time stamp in the format year-month-day_hour-minute-second to the string.
 
@@ -1028,7 +1261,25 @@ void str_hex(char *dst, int dst_size, const void *data, int data_size);
 		- Guarantees that buffer string will contain zero-termination.
 */
 void str_timestamp(char *buffer, int buffer_size);
-void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format);
+void str_timestamp_format(char *buffer, int buffer_size, const char *format);
+void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format)
+GNUC_ATTRIBUTE((format(strftime, 4, 0)));
+
+#define FORMAT_TIME "%H:%M:%S"
+#define FORMAT_SPACE "%Y-%m-%d %H:%M:%S"
+#define FORMAT_NOSPACE "%Y-%m-%d_%H-%M-%S"
+
+/*
+	Function: str_escape
+		Escapes \ and " characters in a string.
+
+	Parameters:
+		dst - Destination array pointer, gets increased, will point to
+		      the terminating null.
+		src - Source array
+		end - End of destination array
+*/
+void str_escape(char **dst, const char *src, const char *end);
 
 /* Group: Filesystem */
 
@@ -1218,12 +1469,10 @@ void mem_debug_dump(IOHANDLE file);
 void swap_endian(void *data, unsigned elem_size, unsigned num);
 
 
-typedef void (*DBG_LOGGER)(const char *line);
-void dbg_logger(DBG_LOGGER logger);
+typedef void (*DBG_LOGGER)(const char *line, void *user);
+typedef void (*DBG_LOGGER_FINISH)(void *user);
+void dbg_logger(DBG_LOGGER logger, DBG_LOGGER_FINISH finish, void *user);
 
-#if !defined(CONF_PLATFORM_MACOSX)
-void dbg_enable_threaded();
-#endif
 void dbg_logger_stdout();
 void dbg_logger_debugger();
 void dbg_logger_file(const char *filename);
@@ -1256,16 +1505,18 @@ char str_uppercase(char c);
 unsigned str_quickhash(const char *str);
 
 /*
-	Function: gui_messagebox
-		Display plain OS-dependent message box
+	Function: str_utf8_comp_confusable
+		Compares two strings for visual appearance.
 
 	Parameters:
-		title - title of the message box
-		message - text to display
-*/
-void gui_messagebox(const char *title, const char *message);
+		a - String to compare.
+		b - String to compare.
 
-int str_utf8_comp_names(const char *a, const char *b);
+	Returns:
+		0 if the strings are confusable.
+		!=0 otherwise.
+*/
+int str_utf8_comp_confusable(const char *a, const char *b);
 
 int str_utf8_isspace(int code);
 
@@ -1361,19 +1612,28 @@ int pid();
 void shell_execute(const char *file);
 
 /*
-	Function: os_compare_version
-		Compares the OS version to a given major and minor.
-
-	Parameters:
-		major - Major version to compare to.
-		minor - Minor version to compare to.
+	Function: os_is_winxp_or_lower
+		Checks whether the program runs on Windows XP or lower.
 
 	Returns:
-		1 - OS version higher.
-		0 - OS version same.
-		-1 - OS version lower.
+		1 - Windows XP or lower.
+		0 - Higher Windows version, Linux, macOS, etc.
 */
-int os_compare_version(int major, int minor);
+int os_is_winxp_or_lower();
+
+/*
+	Function: generate_password
+		Generates a null-terminated password of length `2 *
+		random_length`.
+
+
+	Parameters:
+		buffer - Pointer to the start of the output buffer.
+		length - Length of the buffer.
+		random - Pointer to a randomly-initialized array of shorts.
+		random_length - Length of the short array.
+*/
+void generate_password(char *buffer, unsigned length, unsigned short *random, unsigned random_length);
 
 /*
 	Function: secure_random_init
@@ -1387,6 +1647,21 @@ int os_compare_version(int major, int minor);
 int secure_random_init();
 
 /*
+	Function: secure_random_password
+		Fills the buffer with the specified amount of random password
+		characters.
+
+		The desired password length must be greater or equal to 6, even
+		and smaller or equal to 128.
+
+	Parameters:
+		buffer - Pointer to the start of the buffer.
+		length - Length of the buffer.
+		pw_length - Length of the desired password.
+*/
+void secure_random_password(char *buffer, unsigned length, unsigned pw_length);
+
+/*
 	Function: secure_random_fill
 		Fills the buffer with the specified amount of random bytes.
 
@@ -1394,7 +1669,7 @@ int secure_random_init();
 		buffer - Pointer to the start of the buffer.
 		length - Length of the buffer.
 */
-void secure_random_fill(void *bytes, size_t length);
+void secure_random_fill(void *bytes, unsigned length);
 
 /*
 	Function: secure_rand

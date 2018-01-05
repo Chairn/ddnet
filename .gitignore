@@ -1,5 +1,6 @@
 bam
 .bam
+.vs
 config.lua
 datasrc/__pycache__
 datasrc/*.pyc
@@ -9,21 +10,23 @@ SDL.dll
 SDL2.dll
 freetype.dll
 
-crapnet*
-config_store*
-config_retrieve*
-dilate*
-fake_server*
-map_resave*
-map_version*
-mastersrv*
-packetgen*
-teeworlds*
-teeworlds_srv*
-serverlaunch_*
-tileset_border*
-twping*
-versionsrv*
+/confusables*
+/crapnet*
+/config_store*
+/config_retrieve*
+/dilate*
+/fake_server*
+/map_resave*
+/map_version*
+/mastersrv*
+/packetgen*
+/teeworlds*
+/teeworlds_srv*
+/serverlaunch_*
+/tileset_border*
+/twping*
+/uuid*
+/versionsrv*
 
 Debug
 bam
@@ -31,6 +34,7 @@ build server.bat
 buildlog.txt
 log.txt
 bam.exe
+*.a
 *.bat
 .cproject
 .project
@@ -55,4 +59,17 @@ bam.exe
 *.pyc
 *.dll
 
-DDNet*
+DDNet
+DDNet-Server
+DDNet_d
+DDNet-Server_d
+DDNet-Server_sql
+DDNet-Server_sql_d
+
+/.vs
+/build
+CMakeCache.txt
+CMakeSettings*
+CMakeFiles
+Makefile
+cmake_install.cmake

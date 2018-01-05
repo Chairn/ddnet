@@ -4,7 +4,7 @@
 
 #include <engine/shared/config.h>
 #include <engine/server/server.h>
-const char *CTuningParams::m_apNames[] =
+const char *CTuningParams::ms_apNames[] =
 {
 	#define MACRO_TUNING_PARAM(Name,ScriptName,Value,Description) #ScriptName,
 	#include "tuning.h"
@@ -31,7 +31,7 @@ bool CTuningParams::Get(int Index, float *pValue)
 bool CTuningParams::Set(const char *pName, float Value)
 {
 	for(int i = 0; i < Num(); i++)
-		if(str_comp_nocase(pName, m_apNames[i]) == 0)
+		if(str_comp_nocase(pName, ms_apNames[i]) == 0)
 			return Set(i, Value);
 	return false;
 }
@@ -39,7 +39,7 @@ bool CTuningParams::Set(const char *pName, float Value)
 bool CTuningParams::Get(const char *pName, float *pValue)
 {
 	for(int i = 0; i < Num(); i++)
-		if(str_comp_nocase(pName, m_apNames[i]) == 0)
+		if(str_comp_nocase(pName, ms_apNames[i]) == 0)
 			return Get(i, pValue);
 
 	return false;
@@ -57,7 +57,7 @@ float VelocityRamp(float Value, float Start, float Range, float Curvature)
 	return 1.0f/powf(Curvature, (Value-Start)/Range);
 }
 
-void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore* pTeams)
+void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore *pTeams)
 {
 	m_pWorld = pWorld;
 	m_pCollision = pCollision;
@@ -71,7 +71,7 @@ void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore
 	m_Jumps = 2;
 }
 
-void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore* pTeams, std::map<int, std::vector<vec2> > *pTeleOuts)
+void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore *pTeams, std::map<int, std::vector<vec2> > *pTeleOuts)
 {
 	m_pWorld = pWorld;
 	m_pCollision = pCollision;
@@ -721,69 +721,4 @@ void CCharacterCore::ApplyForce(vec2 Force)
 	vec2 Temp = m_Vel + Force;
 	LimitForce(&Temp);
 	m_Vel = Temp;
-}
-
-bool UseExtraInfo(const CNetObj_Projectile *pProj)
-{
-	bool ExtraInfoFlag = ((abs(pProj->m_VelY) & (1<<9)) != 0);
-	return ExtraInfoFlag;
-}
-
-void ExtractInfo(const CNetObj_Projectile *pProj, vec2 *StartPos, vec2 *StartVel, bool IsDDNet)
-{
-	if(!UseExtraInfo(pProj) || !IsDDNet)
-	{
-		StartPos->x = pProj->m_X;
-		StartPos->y = pProj->m_Y;
-		StartVel->x = pProj->m_VelX/100.0f;
-		StartVel->y = pProj->m_VelY/100.0f;
-	}
-	else
-	{
-		StartPos->x = pProj->m_X/100.0f;
-		StartPos->y = pProj->m_Y/100.0f;
-		float Angle = pProj->m_VelX/1000000.0f;
-		StartVel->x = sin(-Angle);
-		StartVel->y = cos(-Angle);
-	}
-}
-
-void ExtractExtraInfo(const CNetObj_Projectile *pProj, int *Owner, bool *Explosive, int *Bouncing, bool *Freeze)
-{
-	int Data = pProj->m_VelY;
-	if(Owner)
-	{
-		*Owner = Data & 255;
-		if((Data>>8) & 1)
-			*Owner = -(*Owner);
-	}
-	if(Bouncing)
-		*Bouncing = (Data>>10) & 3;
-	if(Explosive)
-		*Explosive = (Data>>12) & 1;
-	if(Freeze)
-		*Freeze = (Data>>13) & 1;
-}
-
-void SnapshotRemoveExtraInfo(unsigned char *pData)
-{
-	CSnapshot *pSnap = (CSnapshot*) pData;
-	for(int Index = 0; Index < pSnap->NumItems(); Index++)
-	{
-		CSnapshotItem *pItem = pSnap->GetItem(Index);
-		if(pItem->Type() == NETOBJTYPE_PROJECTILE)
-		{
-			CNetObj_Projectile* pProj = (CNetObj_Projectile*) ((void*)pItem->Data());
-			if(UseExtraInfo(pProj))
-			{
-				vec2 Pos;
-				vec2 Vel;
-				ExtractInfo(pProj, &Pos, &Vel, 1);
-				pProj->m_X = Pos.x;
-				pProj->m_Y = Pos.y;
-				pProj->m_VelX = (int)(Vel.x*100.0f);
-				pProj->m_VelY = (int)(Vel.y*100.0f);
-			}
-		}
-	}
 }

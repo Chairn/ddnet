@@ -4,7 +4,7 @@
 #include "config.h"
 #include "network.h"
 
-SECURITY_TOKEN ToSecurityToken(unsigned char* pData)
+SECURITY_TOKEN ToSecurityToken(unsigned char *pData)
 {
 	return (int)pData[0] | (pData[1] << 8) | (pData[2] << 16) | (pData[3] << 24);
 }
@@ -201,10 +201,13 @@ void CNetConnection::Disconnect(const char *pReason)
 
 	if(m_RemoteClosed == 0)
 	{
-		if(pReason)
-			SendControl(NET_CTRLMSG_CLOSE, pReason, str_length(pReason)+1);
-		else
-			SendControl(NET_CTRLMSG_CLOSE, 0, 0);
+		if(!m_TimeoutSituation)
+		{
+			if(pReason)
+				SendControl(NET_CTRLMSG_CLOSE, pReason, str_length(pReason)+1);
+			else
+				SendControl(NET_CTRLMSG_CLOSE, 0, 0);
+		}
 
 		if(pReason != m_ErrorString)
 		{

@@ -114,7 +114,7 @@ void CLayers::InitBackground(class IMap *pMap)
 	m_pMap = pMap;
 	m_pMap->GetType(MAPITEMTYPE_GROUP, &m_GroupsStart, &m_GroupsNum);
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
-	
+
 	//following is here to prevent crash using standard map as background
 	m_pTeleLayer = 0;
 	m_pSpeedupLayer = 0;
@@ -152,8 +152,7 @@ void CLayers::InitBackground(class IMap *pMap)
 						m_pGameGroup->m_ClipW = 0;
 						m_pGameGroup->m_ClipH = 0;
 					}
-					
-					//We don't care about tile layers.	
+					//We don't care about tile layers.
 				}
 			}
 		}
@@ -170,13 +169,3 @@ CMapItemLayer *CLayers::GetLayer(int Index) const
 	return static_cast<CMapItemLayer *>(m_pMap->GetItem(m_LayersStart+Index, 0, 0));
 }
 
-// DDRace
-
-void CLayers::Dest()
-{
-	/*m_pTeleLayer = 0;
-	m_pSpeedupLayer = 0;
-	m_pFrontLayer = 0;
-	m_pSwitchLayer = 0;
-	m_pTuneLayer = 0;*/
-}

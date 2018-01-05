@@ -74,19 +74,19 @@ void CControls::OnReset()
 	m_OldMouseX = m_OldMouseY = 0.0f;
 }
 
-void CControls::ResetInput(int dummy)
+void CControls::ResetInput(int Dummy)
 {
-	m_LastData[dummy].m_Direction = 0;
-	//m_LastData.m_Hook = 0;
+	m_LastData[Dummy].m_Direction = 0;
+	//m_LastData[Dummy].m_Hook = 0;
 	// simulate releasing the fire button
-	if((m_LastData[dummy].m_Fire&1) != 0)
-		m_LastData[dummy].m_Fire++;
-	m_LastData[dummy].m_Fire &= INPUT_STATE_MASK;
-	m_LastData[dummy].m_Jump = 0;
-	m_InputData[dummy] = m_LastData[dummy];
+	if((m_LastData[Dummy].m_Fire&1) != 0)
+		m_LastData[Dummy].m_Fire++;
+	m_LastData[Dummy].m_Fire &= INPUT_STATE_MASK;
+	m_LastData[Dummy].m_Jump = 0;
+	m_InputData[Dummy] = m_LastData[Dummy];
 
-	m_InputDirectionLeft[dummy] = 0;
-	m_InputDirectionRight[dummy] = 0;
+	m_InputDirectionLeft[Dummy] = 0;
+	m_InputDirectionRight[Dummy] = 0;
 }
 
 void CControls::OnRelease()
@@ -217,7 +217,16 @@ int CControls::SnapInput(int *pData)
 	else if(m_pClient->m_pMenus->IsActive())
 		m_InputData[g_Config.m_ClDummy].m_PlayerFlags = PLAYERFLAG_IN_MENU;
 	else
+	{
+		if(m_InputData[g_Config.m_ClDummy].m_PlayerFlags == PLAYERFLAG_CHATTING)
+		{
+			CServerInfo Info;
+			GameClient()->Client()->GetServerInfo(&Info);
+			if(IsDDNet(&Info))
+				ResetInput(g_Config.m_ClDummy);
+		}
 		m_InputData[g_Config.m_ClDummy].m_PlayerFlags = PLAYERFLAG_PLAYING;
+	}
 
 	if(m_pClient->m_pScoreboard->Active())
 		m_InputData[g_Config.m_ClDummy].m_PlayerFlags |= PLAYERFLAG_SCOREBOARD;
@@ -236,7 +245,10 @@ int CControls::SnapInput(int *pData)
 	// we freeze the input if chat or menu is activated
 	if(!(m_InputData[g_Config.m_ClDummy].m_PlayerFlags&PLAYERFLAG_PLAYING))
 	{
-		ResetInput(g_Config.m_ClDummy);
+		CServerInfo Info;
+		GameClient()->Client()->GetServerInfo(&Info);
+		if(!IsDDNet(&Info))
+			ResetInput(g_Config.m_ClDummy);
 
 		mem_copy(pData, &m_InputData[g_Config.m_ClDummy], sizeof(m_InputData[0]));
 
@@ -264,25 +276,24 @@ int CControls::SnapInput(int *pData)
 		// dummy copy moves
 		if(g_Config.m_ClDummyCopyMoves)
 		{
-			CNetObj_PlayerInput *DummyInput = &Client()->m_DummyInput;
-			DummyInput->m_Direction = m_InputData[g_Config.m_ClDummy].m_Direction;
-			DummyInput->m_Hook = m_InputData[g_Config.m_ClDummy].m_Hook;
-			DummyInput->m_Jump = m_InputData[g_Config.m_ClDummy].m_Jump;
-			DummyInput->m_PlayerFlags = m_InputData[g_Config.m_ClDummy].m_PlayerFlags;
-			DummyInput->m_TargetX = m_InputData[g_Config.m_ClDummy].m_TargetX;
-			DummyInput->m_TargetY = m_InputData[g_Config.m_ClDummy].m_TargetY;
-			DummyInput->m_WantedWeapon = m_InputData[g_Config.m_ClDummy].m_WantedWeapon;
+			CNetObj_PlayerInput *pDummyInput = &m_pClient->m_DummyInput;
+			pDummyInput->m_Direction = m_InputData[g_Config.m_ClDummy].m_Direction;
+			pDummyInput->m_Hook = m_InputData[g_Config.m_ClDummy].m_Hook;
+			pDummyInput->m_Jump = m_InputData[g_Config.m_ClDummy].m_Jump;
+			pDummyInput->m_PlayerFlags = m_InputData[g_Config.m_ClDummy].m_PlayerFlags;
+			pDummyInput->m_TargetX = m_InputData[g_Config.m_ClDummy].m_TargetX;
+			pDummyInput->m_TargetY = m_InputData[g_Config.m_ClDummy].m_TargetY;
+			pDummyInput->m_WantedWeapon = m_InputData[g_Config.m_ClDummy].m_WantedWeapon;
 
+			pDummyInput->m_Fire += m_InputData[g_Config.m_ClDummy].m_Fire - m_LastData[g_Config.m_ClDummy].m_Fire;
+			pDummyInput->m_NextWeapon += m_InputData[g_Config.m_ClDummy].m_NextWeapon - m_LastData[g_Config.m_ClDummy].m_NextWeapon;
+			pDummyInput->m_PrevWeapon += m_InputData[g_Config.m_ClDummy].m_PrevWeapon - m_LastData[g_Config.m_ClDummy].m_PrevWeapon;
 
-
-			DummyInput->m_Fire += m_InputData[g_Config.m_ClDummy].m_Fire - m_LastData[g_Config.m_ClDummy].m_Fire;
-			DummyInput->m_NextWeapon += m_InputData[g_Config.m_ClDummy].m_NextWeapon - m_LastData[g_Config.m_ClDummy].m_NextWeapon;
-			DummyInput->m_PrevWeapon += m_InputData[g_Config.m_ClDummy].m_PrevWeapon - m_LastData[g_Config.m_ClDummy].m_PrevWeapon;
-
-			m_InputData[!g_Config.m_ClDummy] = *DummyInput;
+			m_InputData[!g_Config.m_ClDummy] = *pDummyInput;
 		}
 
 		// stress testing
+#ifdef CONF_DEBUG
 		if(g_Config.m_DbgStress)
 		{
 			float t = Client()->LocalTime();
@@ -296,6 +307,7 @@ int CControls::SnapInput(int *pData)
 			m_InputData[g_Config.m_ClDummy].m_TargetX = (int)(sinf(t*3)*100.0f);
 			m_InputData[g_Config.m_ClDummy].m_TargetY = (int)(cosf(t*3)*100.0f);
 		}
+#endif
 
 		// check if we need to send input
 		if(m_InputData[g_Config.m_ClDummy].m_Direction != m_LastData[g_Config.m_ClDummy].m_Direction) Send = true;
@@ -474,8 +486,7 @@ void CControls::OnRender()
 
 bool CControls::OnMouseMove(float x, float y)
 {
-	if((m_pClient->m_Snap.m_pGameInfoObj && m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_PAUSED) ||
-		(m_pClient->m_Snap.m_SpecInfo.m_Active && m_pClient->m_pChat->IsActive()))
+	if((m_pClient->m_Snap.m_pGameInfoObj && m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_PAUSED))
 		return false;
 
 #if defined(__ANDROID__) // No relative mouse on Android

@@ -4,6 +4,7 @@
 #define ENGINE_SHARED_CONSOLE_H
 
 #include <engine/console.h>
+#include <engine/storage.h>
 #include <base/math.h>
 #include "memheap.h"
 
@@ -60,7 +61,7 @@ class CConsole : public IConsole
 	static void ConCommandAccess(IResult *pResult, void *pUser);
 	static void ConCommandStatus(IConsole::IResult *pResult, void *pUser);
 
-	void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID = -1);
+	void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID = -1, bool InterpretSemicolons = true);
 
 	struct
 	{
@@ -69,6 +70,9 @@ class CConsole : public IConsole
 		void *m_pPrintCallbackUserdata;
 	} m_aPrintCB[MAX_PRINT_CB];
 	int m_NumPrintCB;
+
+	FTeeHistorianCommandCallback m_pfnTeeHistorianCommandCallback;
+	void *m_pTeeHistorianCommandUserdata;
 
 	enum
 	{
@@ -180,6 +184,7 @@ class CConsole : public IConsole
 
 public:
 	CConsole(int FlagMask);
+	~CConsole();
 
 	virtual const CCommandInfo *FirstCommandInfo(int AccessLevel, int FlagMask) const;
 	virtual const CCommandInfo *GetCommandInfo(const char *pName, int FlagMask, bool Temp);
@@ -194,13 +199,14 @@ public:
 	virtual void StoreCommands(bool Store);
 
 	virtual bool LineIsValid(const char *pStr);
-	virtual void ExecuteLine(const char *pStr, int ClientID = -1);
-	virtual void ExecuteLineFlag(const char *pStr, int FlagMask, int ClientID = -1);
-	virtual void ExecuteFile(const char *pFilename, int ClientID = -1, bool LogFailure = false);
+	virtual void ExecuteLine(const char *pStr, int ClientID = -1, bool InterpretSemicolons = true);
+	virtual void ExecuteLineFlag(const char *pStr, int FlagMask, int ClientID = -1, bool InterpretSemicolons = true);
+	virtual void ExecuteFile(const char *pFilename, int ClientID = -1, bool LogFailure = false, int StorageType = IStorage::TYPE_ALL);
 
 	virtual int RegisterPrintCallback(int OutputLevel, FPrintCallback pfnPrintCallback, void *pUserData);
 	virtual void SetPrintOutputLevel(int Index, int OutputLevel);
 	virtual void Print(int Level, const char *pFrom, const char *pStr, bool Highlighted = false);
+	virtual void SetTeeHistorianCommandCallback(FTeeHistorianCommandCallback pfnCallback, void *pUser);
 
 	void SetAccessLevel(int AccessLevel) { m_AccessLevel = clamp(AccessLevel, (int)(ACCESS_LEVEL_ADMIN), (int)(ACCESS_LEVEL_USER)); }
 	void ResetServerGameSettings();

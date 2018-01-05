@@ -33,7 +33,7 @@ public:
 	// will be called after all Tick and PostTick calls from other players
 	void PostPostTick();
 	void Snap(int SnappingClient);
-	void FakeSnap(int SnappingClient);
+	void FakeSnap();
 
 	void OnDirectInput(CNetObj_PlayerInput *NewInput);
 	void OnPredictedInput(CNetObj_PlayerInput *NewInput);
@@ -44,6 +44,7 @@ public:
 	CCharacter *GetCharacter();
 
 	void FindDuplicateSkins();
+	void SpectatePlayerName(const char *pName);
 
 	//---------------------------------------------------------
 	// this is used for snapping so we know how we can clip the view for the player
@@ -77,6 +78,7 @@ public:
 	int m_LastCommands[4];
 	int m_LastCommandPos;
 	int m_LastWhisperTo;
+	int m_LastInvited;
 
 	int m_SendVoteIndex;
 
@@ -96,6 +98,7 @@ public:
 	int m_LastActionTick;
 	bool m_StolenSkin;
 	int m_TeamChangeTick;
+	bool m_SentSemicolonTip;
 	struct
 	{
 		int m_TargetX;
@@ -127,26 +130,37 @@ private:
 	int m_ClientID;
 	int m_Team;
 
+	int m_Paused;
+	int64 m_ForcePauseTime;
+	int64 m_LastPause;
 
 	// DDRace
 
 public:
 	enum
 	{
-		PAUSED_NONE=0,
-		PAUSED_SPEC,
-		PAUSED_PAUSED,
-		PAUSED_FORCE
+		PAUSE_NONE=0,
+		PAUSE_PAUSED,
+		PAUSE_SPEC
+	};
+	
+	enum
+	{
+		TIMERTYPE_GAMETIMER=0,
+		TIMERTYPE_BROADCAST,
+		TIMERTYPE_GAMETIMER_AND_BROADCAST,
+		TIMERTYPE_NONE,
 	};
 
-	int m_Paused;
 	bool m_DND;
 	int64 m_FirstVoteTick;
-	int64 m_NextPauseTick;
 	char m_TimeoutCode[64];
 
 	void ProcessPause();
-	int m_ForcePauseTime;
+	int Pause(int State, bool Force);
+	int ForcePause(int Time);
+	int IsPaused();
+
 	bool IsPlaying();
 	int64 m_Last_KickVote;
 	int64 m_Last_Team;
@@ -158,6 +172,7 @@ public:
 	bool m_NinjaJetpack;
 	bool m_Afk;
 	int m_KillMe;
+	bool m_HasFinishScore;
 
 	int m_ChatScore;
 

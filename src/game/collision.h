@@ -17,6 +17,7 @@ class CCollision
 
 public:
 	CCollision();
+	~CCollision();
 	void Init(class CLayers *pLayers);
 	bool CheckPoint(float x, float y) { return IsSolid(round_to_int(x), round_to_int(y)); }
 	bool CheckPoint(vec2 Pos) { return CheckPoint(Pos.x, Pos.y); }
@@ -85,7 +86,7 @@ public:
 	int IsCheckpoint(int Index);
 	int IsFCheckpoint(int Index);
 
-	int IsMover(int x, int y, int* Flags);
+	int IsMover(int x, int y, int *pFlags);
 
 	vec2 CpSpeed(int index, int Flags = 0);
 
@@ -113,7 +114,7 @@ private:
 
 public:
 
-	SSwitchers* m_pSwitchers;
+	SSwitchers *m_pSwitchers;
 };
 
 void ThroughOffset(vec2 Pos0, vec2 Pos1, int *Ox, int *Oy);

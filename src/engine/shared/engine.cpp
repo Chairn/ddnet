@@ -9,11 +9,20 @@
 #include <engine/shared/config.h>
 #include <engine/shared/network.h>
 
-
-static int HostLookupThread(void *pUser)
+CHostLookup::CHostLookup()
 {
-	CHostLookup *pLookup = (CHostLookup *)pUser;
-	return net_host_lookup(pLookup->m_aHostname, &pLookup->m_Addr, pLookup->m_Nettype);
+}
+
+CHostLookup::CHostLookup(const char *pHostname, int Nettype)
+{
+	str_copy(m_aHostname, pHostname, sizeof(m_aHostname));
+	m_Nettype = Nettype;
+}
+
+
+void CHostLookup::Run()
+{
+	m_Result = net_host_lookup(m_aHostname, &m_Addr, m_Nettype);
 }
 
 class CEngine : public IEngine
@@ -55,9 +64,10 @@ public:
 		}
 	}
 
-	CEngine(const char *pAppname)
+	CEngine(const char *pAppname, bool Silent)
 	{
-		dbg_logger_stdout();
+		if(!Silent)
+			dbg_logger_stdout();
 		dbg_logger_debugger();
 
 		//
@@ -98,19 +108,12 @@ public:
 			dbg_logger_file(g_Config.m_Logfile);
 	}
 
-	void HostLookup(CHostLookup *pLookup, const char *pHostname, int Nettype)
-	{
-		str_copy(pLookup->m_aHostname, pHostname, sizeof(pLookup->m_aHostname));
-		pLookup->m_Nettype = Nettype;
-		AddJob(&pLookup->m_Job, HostLookupThread, pLookup);
-	}
-
-	void AddJob(CJob *pJob, JOBFUNC pfnFunc, void *pData)
+	void AddJob(std::shared_ptr<IJob> pJob)
 	{
 		if(g_Config.m_Debug)
 			dbg_msg("engine", "job added");
-		m_JobPool.Add(pJob, pfnFunc, pData);
+		m_JobPool.Add(std::move(pJob));
 	}
 };
 
-IEngine *CreateEngine(const char *pAppname) { return new CEngine(pAppname); }
+IEngine *CreateEngine(const char *pAppname, bool Silent) { return new CEngine(pAppname, Silent); }

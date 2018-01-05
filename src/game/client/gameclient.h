@@ -7,6 +7,7 @@
 #include <engine/client.h>
 #include <engine/console.h>
 #include <game/layers.h>
+#include <game/localization.h>
 #include <game/gamecore.h>
 #include "render.h"
 
@@ -261,25 +262,31 @@ public:
 
 	class CClientStats
 	{
-		public:
-			CClientStats();
+		int m_IngameTicks;
+		int m_JoinTick;
+		bool m_Active;
+		
+	public:
+		CClientStats();
 
-			int m_JoinDate;
-			bool m_Active;
-			bool m_WasActive;
+		int m_aFragsWith[NUM_WEAPONS];
+		int m_aDeathsFrom[NUM_WEAPONS];
+		int m_Frags;
+		int m_Deaths;
+		int m_Suicides;
+		int m_BestSpree;
+		int m_CurrentSpree;
 
-			int m_aFragsWith[NUM_WEAPONS];
-			int m_aDeathsFrom[NUM_WEAPONS];
-			int m_Frags;
-			int m_Deaths;
-			int m_Suicides;
-			int m_BestSpree;
-			int m_CurrentSpree;
+		int m_FlagGrabs;
+		int m_FlagCaptures;
 
-			int m_FlagGrabs;
-			int m_FlagCaptures;
-
-			void Reset();
+		void Reset();
+		
+		bool IsActive() const { return m_Active; }
+		void JoinGame(int Tick) { m_Active = true; m_JoinTick = Tick; };
+		void JoinSpec(int Tick) { m_Active = false; m_IngameTicks += Tick - m_JoinTick; };
+		int GetIngameTicks(int Tick) const { return m_IngameTicks + Tick - m_JoinTick; };
+		float GetFPM(int Tick, int TickSpeed) const { return (float)(m_Frags * TickSpeed * 60) / GetIngameTicks(Tick); };
 	};
 
 	CClientStats m_aStats[MAX_CLIENTS];
@@ -301,21 +308,19 @@ public:
 	virtual void OnNewSnapshot();
 	virtual void OnPredict();
 	virtual void OnActivateEditor();
-	virtual int OnSnapInput(int *pData);
+	virtual void OnDummySwap();
+	virtual int OnSnapInput(int *pData, bool Dummy, bool Force);
 	virtual void OnShutdown();
 	virtual void OnEnterGame();
+	virtual void OnRconType(bool UsernameReq);
 	virtual void OnRconLine(const char *pLine);
 	virtual void OnGameOver();
 	virtual void OnStartGame();
 	virtual void OnFlagGrab(int TeamID);
 
-	virtual void ResetDummyInput();
 	virtual const char *GetItemName(int Type);
 	virtual const char *Version();
 	virtual const char *NetVersion();
-
-	virtual const CNetObj_PlayerInput &getPlayerInput(int dummy);
-
 
 	// actions
 	// TODO: move these
@@ -333,6 +338,7 @@ public:
 	class CCountryFlags *m_pCountryFlags;
 	class CFlow *m_pFlow;
 	class CChat *m_pChat;
+	class CEmojis *m_pEmojis;
 	class CDamageInd *m_pDamageind;
 	class CCamera *m_pCamera;
 	class CControls *m_pControls;
@@ -349,8 +355,14 @@ public:
 	class CBackground *m_pBackGround;
 
 	class CMapSounds *m_pMapSounds;
+	class CPlayers *m_pPlayers;
 
 	// DDRace
+
+	int m_LocalIDs[2];
+	CNetObj_PlayerInput m_DummyInput;
+	CNetObj_PlayerInput m_HammerInput;
+	int m_DummyFire;
 
 	class CRaceDemo *m_pRaceDemo;
 	class CGhost *m_pGhost;
@@ -401,25 +413,25 @@ inline vec3 HslToRgb(vec3 HSL)
 inline vec3 RgbToHsl(vec3 RGB)
 {
 	vec3 HSL;
-	float maxColor = MAX3(RGB.r, RGB.g, RGB.b);
-	float minColor = MIN3(RGB.r, RGB.g, RGB.b);
-	if (minColor == maxColor)
+	float MaxColor = MAX3(RGB.r, RGB.g, RGB.b);
+	float MinColor = MIN3(RGB.r, RGB.g, RGB.b);
+	if (MinColor == MaxColor)
 		return vec3(0.0f, 0.0f, RGB.g * 255.0f);
 	else
 	{
-		HSL.l = (minColor + maxColor) / 2;
+		HSL.l = (MinColor + MaxColor) / 2;
 
 		if (HSL.l < 0.5)
-			HSL.s = (maxColor - minColor) / (maxColor + minColor);
+			HSL.s = (MaxColor - MinColor) / (MaxColor + MinColor);
 		else
-			HSL.s = (maxColor - minColor) / (2.0 - maxColor - minColor);
+			HSL.s = (MaxColor - MinColor) / (2.0 - MaxColor - MinColor);
 
-		if (RGB.r == maxColor)
-			HSL.h = (RGB.g - RGB.b) / (maxColor - minColor);
-		else if (RGB.g == maxColor)
-			HSL.h = 2.0 + (RGB.b - RGB.r) / (maxColor - minColor);
+		if (RGB.r == MaxColor)
+			HSL.h = (RGB.g - RGB.b) / (MaxColor - MinColor);
+		else if (RGB.g == MaxColor)
+			HSL.h = 2.0 + (RGB.b - RGB.r) / (MaxColor - MinColor);
 		else
-			HSL.h = 4.0 + (RGB.r - RGB.g) / (maxColor - minColor);
+			HSL.h = 4.0 + (RGB.r - RGB.g) / (MaxColor - MinColor);
 
 		HSL.h /= 6; //to bring it to a number between 0 and 1
 		if (HSL.h < 0) HSL.h++;
@@ -431,8 +443,6 @@ inline vec3 RgbToHsl(vec3 RGB)
 
 }
 
-
-extern const char *Localize(const char *Str);
-
+vec3 CalculateNameColor(vec3 TextColorHSL);
 
 #endif

@@ -77,6 +77,10 @@
 #undef main
 #endif
 
+extern "C" {
+    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+}
+
 static const ColorRGBA ClientNetworkPrintColor{0.7f, 1, 0.7f, 1.0f};
 static const ColorRGBA ClientNetworkErrPrintColor{1.0f, 0.25f, 0.25f, 1.0f};
 

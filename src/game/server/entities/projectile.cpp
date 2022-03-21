@@ -103,8 +103,7 @@ vec2 CProjectile::GetPos(float Time)
 		}
 		break;
 	default:
-		dbg_assert(false, "test");
-		break;
+		break; // ignore non projectile weapons
 	}
 
 	return CalcPos(m_Pos, m_Direction, Curvature, Speed, Time);

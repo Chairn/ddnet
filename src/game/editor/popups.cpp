@@ -748,7 +748,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View, void *pContext)
 			break;
 		}
 		default:
-			dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+			dbg_assert(false, "Invalid or unknown sound shape");
 			break;
 		}
 	}
@@ -895,7 +895,7 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View, void *pContext)
 		break;
 	}
 	default:
-		dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+		dbg_assert(false, "Invalid or unknown sound shape");
 		break;
 	}
 

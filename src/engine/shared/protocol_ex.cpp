@@ -97,6 +97,8 @@ int UnpackMessageID(int *pID, bool *pSys, CUuid *pUuid, CUnpacker *pUnpacker, CM
 				dbg_msg("uuid", "peer: %s %s", aBuf, pName);
 			}
 			break;
+		default:
+			break;
 		}
 	}
 	return UNPACKMESSAGE_OK;

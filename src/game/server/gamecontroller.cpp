@@ -69,7 +69,7 @@ void IGameController::DoActivityCheck()
 				case 0:
 					// move player to spectator
 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				break;
+					break;
 				case 1:
 				{
 					// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
@@ -86,10 +86,10 @@ void IGameController::DoActivityCheck()
 				case 2:
 					// kick the player
 					Server()->Kick(i, "Kicked for inactivity");
-				break;
+					break;
 				default:
-					dbg_msg("gamecontroller", "Invalid value for SvInactiveKick: %d", g_Config.m_SvInactiveKick);
-				break;
+					dbg_assert(false, "Invalid or unknown value for SvInactiveKick");
+					break;
 				}
 			}
 		}

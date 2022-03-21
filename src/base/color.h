@@ -4,7 +4,6 @@
 
 #include <base/math.h>
 #include <base/vmath.h>
-#include <base/system.h>
 
 /*
 	Title: Color handling
@@ -219,8 +218,7 @@ inline ColorRGBA color_cast(const ColorHSLA &hsl)
 		rgb.r = c;
 		rgb.b = x;
 		break;
-	default:
-		dbg_msg("color", "Invalid color data in conversion from HSLA to RGBA");
+	default: // leave black color
 		break;
 	}
 

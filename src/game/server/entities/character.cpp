@@ -587,7 +587,7 @@ void CCharacter::FireWeapon()
 	}
 	break;
 	default:
-		dbg_msg("character", "Invalid weapon: %d", m_Core.m_ActiveWeapon);
+		dbg_assert(false, "Invalid or unknown weapon");
 		break;
 	}
 

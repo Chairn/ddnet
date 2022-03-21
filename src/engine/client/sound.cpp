@@ -198,7 +198,7 @@ static void Mix(short *pFinalOut, unsigned Frames)
 					break;
 				}
 				default:
-					dbg_msg("client/sound", "Invalid sound shape: %d", Voice.m_Shape);
+					dbg_assert(false, "Invalid or unknown sound shape");
 					break;
 				};
 

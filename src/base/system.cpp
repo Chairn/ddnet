@@ -2544,7 +2544,7 @@ int time_season()
 	case 10:
 		return SEASON_AUTUMN;
 	default:
-		dbg_msg("time", "Invalid time data");
+		dbg_assert(false, "Invalid or unknown time data");
 		return SEASON_SPRING; // should never happen
 	}
 }

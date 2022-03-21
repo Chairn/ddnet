@@ -1009,8 +1009,8 @@ void CGameTeams::ProcessSaveTeam()
 				GameServer()->SendChatTarget(m_apSaveTeamResult[Team]->m_RequestingPlayer, m_apSaveTeamResult[Team]->m_aMessage);
 			break;
 		default:
-			dbg_msg("save", "Invalid save result: %d", (int)m_pSaveTeamResult[Team]->m_Status);
-            break;
+			dbg_assert(false, "Invalid or unknown save result");
+			break;
 		}
 		m_apSaveTeamResult[Team] = nullptr;
 	}

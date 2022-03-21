@@ -770,7 +770,7 @@ int CPlayer::Pause(int State, bool Force)
 			}
 			break;
 		default:
-			dbg_msg("player", "Player %d Invalid pause state: %d", m_ClientID, State);
+			dbg_assert(false, "Invalid or unknown player pause state");
 			break;
 		}
 
@@ -910,7 +910,7 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 			break;
 		}
 		default:
-			dbg_msg("player", "Player %d invalid message kind: %d", m_ClientID, (int)Result.m_MessageKind);
+			dbg_assert(false, "Invalid or unknown message kind");
 			break;
 		}
 	}

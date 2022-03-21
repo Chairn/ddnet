@@ -63,7 +63,7 @@ void CLayerSounds::Render(bool Tileset)
 			break;
 		}
 		default:
-			dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+			dbg_assert(false, "Invalid or unknown sound shape");
 			break;
 		}
 	}

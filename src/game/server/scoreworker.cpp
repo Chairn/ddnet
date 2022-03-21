@@ -45,7 +45,7 @@ void CScorePlayerResult::SetVariant(Variant v)
 			TimeCp = 0;
 		break;
 	default:
-		dbg_msg("scoreplayer", "Invalid message kind: %d", (int)v);
+		dbg_assert(false, "Invalid or unknown message kind");
 		break;
 	}
 }

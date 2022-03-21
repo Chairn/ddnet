@@ -220,7 +220,7 @@ void CMenuBackground::LoadMenuBackground(bool HasDayHint, bool HasNightHint)
 				pMenuMap = "newyear";
 				break;
 			default:
-				dbg_msg("menubackground", "Invalid time season");
+				pMenuMap = "heavens";
 				break;
 			}
 		}

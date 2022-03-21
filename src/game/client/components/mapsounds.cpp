@@ -136,13 +136,18 @@ void CMapSounds::OnRender()
 				switch(Source.m_pSource->m_Shape.m_Type)
 				{
 				case CSoundShape::SHAPE_CIRCLE:
+				{
 					Sound()->SetVoiceCircle(Source.m_Voice, Source.m_pSource->m_Shape.m_Circle.m_Radius);
 					break;
+				}
+
 				case CSoundShape::SHAPE_RECTANGLE:
+				{
 					Sound()->SetVoiceRectangle(Source.m_Voice, fx2f(Source.m_pSource->m_Shape.m_Rectangle.m_Width), fx2f(Source.m_pSource->m_Shape.m_Rectangle.m_Height));
 					break;
+				}
 				default:
-					dbg_msg("sound", "Invalid sound shape: %d", pSource->m_pSource->m_Shape.m_Type);
+					dbg_assert(false, "Invalid or unknown sound shape");
 					break;
 				};
 			}

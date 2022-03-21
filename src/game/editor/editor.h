@@ -535,6 +535,10 @@ protected:
 				mem_copy(&pTiles[y * m_Width], &pTiles[(y - ShiftBy) * m_Width], m_Width * sizeof(T));
 				mem_zero(&pTiles[(y - ShiftBy) * m_Width], m_Width * sizeof(T));
 			}
+			break;
+		default:
+			dbg_assert(false, "Invalid or unknown direction");
+			break;
 		}
 	}
 	template<typename T>

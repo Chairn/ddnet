@@ -1008,6 +1008,9 @@ void CGameTeams::ProcessSaveTeam()
 			if(m_apSaveTeamResult[Team]->m_aMessage[0] != '\0')
 				GameServer()->SendChatTarget(m_apSaveTeamResult[Team]->m_RequestingPlayer, m_apSaveTeamResult[Team]->m_aMessage);
 			break;
+		default:
+			dbg_msg("save", "Invalid save result: %d", (int)m_pSaveTeamResult[Team]->m_Status);
+            break;
 		}
 		m_apSaveTeamResult[Team] = nullptr;
 	}

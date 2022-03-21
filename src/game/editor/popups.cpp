@@ -747,6 +747,9 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View, void *pContext)
 			pSource->m_Shape.m_Rectangle.m_Height = f2fx(800.0f);
 			break;
 		}
+		default:
+			dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+			break;
 		}
 	}
 
@@ -891,6 +894,9 @@ int CEditor::PopupSource(CEditor *pEditor, CUIRect View, void *pContext)
 
 		break;
 	}
+	default:
+		dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+		break;
 	}
 
 	return 0;

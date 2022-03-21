@@ -2543,8 +2543,10 @@ int time_season()
 	case 9:
 	case 10:
 		return SEASON_AUTUMN;
+	default:
+		dbg_msg("time", "Invalid time data");
+		return SEASON_SPRING; // should never happen
 	}
-	return SEASON_SPRING; // should never happen
 }
 
 void str_append(char *dst, const char *src, int dst_size)
@@ -3269,9 +3271,10 @@ int str_time(int64_t centisecs, int format, char *buffer, int buffer_size)
 	case TIME_MINS_CENTISECS:
 		return str_format(buffer, buffer_size, "%02" PRId64 ":%02" PRId64 ".%02" PRId64, centisecs / min,
 			(centisecs % min) / sec, centisecs % sec);
+	default:
+		dbg_msg("time", "Invalid time formatting data");
+		return -1;
 	}
-
-	return -1;
 }
 
 int str_time_float(float secs, int format, char *buffer, int buffer_size)

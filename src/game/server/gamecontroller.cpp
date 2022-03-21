@@ -67,10 +67,8 @@ void IGameController::DoActivityCheck()
 				switch(g_Config.m_SvInactiveKick)
 				{
 				case 0:
-				{
 					// move player to spectator
 					DoTeamChange(GameServer()->m_apPlayers[i], TEAM_SPECTATORS);
-				}
 				break;
 				case 1:
 				{
@@ -86,10 +84,12 @@ void IGameController::DoActivityCheck()
 				}
 				break;
 				case 2:
-				{
 					// kick the player
 					Server()->Kick(i, "Kicked for inactivity");
-				}
+				break;
+				default:
+					dbg_msg("gamecontroller", "Invalid value for SvInactiveKick: %d", g_Config.m_SvInactiveKick);
+				break;
 				}
 			}
 		}

@@ -43,6 +43,10 @@ void CScorePlayerResult::SetVariant(Variant v)
 		m_Data.m_Info.m_Time = 0;
 		for(float &TimeCp : m_Data.m_Info.m_aTimeCp)
 			TimeCp = 0;
+		break;
+	default:
+		dbg_msg("scoreplayer", "Invalid message kind: %d", (int)v);
+		break;
 	}
 }
 

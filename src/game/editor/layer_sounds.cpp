@@ -62,6 +62,9 @@ void CLayerSounds::Render(bool Tileset)
 					Width * Falloff, Height * Falloff, 0.0f, IGraphics::CORNER_NONE);
 			break;
 		}
+		default:
+			dbg_msg("editor/sound", "Invalid sound shape: %d", pSource->m_Shape.m_Type);
+			break;
 		}
 	}
 

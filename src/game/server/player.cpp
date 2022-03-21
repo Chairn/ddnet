@@ -769,6 +769,9 @@ int CPlayer::Pause(int State, bool Force)
 				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 			}
 			break;
+		default:
+			dbg_msg("player", "Player %d Invalid pause state: %d", m_ClientID, State);
+			break;
 		}
 
 		// Update state
@@ -862,6 +865,7 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 				GameServer()->SendBroadcast(Result.m_Data.m_aBroadcast, -1);
 			break;
 		case CScorePlayerResult::MAP_VOTE:
+		{
 			GameServer()->m_VoteType = CGameContext::VOTE_TYPE_OPTION;
 			GameServer()->m_LastMapVote = time_get();
 
@@ -876,7 +880,9 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 
 			GameServer()->CallVote(m_ClientID, Result.m_Data.m_MapVote.m_aMap, aCmd, "/map", aChatmsg);
 			break;
+		}
 		case CScorePlayerResult::PLAYER_INFO:
+		{
 			GameServer()->Score()->PlayerData(m_ClientID)->Set(Result.m_Data.m_Info.m_Time, Result.m_Data.m_Info.m_aTimeCp);
 			m_Score = Result.m_Data.m_Info.m_Score;
 			m_HasFinishScore = Result.m_Data.m_Info.m_HasFinishScore;
@@ -901,6 +907,10 @@ void CPlayer::ProcessScoreResult(CScorePlayerResult &Result)
 				m_BirthdayAnnounced = true;
 			}
 			GameServer()->SendRecord(m_ClientID);
+			break;
+		}
+		default:
+			dbg_msg("player", "Player %d invalid message kind: %d", m_ClientID, (int)Result.m_MessageKind);
 			break;
 		}
 	}

@@ -102,6 +102,9 @@ vec2 CProjectile::GetPos(float Time)
 			Speed = GameServer()->TuningList()[m_TuneZone].m_GunSpeed;
 		}
 		break;
+	default:
+		dbg_assert(false, "test");
+		break;
 	}
 
 	return CalcPos(m_Pos, m_Direction, Curvature, Speed, Time);

@@ -219,6 +219,9 @@ void CMenuBackground::LoadMenuBackground(bool HasDayHint, bool HasNightHint)
 			case SEASON_NEWYEAR:
 				pMenuMap = "newyear";
 				break;
+			default:
+				dbg_msg("menubackground", "Invalid time season");
+				break;
 			}
 		}
 		else if(str_comp(pMenuMap, "rand") == 0)

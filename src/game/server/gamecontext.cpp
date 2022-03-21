@@ -1268,8 +1268,8 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 
 	// get current vote option by index
 	CVoteOptionServer *pCurrent = GetVoteOption(pPl->m_SendVoteIndex);
-
-	while(CurIndex < NumVotesToSend && pCurrent != NULL)
+    bool Stop = false;
+	while(CurIndex < NumVotesToSend && pCurrent != NULL && !Stop)
 	{
 		switch(CurIndex)
 		{
@@ -1288,6 +1288,10 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		case 12: OptionMsg.m_pDescription12 = pCurrent->m_aDescription; break;
 		case 13: OptionMsg.m_pDescription13 = pCurrent->m_aDescription; break;
 		case 14: OptionMsg.m_pDescription14 = pCurrent->m_aDescription; break;
+		default:
+            dbg_msg("vote", "Votes to send too big: %d", NumVotesToSend);
+            Stop = true;
+            break;
 		}
 
 		CurIndex++;

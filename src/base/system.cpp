@@ -217,10 +217,11 @@ void mem_move(void *dest, const void *source, unsigned size)
 	memmove(dest, source, size);
 }
 
-void mem_zero(void *block, unsigned size)
-{
-	memset(block, 0, size);
-}
+//template<>
+//void mem_zero<void>(void *block, unsigned size)
+//{
+//	memset(block, 0, size);
+//}
 
 IOHANDLE io_open_impl(const char *filename, int flags)
 {

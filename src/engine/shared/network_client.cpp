@@ -12,7 +12,7 @@ bool CNetClient::Open(NETADDR BindAddr)
 		return false;
 
 	// clean it
-	mem_zero(this, sizeof(*this));
+	// mem_zero(this, sizeof(*this));
 
 	// init
 	m_Socket = Socket;

@@ -27,6 +27,45 @@
 #endif
 
 #include <chrono>
+#include <type_traits>
+
+template<typename T1, typename T2>
+void mem_copy(T1 *dest, const T2 *source, unsigned size)
+{
+    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+	memcpy(dest, source, size);
+}
+template<typename T1, typename T2>
+typename std::enable_if<std::is_same<T1, void>::value, void>::type
+mem_copy(T1 *dest, const T2 *source, unsigned size)
+{
+    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+
+    memcpy(dest, source, size);
+}
+template<typename T1, typename T2>
+typename std::enable_if<std::is_same<T2, void>::value, void>::type
+void mem_copy(T1 *dest, const T2 *source, unsigned size)
+{
+    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+
+    memcpy(dest, source, size);
+}
+template<typename T1, typename T2>
+void mem_move(void *dest, const void *source, unsigned size)
+{
+    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+	memmove(dest, source, size);
+}
+template<typename T>
+void mem_zero(T *block, unsigned size)
+{
+    static_assert(std::is_trivial<T>::value || std::is_standard_layout<T>::value);
+
+    memset(block, 0, size);
+}
 
 extern "C" {
 
@@ -121,7 +160,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
  *
  * @see mem_move
  */
-void mem_copy(void *dest, const void *source, unsigned size);
+//void mem_copy(void *dest, const void *source, unsigned size);
 
 /**
  * Copies a a memory block.
@@ -136,7 +175,7 @@ void mem_copy(void *dest, const void *source, unsigned size);
  *
  * @see mem_copy
  */
-void mem_move(void *dest, const void *source, unsigned size);
+//void mem_move(void *dest, const void *source, unsigned size);
 
 /**
  * Sets a complete memory block to 0.
@@ -146,7 +185,8 @@ void mem_move(void *dest, const void *source, unsigned size);
  * @param block Pointer to the block to zero out.
  * @param size Size of the block.
  */
-void mem_zero(void *block, unsigned size);
+//extern template void mem_zero<void>(void *block, unsigned size);
+//void mem_zero(void *block, unsigned size);
 
 /**
  * Compares two blocks of memory

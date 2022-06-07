@@ -32,37 +32,29 @@
 template<typename T1, typename T2>
 void mem_copy(T1 *dest, const T2 *source, unsigned size)
 {
-    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
-    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+    static_assert(std::is_same<T1, void>::value || std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+    static_assert(std::is_same<T2, void>::value || std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
 	memcpy(dest, source, size);
 }
 template<typename T1, typename T2>
-typename std::enable_if<std::is_same<T1, void>::value, void>::type
-mem_copy(T1 *dest, const T2 *source, unsigned size)
+void mem_move(T1 *dest, const T2 *source, unsigned size)
 {
-    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
-
-    memcpy(dest, source, size);
-}
-template<typename T1, typename T2>
-typename std::enable_if<std::is_same<T2, void>::value, void>::type
-void mem_copy(T1 *dest, const T2 *source, unsigned size)
-{
-    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
-
-    memcpy(dest, source, size);
-}
-template<typename T1, typename T2>
-void mem_move(void *dest, const void *source, unsigned size)
-{
-    static_assert(std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
-    static_assert(std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+    static_assert(std::is_same<T1, void>::value || std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+    static_assert(std::is_same<T2, void>::value || std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
 	memmove(dest, source, size);
+}
+template<typename T1, typename T2>
+int mem_comp(const T1 *a, const T2 *b, int size)
+{
+    static_assert(std::is_same<T1, void>::value || std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
+    static_assert(std::is_same<T2, void>::value || std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);
+
+	return memcmp(a, b, size);
 }
 template<typename T>
 void mem_zero(T *block, unsigned size)
 {
-    static_assert(std::is_trivial<T>::value || std::is_standard_layout<T>::value);
+    static_assert(std::is_same<T, void>::value || std::is_trivial<T>::value || std::is_standard_layout<T>::value);
 
     memset(block, 0, size);
 }
@@ -201,7 +193,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
  * @return 0 - Block a is equal to block b.
  * @return > 0 - Block a is greater than block b.
  */
-int mem_comp(const void *a, const void *b, int size);
+//int mem_comp(const void *a, const void *b, int size);
 
 /**
  * @defgroup File-IO

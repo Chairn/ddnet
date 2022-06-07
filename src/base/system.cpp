@@ -207,15 +207,15 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 
 /* */
 
-void mem_copy(void *dest, const void *source, unsigned size)
-{
-	memcpy(dest, source, size);
-}
+//void mem_copy(void *dest, const void *source, unsigned size)
+//{
+//	memcpy(dest, source, size);
+//}
 
-void mem_move(void *dest, const void *source, unsigned size)
-{
-	memmove(dest, source, size);
-}
+//void mem_move(void *dest, const void *source, unsigned size)
+//{
+//	memmove(dest, source, size);
+//}
 
 //template<>
 //void mem_zero<void>(void *block, unsigned size)
@@ -3245,10 +3245,10 @@ void str_escape(char **dst, const char *src, const char *end)
 	**dst = 0;
 }
 
-int mem_comp(const void *a, const void *b, int size)
-{
-	return memcmp(a, b, size);
-}
+//int mem_comp(const void *a, const void *b, int size)
+//{
+//	return memcmp(a, b, size);
+//}
 
 void net_stats(NETSTATS *stats_inout)
 {

@@ -489,7 +489,7 @@ bool CDataFileReader::Close()
 
 	io_close(m_pDataFile->m_File);
 	free(m_pDataFile);
-	m_pDataFile = 0;
+	m_pDataFile = nullptr;
 	return true;
 }
 
@@ -539,15 +539,15 @@ CDataFileWriter::CDataFileWriter()
 CDataFileWriter::~CDataFileWriter()
 {
 	free(m_pItemTypes);
-	m_pItemTypes = 0;
+	m_pItemTypes = nullptr;
 	for(int i = 0; i < m_NumItems; i++)
 		free(m_pItems[i].m_pData);
 	for(int i = 0; i < m_NumDatas; ++i)
 		free(m_pDatas[i].m_pCompressedData);
 	free(m_pItems);
-	m_pItems = 0;
+	m_pItems = nullptr;
 	free(m_pDatas);
-	m_pDatas = 0;
+	m_pDatas = nullptr;
 }
 
 bool CDataFileWriter::OpenFile(class IStorage *pStorage, const char *pFilename, int StorageType)
@@ -850,12 +850,12 @@ int CDataFileWriter::Finish()
 	for(int i = 0; i < m_NumItems; i++)
 	{
 		free(m_pItems[i].m_pData);
-		m_pItems[i].m_pData = 0;
+		m_pItems[i].m_pData = nullptr;
 	}
 	for(int i = 0; i < m_NumDatas; ++i)
 	{
 		free(m_pDatas[i].m_pCompressedData);
-		m_pDatas[i].m_pCompressedData = 0;
+		m_pDatas[i].m_pCompressedData = nullptr;
 	}
 
 	io_close(m_File);

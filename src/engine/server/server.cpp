@@ -371,7 +371,7 @@ CServer::CServer()
 
 	m_TickSpeed = SERVER_TICK_SPEED;
 
-	m_pGameServer = 0;
+	m_pGameServer = nullptr;
 
 	m_CurrentGameTick = 0;
 	m_RunServer = UNINITIALIZED;
@@ -651,8 +651,8 @@ int CServer::GetClientInfo(int ClientID, CClientInfo *pInfo) const
 		}
 		else
 		{
-			pInfo->m_pConnectionID = 0;
-			pInfo->m_pDDNetVersionStr = 0;
+			pInfo->m_pConnectionID = nullptr;
+			pInfo->m_pDDNetVersionStr = nullptr;
 		}
 		return 1;
 	}
@@ -1053,7 +1053,7 @@ int CServer::ClientRejoinCallback(int ClientID, void *pUser)
 
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
-	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientID].m_DDNetVersion = VERSION_NONE;
 	pThis->m_aClients[ClientID].m_GotDDNetVersionPacket = false;
 	pThis->m_aClients[ClientID].m_DDNetVersionSettled = false;
@@ -1078,7 +1078,7 @@ int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
-	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
 	pThis->m_aClients[ClientID].m_DDNetVersion = VERSION_NONE;
 	pThis->m_aClients[ClientID].m_GotDDNetVersionPacket = false;
@@ -1104,7 +1104,7 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
-	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
@@ -1190,7 +1190,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 	pThis->m_aClients[ClientID].m_Authed = AUTHED_NO;
 	pThis->m_aClients[ClientID].m_AuthKey = -1;
 	pThis->m_aClients[ClientID].m_AuthTries = 0;
-	pThis->m_aClients[ClientID].m_pRconCmdToSend = 0;
+	pThis->m_aClients[ClientID].m_pRconCmdToSend = nullptr;
 	pThis->m_aClients[ClientID].m_Traffic = 0;
 	pThis->m_aClients[ClientID].m_TrafficSince = 0;
 	pThis->m_aClients[ClientID].m_ShowIps = false;
@@ -3543,7 +3543,7 @@ void CServer::LogoutClient(int ClientID, const char *pReason)
 	}
 
 	m_aClients[ClientID].m_AuthTries = 0;
-	m_aClients[ClientID].m_pRconCmdToSend = 0;
+	m_aClients[ClientID].m_pRconCmdToSend = nullptr;
 
 	char aBuf[64];
 	if(*pReason)

@@ -126,7 +126,7 @@ public:
 		m_Visible = true;
 		m_Readonly = false;
 		m_Flags = 0;
-		m_pEditor = 0;
+		m_pEditor = nullptr;
 		m_BrushRefCount = 0;
 	}
 
@@ -282,7 +282,7 @@ public:
 		m_External = 0;
 		m_Width = 0;
 		m_Height = 0;
-		m_pData = 0;
+		m_pData = nullptr;
 		m_Format = 0;
 	}
 
@@ -308,7 +308,7 @@ public:
 		m_aName[0] = 0;
 		m_SoundID = 0;
 
-		m_pData = 0x0;
+		m_pData = nullptr;
 		m_DataSize = 0;
 	}
 
@@ -712,16 +712,16 @@ public:
 	CEditor() :
 		m_TilesetPicker(16, 16)
 	{
-		m_pInput = 0;
-		m_pClient = 0;
-		m_pGraphics = 0;
-		m_pTextRender = 0;
-		m_pSound = 0;
+		m_pInput = nullptr;
+		m_pClient = nullptr;
+		m_pGraphics = nullptr;
+		m_pTextRender = nullptr;
+		m_pSound = nullptr;
 
 		m_Mode = MODE_LAYERS;
 		m_Dialog = 0;
 		m_EditBoxActive = 0;
-		m_pTooltip = 0;
+		m_pTooltip = nullptr;
 
 		m_GridActive = false;
 		m_GridFactor = 1;
@@ -737,9 +737,9 @@ public:
 		m_MouseInsidePopup = false;
 
 		m_FileDialogStorageType = 0;
-		m_pFileDialogTitle = 0;
-		m_pFileDialogButtonText = 0;
-		m_pFileDialogUser = 0;
+		m_pFileDialogTitle = nullptr;
+		m_pFileDialogButtonText = nullptr;
+		m_pFileDialogUser = nullptr;
 		m_aFileDialogFileName[0] = 0;
 		m_aFileDialogCurrentFolder[0] = 0;
 		m_aFileDialogCurrentLink[0] = 0;

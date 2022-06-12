@@ -817,14 +817,14 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 
 	if(IsGameLayer) // remove the image and color properties if this is a game layer
 	{
-		aProps[PROP_IMAGE].m_pName = 0;
-		aProps[PROP_COLOR].m_pName = 0;
-		aProps[PROP_AUTOMAPPER].m_pName = 0;
+		aProps[PROP_IMAGE].m_pName = nullptr;
+		aProps[PROP_COLOR].m_pName = nullptr;
+		aProps[PROP_AUTOMAPPER].m_pName = nullptr;
 	}
 	if(m_Image == -1)
 	{
-		aProps[PROP_AUTOMAPPER].m_pName = 0;
-		aProps[PROP_SEED].m_pName = 0;
+		aProps[PROP_AUTOMAPPER].m_pName = nullptr;
+		aProps[PROP_SEED].m_pName = nullptr;
 	}
 
 	static int s_aIds[NUM_PROPS] = {0};

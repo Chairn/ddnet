@@ -151,7 +151,7 @@ class CCommandProcessorFragment_OpenGL2 : public CCommandProcessorFragment_OpenG
 		SBufferObject(TWGLuint BufferObjectID) :
 			m_BufferObjectID(BufferObjectID)
 		{
-			m_pData = NULL;
+			m_pData = nullptr;
 			m_DataSize = 0;
 		}
 		TWGLuint m_BufferObjectID;

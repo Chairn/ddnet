@@ -7,7 +7,7 @@
 
 #ifdef CONF_ANTIBOT
 CAntibot::CAntibot() :
-	m_pServer(0), m_pConsole(0), m_pGameServer(0), m_Initialized(false)
+	m_pServer(nullptr), m_pConsole(nullptr), m_pGameServer(nullptr), m_Initialized(false)
 {
 }
 CAntibot::~CAntibot()
@@ -69,7 +69,7 @@ void CAntibot::RoundStart(IGameServer *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	mem_zero(&m_RoundData, sizeof(m_RoundData));
-	m_RoundData.m_Map.m_pTiles = 0;
+	m_RoundData.m_Map.m_pTiles = nullptr;
 	AntibotRoundStart(&m_RoundData);
 	Update();
 }
@@ -78,7 +78,7 @@ void CAntibot::RoundEnd()
 	// Let the external module clean up first
 	AntibotRoundEnd();
 
-	m_pGameServer = 0;
+	m_pGameServer = nullptr;
 	free(m_RoundData.m_Map.m_pTiles);
 }
 void CAntibot::Dump() { AntibotDump(); }
@@ -191,7 +191,7 @@ bool CAntibot::OnEngineSimulateClientMessage(int *pClientID, void *pBuffer, int 
 }
 #else
 CAntibot::CAntibot() :
-	m_pServer(0), m_pConsole(0), m_pGameServer(0), m_Initialized(false)
+	m_pServer(nullptr), m_pConsole(nullptr), m_pGameServer(nullptr), m_Initialized(false)
 {
 }
 CAntibot::~CAntibot() = default;
@@ -207,7 +207,7 @@ void CAntibot::RoundStart(IGameServer *pGameServer)
 }
 void CAntibot::RoundEnd()
 {
-	m_pGameServer = 0;
+	m_pGameServer = nullptr;
 }
 void CAntibot::Dump()
 {

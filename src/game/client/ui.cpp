@@ -57,11 +57,11 @@ CUI::CUI()
 {
 	m_Enabled = true;
 
-	m_pHotItem = 0;
-	m_pActiveItem = 0;
-	m_pLastActiveItem = 0;
-	m_pBecomingHotItem = 0;
-	m_pActiveTooltipItem = 0;
+	m_pHotItem = nullptr;
+	m_pActiveItem = nullptr;
+	m_pLastActiveItem = nullptr;
+	m_pBecomingHotItem = nullptr;
+	m_pActiveTooltipItem = nullptr;
 
 	m_MouseX = 0;
 	m_MouseY = 0;
@@ -156,7 +156,7 @@ void CUI::Update(float MouseX, float MouseY, float MouseWorldX, float MouseWorld
 	m_pHotItem = m_pBecomingHotItem;
 	if(m_pActiveItem)
 		m_pHotItem = m_pActiveItem;
-	m_pBecomingHotItem = 0;
+	m_pBecomingHotItem = nullptr;
 }
 
 bool CUI::MouseInside(const CUIRect *pRect) const

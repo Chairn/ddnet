@@ -154,14 +154,14 @@ void CVoting::AddOption(const char *pDescription)
 		pOption = m_pRecycleFirst;
 		m_pRecycleFirst = m_pRecycleFirst->m_pNext;
 		if(m_pRecycleFirst)
-			m_pRecycleFirst->m_pPrev = 0;
+			m_pRecycleFirst->m_pPrev = nullptr;
 		else
-			m_pRecycleLast = 0;
+			m_pRecycleLast = nullptr;
 	}
 	else
 		pOption = (CVoteOptionClient *)m_Heap.Allocate(sizeof(CVoteOptionClient));
 
-	pOption->m_pNext = 0;
+	pOption->m_pNext = nullptr;
 	pOption->m_pPrev = m_pLast;
 	if(pOption->m_pPrev)
 		pOption->m_pPrev->m_pNext = pOption;
@@ -178,11 +178,11 @@ void CVoting::ClearOptions()
 	m_Heap.Reset();
 
 	m_NumVoteOptions = 0;
-	m_pFirst = 0;
-	m_pLast = 0;
+	m_pFirst = nullptr;
+	m_pLast = nullptr;
 
-	m_pRecycleFirst = 0;
-	m_pRecycleLast = 0;
+	m_pRecycleFirst = nullptr;
+	m_pRecycleLast = nullptr;
 }
 
 void CVoting::OnReset()
@@ -284,7 +284,7 @@ void CVoting::OnMessage(int MsgType, void *pRawMsg)
 				--m_NumVoteOptions;
 
 				// add it to recycle list
-				pOption->m_pNext = 0;
+				pOption->m_pNext = nullptr;
 				pOption->m_pPrev = m_pRecycleLast;
 				if(pOption->m_pPrev)
 					pOption->m_pPrev->m_pNext = pOption;

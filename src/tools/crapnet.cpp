@@ -95,7 +95,7 @@ void Run(unsigned short Port, NETADDR Dest)
 
 			// queue packet
 			p->m_pPrev = g_pLast;
-			p->m_pNext = 0;
+			p->m_pNext = nullptr;
 			if(g_pLast)
 				g_pLast->m_pNext = p;
 			else

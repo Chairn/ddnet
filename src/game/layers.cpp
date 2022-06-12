@@ -9,15 +9,15 @@ CLayers::CLayers()
 	m_GroupsStart = 0;
 	m_LayersNum = 0;
 	m_LayersStart = 0;
-	m_pGameGroup = 0;
-	m_pGameLayer = 0;
-	m_pMap = 0;
+	m_pGameGroup = nullptr;
+	m_pGameLayer = nullptr;
+	m_pMap = nullptr;
 
-	m_pTeleLayer = 0;
-	m_pSpeedupLayer = 0;
-	m_pFrontLayer = 0;
-	m_pSwitchLayer = 0;
-	m_pTuneLayer = 0;
+	m_pTeleLayer = nullptr;
+	m_pSpeedupLayer = nullptr;
+	m_pFrontLayer = nullptr;
+	m_pSwitchLayer = nullptr;
+	m_pTuneLayer = nullptr;
 }
 
 void CLayers::Init(class IKernel *pKernel)
@@ -26,11 +26,11 @@ void CLayers::Init(class IKernel *pKernel)
 	m_pMap->GetType(MAPITEMTYPE_GROUP, &m_GroupsStart, &m_GroupsNum);
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
 
-	m_pTeleLayer = 0;
-	m_pSpeedupLayer = 0;
-	m_pFrontLayer = 0;
-	m_pSwitchLayer = 0;
-	m_pTuneLayer = 0;
+	m_pTeleLayer = nullptr;
+	m_pSpeedupLayer = nullptr;
+	m_pFrontLayer = nullptr;
+	m_pSwitchLayer = nullptr;
+	m_pTuneLayer = nullptr;
 
 	for(int g = 0; g < NumGroups(); g++)
 	{
@@ -119,11 +119,11 @@ void CLayers::InitBackground(class IMap *pMap)
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
 
 	//following is here to prevent crash using standard map as background
-	m_pTeleLayer = 0;
-	m_pSpeedupLayer = 0;
-	m_pFrontLayer = 0;
-	m_pSwitchLayer = 0;
-	m_pTuneLayer = 0;
+	m_pTeleLayer = nullptr;
+	m_pSpeedupLayer = nullptr;
+	m_pFrontLayer = nullptr;
+	m_pSwitchLayer = nullptr;
+	m_pTuneLayer = nullptr;
 
 	for(int g = 0; g < NumGroups(); g++)
 	{

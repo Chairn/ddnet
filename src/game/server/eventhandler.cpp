@@ -13,7 +13,7 @@
 //////////////////////////////////////////////////
 CEventHandler::CEventHandler()
 {
-	m_pGameServer = 0;
+	m_pGameServer = nullptr;
 	Clear();
 }
 

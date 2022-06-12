@@ -41,7 +41,7 @@ CControls::CControls()
 		if(m_pJoystick && SDL_JoystickNumAxes(m_pJoystick) < NUM_JOYSTICK_AXES)
 		{
 			SDL_JoystickClose(m_pJoystick);
-			m_pJoystick = NULL;
+			m_pJoystick = nullptr;
 		}
 
 		m_pGamepad = SDL_JoystickOpen(2);
@@ -56,8 +56,8 @@ CControls::CControls()
 	}
 	else
 	{
-		m_pJoystick = NULL;
-		m_pGamepad = NULL;
+		m_pJoystick = nullptr;
+		m_pGamepad = nullptr;
 		m_UsingGamepad = false;
 	}
 }

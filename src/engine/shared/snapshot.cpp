@@ -424,8 +424,8 @@ int CSnapshotDelta::UnpackDelta(CSnapshot *pFrom, CSnapshot *pTo, const void *pS
 
 void CSnapshotStorage::Init()
 {
-	m_pFirst = 0;
-	m_pLast = 0;
+	m_pFirst = nullptr;
+	m_pLast = nullptr;
 }
 
 void CSnapshotStorage::PurgeAll()
@@ -440,8 +440,8 @@ void CSnapshotStorage::PurgeAll()
 	}
 
 	// no more snapshots in storage
-	m_pFirst = 0;
-	m_pLast = 0;
+	m_pFirst = nullptr;
+	m_pLast = nullptr;
 }
 
 void CSnapshotStorage::PurgeUntil(int Tick)
@@ -460,14 +460,14 @@ void CSnapshotStorage::PurgeUntil(int Tick)
 			break;
 
 		m_pFirst = pNext;
-		pNext->m_pPrev = 0x0;
+		pNext->m_pPrev = nullptr;
 
 		pHolder = pNext;
 	}
 
 	// no more snapshots in storage
-	m_pFirst = 0;
-	m_pLast = 0;
+	m_pFirst = nullptr;
+	m_pLast = nullptr;
 }
 
 void CSnapshotStorage::Add(int Tick, int64_t Tagtime, int DataSize, void *pData, int CreateAlt)
@@ -493,10 +493,10 @@ void CSnapshotStorage::Add(int Tick, int64_t Tagtime, int DataSize, void *pData,
 		mem_copy(pHolder->m_pAltSnap, pData, DataSize);
 	}
 	else
-		pHolder->m_pAltSnap = 0;
+		pHolder->m_pAltSnap = nullptr;
 
 	// link
-	pHolder->m_pNext = 0;
+	pHolder->m_pNext = nullptr;
 	pHolder->m_pPrev = m_pLast;
 	if(m_pLast)
 		m_pLast->m_pNext = pHolder;

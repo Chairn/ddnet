@@ -16,7 +16,7 @@ class CKernel : public IKernel
 		CInterfaceInfo()
 		{
 			m_aName[0] = 0;
-			m_pInterface = 0x0;
+			m_pInterface = nullptr;
 			m_AutoDestroy = false;
 		}
 
@@ -52,7 +52,7 @@ public:
 			if(m_aInterfaces[i].m_AutoDestroy)
 			{
 				delete m_aInterfaces[i].m_pInterface;
-				m_aInterfaces[i].m_pInterface = 0;
+				m_aInterfaces[i].m_pInterface = nullptr;
 			}
 		}
 	}

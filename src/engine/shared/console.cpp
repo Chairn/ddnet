@@ -946,18 +946,18 @@ CConsole::CConsole(int FlagMask)
 {
 	m_FlagMask = FlagMask;
 	m_AccessLevel = ACCESS_LEVEL_ADMIN;
-	m_pRecycleList = 0;
+	m_pRecycleList = nullptr;
 	m_TempCommands.Reset();
 	m_StoreCommands = true;
 	m_apStrokeStr[0] = "0";
 	m_apStrokeStr[1] = "1";
 	m_ExecutionQueue.Reset();
-	m_pFirstCommand = 0;
-	m_pFirstExec = 0;
-	m_pfnTeeHistorianCommandCallback = 0;
-	m_pTeeHistorianCommandUserdata = 0;
+	m_pFirstCommand = nullptr;
+	m_pFirstExec = nullptr;
+	m_pfnTeeHistorianCommandCallback = nullptr;
+	m_pTeeHistorianCommandUserdata = nullptr;
 
-	m_pStorage = 0;
+	m_pStorage = nullptr;
 
 	// register some basic commands
 	Register("echo", "r[text]", CFGFLAG_SERVER, Con_Echo, this, "Echo the text");
@@ -1064,7 +1064,7 @@ void CConsole::AddCommandSorted(CCommand *pCommand)
 		if(m_pFirstCommand && m_pFirstCommand->m_pNext)
 			pCommand->m_pNext = m_pFirstCommand;
 		else
-			pCommand->m_pNext = 0;
+			pCommand->m_pNext = nullptr;
 		m_pFirstCommand = pCommand;
 	}
 	else
@@ -1134,8 +1134,8 @@ void CConsole::RegisterTemp(const char *pName, const char *pParams, int Flags, c
 		pCommand->m_pParams = pMem;
 	}
 
-	pCommand->m_pfnCallback = 0;
-	pCommand->m_pUserData = 0;
+	pCommand->m_pfnCallback = nullptr;
+	pCommand->m_pUserData = nullptr;
 	pCommand->m_Flags = Flags;
 	pCommand->m_Temp = true;
 
@@ -1193,7 +1193,7 @@ void CConsole::DeregisterTempAll()
 	}
 
 	m_TempCommands.Reset();
-	m_pRecycleList = 0;
+	m_pRecycleList = nullptr;
 }
 
 void CConsole::Con_Chain(IResult *pResult, void *pUserData)

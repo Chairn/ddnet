@@ -46,15 +46,15 @@ public:
 
 CServerBrowser::CServerBrowser()
 {
-	m_ppServerlist = 0;
-	m_pSortedServerlist = 0;
+	m_ppServerlist = nullptr;
+	m_pSortedServerlist = nullptr;
 
 	m_NumFavoriteServers = 0;
 
 	mem_zero(m_aServerlistIp, sizeof(m_aServerlistIp));
 
-	m_pFirstReqServer = 0; // request list
-	m_pLastReqServer = 0;
+	m_pFirstReqServer = nullptr; // request list
+	m_pLastReqServer = nullptr;
 	m_NumRequests = 0;
 
 	m_NumSortedServers = 0;
@@ -70,7 +70,7 @@ CServerBrowser::CServerBrowser()
 	m_BroadcastTime = 0;
 	secure_random_fill(m_aTokenSeed, sizeof(m_aTokenSeed));
 
-	m_pDDNetInfo = 0;
+	m_pDDNetInfo = nullptr;
 
 	m_SortOnNextUpdate = false;
 }
@@ -457,8 +457,8 @@ void CServerBrowser::RemoveRequest(CServerEntry *pEntry)
 		else
 			m_pLastReqServer = pEntry->m_pPrevReq;
 
-		pEntry->m_pPrevReq = 0;
-		pEntry->m_pNextReq = 0;
+		pEntry->m_pPrevReq = nullptr;
+		pEntry->m_pNextReq = nullptr;
 		m_NumRequests--;
 	}
 }
@@ -484,7 +484,7 @@ void CServerBrowser::QueueRequest(CServerEntry *pEntry)
 	else
 		m_pFirstReqServer = pEntry;
 	m_pLastReqServer = pEntry;
-	pEntry->m_pNextReq = 0;
+	pEntry->m_pNextReq = nullptr;
 	m_NumRequests++;
 }
 
@@ -1158,8 +1158,8 @@ void CServerBrowser::CleanUp()
 	m_NumServers = 0;
 	m_NumSortedServers = 0;
 	mem_zero(m_aServerlistIp, sizeof(m_aServerlistIp));
-	m_pFirstReqServer = 0;
-	m_pLastReqServer = 0;
+	m_pFirstReqServer = nullptr;
+	m_pLastReqServer = nullptr;
 	m_NumRequests = 0;
 	m_CurrentMaxRequests = g_Config.m_BrMaxRequests;
 }
@@ -1506,7 +1506,7 @@ void CServerBrowser::LoadDDNetInfoJson()
 	if(m_pDDNetInfo && m_pDDNetInfo->type != json_object)
 	{
 		json_value_free(m_pDDNetInfo);
-		m_pDDNetInfo = 0;
+		m_pDDNetInfo = nullptr;
 	}
 
 	m_OwnLocation = CServerInfo::LOC_UNKNOWN;

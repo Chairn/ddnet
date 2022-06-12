@@ -37,8 +37,8 @@ CDemoRecorder::CDemoRecorder(class CSnapshotDelta *pSnapshotDelta, bool NoMapDat
 {
 	m_File = 0;
 	m_aCurrentFilename[0] = '\0';
-	m_pfnFilter = 0;
-	m_pUser = 0;
+	m_pfnFilter = nullptr;
+	m_pUser = nullptr;
 	m_LastTickMarker = -1;
 	m_pSnapshotDelta = pSnapshotDelta;
 	m_NoMapData = NoMapData;
@@ -402,7 +402,7 @@ CDemoPlayer::CDemoPlayer(class CSnapshotDelta *pSnapshotDelta)
 void CDemoPlayer::Construct(class CSnapshotDelta *pSnapshotDelta)
 {
 	m_File = 0;
-	m_pKeyFrames = 0;
+	m_pKeyFrames = nullptr;
 	m_SpeedIndex = 4;
 
 	m_pSnapshotDelta = pSnapshotDelta;
@@ -506,7 +506,7 @@ void CDemoPlayer::ScanFile()
 				pKey = (CKeyFrameSearch *)Heap.Allocate(sizeof(CKeyFrameSearch));
 				pKey->m_Frame.m_Filepos = CurrentPos;
 				pKey->m_Frame.m_Tick = ChunkTick;
-				pKey->m_pNext = 0;
+				pKey->m_pNext = nullptr;
 				if(pCurrentKey)
 					pCurrentKey->m_pNext = pKey;
 				if(!pFirstKey)
@@ -1040,7 +1040,7 @@ int CDemoPlayer::Stop()
 	io_close(m_File);
 	m_File = 0;
 	free(m_pKeyFrames);
-	m_pKeyFrames = 0;
+	m_pKeyFrames = nullptr;
 	str_copy(m_aFilename, "", sizeof(m_aFilename));
 	return 0;
 }

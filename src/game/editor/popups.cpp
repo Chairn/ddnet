@@ -348,7 +348,7 @@ int CEditor::PopupGroup(CEditor *pEditor, CUIRect View, void *pContext)
 
 	// cut the properties that isn't needed
 	if(pEditor->GetSelectedGroup()->m_GameGroup)
-		aProps[PROP_POS_X].m_pName = 0;
+		aProps[PROP_POS_X].m_pName = nullptr;
 
 	int Prop = pEditor->DoProperties(&View, aProps, s_aIds, &NewVal);
 	if(Prop != -1)
@@ -402,15 +402,15 @@ int CEditor::PopupLayer(CEditor *pEditor, CUIRect View, void *pContext)
 		pEditor->DoButton_Editor(&s_DeleteButton, "Delete layer", 0, &Button, 0, "Deletes the layer"))
 	{
 		if(pEditor->GetSelectedLayer(0) == pEditor->m_Map.m_pFrontLayer)
-			pEditor->m_Map.m_pFrontLayer = 0x0;
+			pEditor->m_Map.m_pFrontLayer = nullptr;
 		if(pEditor->GetSelectedLayer(0) == pEditor->m_Map.m_pTeleLayer)
-			pEditor->m_Map.m_pTeleLayer = 0x0;
+			pEditor->m_Map.m_pTeleLayer = nullptr;
 		if(pEditor->GetSelectedLayer(0) == pEditor->m_Map.m_pSpeedupLayer)
-			pEditor->m_Map.m_pSpeedupLayer = 0x0;
+			pEditor->m_Map.m_pSpeedupLayer = nullptr;
 		if(pEditor->GetSelectedLayer(0) == pEditor->m_Map.m_pSwitchLayer)
-			pEditor->m_Map.m_pSwitchLayer = 0x0;
+			pEditor->m_Map.m_pSwitchLayer = nullptr;
 		if(pEditor->GetSelectedLayer(0) == pEditor->m_Map.m_pTuneLayer)
-			pEditor->m_Map.m_pTuneLayer = 0x0;
+			pEditor->m_Map.m_pTuneLayer = nullptr;
 		pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->DeleteLayer(pEditor->m_vSelectedLayers[0]);
 		return 1;
 	}

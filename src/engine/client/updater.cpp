@@ -87,9 +87,9 @@ int CUpdaterFetchTask::OnCompletion(int State)
 
 CUpdater::CUpdater()
 {
-	m_pClient = NULL;
-	m_pStorage = NULL;
-	m_pEngine = NULL;
+	m_pClient = nullptr;
+	m_pStorage = nullptr;
+	m_pEngine = nullptr;
 	m_State = CLEAN;
 	m_Percent = 0;
 	m_Lock = lock_create();

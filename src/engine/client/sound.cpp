@@ -79,7 +79,7 @@ static int m_MixingRate = 48000;
 static std::atomic<int> m_SoundVolume{100};
 
 static int m_NextVoice = 0;
-static int *m_pMixBuffer = 0; // buffer only used by the thread callback function
+static int *m_pMixBuffer = nullptr; // buffer only used by the thread callback function
 static uint32_t m_MaxFrames = 0;
 
 static const void *s_pWVBuffer = 0x0;
@@ -250,7 +250,7 @@ static void Mix(short *pFinalOut, unsigned Frames)
 					Voice.m_Tick = 0;
 				else
 				{
-					Voice.m_pSample = 0;
+					Voice.m_pSample = nullptr;
 					Voice.m_Age++;
 				}
 			}
@@ -375,7 +375,7 @@ int CSound::Shutdown()
 	SDL_CloseAudioDevice(m_Device);
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(m_pMixBuffer);
-	m_pMixBuffer = 0;
+	m_pMixBuffer = nullptr;
 	return 0;
 }
 
@@ -750,7 +750,7 @@ void CSound::UnloadSample(int SampleID)
 	Stop(SampleID);
 	free(m_aSamples[SampleID].m_pData);
 
-	m_aSamples[SampleID].m_pData = 0x0;
+	m_aSamples[SampleID].m_pData = nullptr;
 }
 
 float CSound::GetSampleDuration(int SampleID)
@@ -951,7 +951,7 @@ void CSound::Stop(int SampleID)
 				Voice.m_pSample->m_PausedAt = Voice.m_Tick;
 			else
 				Voice.m_pSample->m_PausedAt = 0;
-			Voice.m_pSample = 0;
+			Voice.m_pSample = nullptr;
 		}
 	}
 }
@@ -969,7 +969,7 @@ void CSound::StopAll()
 			else
 				Voice.m_pSample->m_PausedAt = 0;
 		}
-		Voice.m_pSample = 0;
+		Voice.m_pSample = nullptr;
 	}
 }
 
@@ -985,7 +985,7 @@ void CSound::StopVoice(CVoiceHandle Voice)
 		return;
 
 	{
-		m_aVoices[VoiceID].m_pSample = 0;
+		m_aVoices[VoiceID].m_pSample = nullptr;
 		m_aVoices[VoiceID].m_Age++;
 	}
 }

@@ -83,14 +83,14 @@ CEditorImage::~CEditorImage()
 {
 	m_pEditor->Graphics()->UnloadTexture(&m_Texture);
 	free(m_pData);
-	m_pData = 0;
+	m_pData = nullptr;
 }
 
 CEditorSound::~CEditorSound()
 {
 	m_pEditor->Sound()->UnloadSample(m_SoundID);
 	free(m_pData);
-	m_pData = 0x0;
+	m_pData = nullptr;
 }
 
 CLayerGroup::CLayerGroup()
@@ -3644,7 +3644,7 @@ void CEditor::ReplaceImage(const char *pFileName, int StorageType, void *pUser)
 	CEditorImage *pImg = pEditor->m_Map.m_vpImages[pEditor->m_SelectedImage];
 	pEditor->Graphics()->UnloadTexture(&(pImg->m_Texture));
 	free(pImg->m_pData);
-	pImg->m_pData = 0;
+	pImg->m_pData = nullptr;
 	*pImg = ImgInfo;
 	IStorage::StripPathAndExtension(pFileName, pImg->m_aName, sizeof(pImg->m_aName));
 	pImg->m_External = IsVanillaImage(pImg->m_aName);
@@ -3663,7 +3663,7 @@ void CEditor::ReplaceImage(const char *pFileName, int StorageType, void *pUser)
 	if(ImgInfo.m_Width % 16 != 0 || ImgInfo.m_Height % 16 != 0)
 		TextureLoadFlag = 0;
 	pImg->m_Texture = pEditor->Graphics()->LoadTextureRaw(ImgInfo.m_Width, ImgInfo.m_Height, ImgInfo.m_Format, ImgInfo.m_pData, CImageInfo::FORMAT_AUTO, TextureLoadFlag, pFileName);
-	ImgInfo.m_pData = 0;
+	ImgInfo.m_pData = nullptr;
 	pEditor->SortImages();
 	for(size_t i = 0; i < pEditor->m_Map.m_vpImages.size(); ++i)
 	{
@@ -3713,7 +3713,7 @@ void CEditor::AddImage(const char *pFileName, int StorageType, void *pUser)
 	if(ImgInfo.m_Width % 16 != 0 || ImgInfo.m_Height % 16 != 0)
 		TextureLoadFlag = 0;
 	pImg->m_Texture = pEditor->Graphics()->LoadTextureRaw(ImgInfo.m_Width, ImgInfo.m_Height, ImgInfo.m_Format, ImgInfo.m_pData, CImageInfo::FORMAT_AUTO, TextureLoadFlag, pFileName);
-	ImgInfo.m_pData = 0;
+	ImgInfo.m_pData = nullptr;
 	str_copy(pImg->m_aName, aBuf, sizeof(pImg->m_aName));
 	pImg->m_AutoMapper.Load(pImg->m_aName);
 	pEditor->m_Map.m_vpImages.push_back(pImg);
@@ -3822,7 +3822,7 @@ void CEditor::ReplaceSound(const char *pFileName, int StorageType, void *pUser)
 	// unload sample
 	pEditor->Sound()->UnloadSample(pSound->m_SoundID);
 	free(pSound->m_pData);
-	pSound->m_pData = 0x0;
+	pSound->m_pData = nullptr;
 
 	// replace sound
 	IStorage::StripPathAndExtension(pFileName, pSound->m_aName, sizeof(pSound->m_aName));
@@ -4547,7 +4547,7 @@ void CEditor::RenderFileDialog()
 				{
 					m_FilePreviewImage = Graphics()->LoadTextureRaw(m_FilePreviewImageInfo.m_Width, m_FilePreviewImageInfo.m_Height, m_FilePreviewImageInfo.m_Format, m_FilePreviewImageInfo.m_pData, m_FilePreviewImageInfo.m_Format, 0);
 					CImageInfo DummyInfo = m_FilePreviewImageInfo;
-					m_FilePreviewImageInfo.m_pData = NULL;
+					m_FilePreviewImageInfo.m_pData = nullptr;
 					Graphics()->FreePNG(&DummyInfo);
 					m_PreviewImageIsLoaded = true;
 				}
@@ -5728,7 +5728,7 @@ void CEditor::Render()
 	float Height = View.h;
 
 	// reset tip
-	m_pTooltip = 0;
+	m_pTooltip = nullptr;
 
 	if(m_EditBoxActive)
 		--m_EditBoxActive;
@@ -6238,16 +6238,16 @@ void CEditorMap::Clean()
 
 	m_vSettings.clear();
 
-	m_pGameLayer = 0x0;
-	m_pGameGroup = 0x0;
+	m_pGameLayer = nullptr;
+	m_pGameGroup = nullptr;
 
 	m_Modified = false;
 
-	m_pTeleLayer = 0x0;
-	m_pSpeedupLayer = 0x0;
-	m_pFrontLayer = 0x0;
-	m_pSwitchLayer = 0x0;
-	m_pTuneLayer = 0x0;
+	m_pTeleLayer = nullptr;
+	m_pSpeedupLayer = nullptr;
+	m_pFrontLayer = nullptr;
+	m_pSwitchLayer = nullptr;
+	m_pTuneLayer = nullptr;
 }
 
 void CEditorMap::CreateDefault(IGraphics::CTextureHandle EntitiesTexture)
@@ -6272,11 +6272,11 @@ void CEditorMap::CreateDefault(IGraphics::CTextureHandle EntitiesTexture)
 	MakeGameLayer(new CLayerGame(50, 50));
 	m_pGameGroup->AddLayer(m_pGameLayer);
 
-	m_pFrontLayer = 0x0;
-	m_pTeleLayer = 0x0;
-	m_pSpeedupLayer = 0x0;
-	m_pSwitchLayer = 0x0;
-	m_pTuneLayer = 0x0;
+	m_pFrontLayer = nullptr;
+	m_pTeleLayer = nullptr;
+	m_pSpeedupLayer = nullptr;
+	m_pSwitchLayer = nullptr;
+	m_pTuneLayer = nullptr;
 }
 
 int CEditor::GetTextureUsageFlag()

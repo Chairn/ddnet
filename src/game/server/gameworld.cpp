@@ -15,9 +15,9 @@
 //////////////////////////////////////////////////
 CGameWorld::CGameWorld()
 {
-	m_pGameServer = 0x0;
-	m_pConfig = 0x0;
-	m_pServer = 0x0;
+	m_pGameServer = nullptr;
+	m_pConfig = nullptr;
+	m_pServer = nullptr;
 
 	m_Paused = false;
 	m_ResetRequested = false;
@@ -77,7 +77,7 @@ void CGameWorld::InsertEntity(CEntity *pEnt)
 	if(m_apFirstEntityTypes[pEnt->m_ObjType])
 		m_apFirstEntityTypes[pEnt->m_ObjType]->m_pPrevTypeEntity = pEnt;
 	pEnt->m_pNextTypeEntity = m_apFirstEntityTypes[pEnt->m_ObjType];
-	pEnt->m_pPrevTypeEntity = 0x0;
+	pEnt->m_pPrevTypeEntity = nullptr;
 	m_apFirstEntityTypes[pEnt->m_ObjType] = pEnt;
 }
 
@@ -99,8 +99,8 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 	if(m_pNextTraverseEntity == pEnt)
 		m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
 
-	pEnt->m_pNextTypeEntity = 0;
-	pEnt->m_pPrevTypeEntity = 0;
+	pEnt->m_pNextTypeEntity = nullptr;
+	pEnt->m_pPrevTypeEntity = nullptr;
 }
 
 //

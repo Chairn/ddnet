@@ -87,8 +87,8 @@ class CConsole : public IConsole
 
 		{
 			mem_zero(m_aStringStorage, sizeof(m_aStringStorage));
-			m_pArgsStart = 0;
-			m_pCommand = 0;
+			m_pArgsStart = nullptr;
+			m_pCommand = nullptr;
 			mem_zero(m_apArgs, sizeof(m_apArgs));
 		}
 
@@ -169,7 +169,7 @@ class CConsole : public IConsole
 		void AddEntry()
 		{
 			CQueueEntry *pEntry = static_cast<CQueueEntry *>(m_Queue.Allocate(sizeof(CQueueEntry)));
-			pEntry->m_pNext = 0;
+			pEntry->m_pNext = nullptr;
 			if(!m_pFirst)
 				m_pFirst = pEntry;
 			if(m_pLast)
@@ -180,7 +180,7 @@ class CConsole : public IConsole
 		void Reset()
 		{
 			m_Queue.Reset();
-			m_pFirst = m_pLast = 0;
+			m_pFirst = m_pLast = nullptr;
 		}
 	} m_ExecutionQueue;
 

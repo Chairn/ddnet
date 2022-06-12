@@ -492,7 +492,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						if(ImgInfo.m_Width % 16 != 0 || ImgInfo.m_Height % 16 != 0)
 							TextureLoadFlag = 0;
 						pImg->m_Texture = m_pEditor->Graphics()->LoadTextureRaw(ImgInfo.m_Width, ImgInfo.m_Height, ImgInfo.m_Format, ImgInfo.m_pData, CImageInfo::FORMAT_AUTO, TextureLoadFlag, aBuf);
-						ImgInfo.m_pData = 0;
+						ImgInfo.m_pData = nullptr;
 						pImg->m_External = 1;
 					}
 				}

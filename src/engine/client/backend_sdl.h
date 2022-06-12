@@ -168,7 +168,7 @@ static constexpr size_t gs_GPUInfoStringSize = 256;
 // graphics backend implemented with SDL and the graphics library @see EBackendType
 class CGraphicsBackend_SDL_GL : public CGraphicsBackend_Threaded
 {
-	SDL_Window *m_pWindow = NULL;
+	SDL_Window *m_pWindow = nullptr;
 	SDL_GLContext m_GLContext;
 	ICommandProcessor *m_pProcessor = nullptr;
 	std::atomic<uint64_t> m_TextureMemoryUsage{0};

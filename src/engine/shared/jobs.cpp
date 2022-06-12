@@ -34,8 +34,8 @@ CJobPool::CJobPool()
 	m_Shutdown = false;
 	m_Lock = lock_create();
 	sphore_init(&m_Semaphore);
-	m_pFirstJob = 0;
-	m_pLastJob = 0;
+	m_pFirstJob = nullptr;
+	m_pLastJob = nullptr;
 }
 
 CJobPool::~CJobPool()
@@ -63,7 +63,7 @@ void CJobPool::WorkerThread(void *pUser)
 				pJob = pPool->m_pFirstJob;
 				pPool->m_pFirstJob = pPool->m_pFirstJob->m_pNext;
 				if(!pPool->m_pFirstJob)
-					pPool->m_pLastJob = 0;
+					pPool->m_pLastJob = nullptr;
 			}
 		}
 

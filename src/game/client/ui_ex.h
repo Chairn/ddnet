@@ -40,7 +40,7 @@ class CUIEx
 	bool m_MouseSlow;
 	int m_CurSelStart = 0;
 	int m_CurSelEnd = 0;
-	const void *m_pSelItem = NULL;
+	const void *m_pSelItem = nullptr;
 
 	int m_CurCursor = 0;
 

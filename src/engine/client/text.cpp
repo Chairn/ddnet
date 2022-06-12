@@ -186,7 +186,7 @@ struct STextContainer
 
 	void Reset()
 	{
-		m_pFont = NULL;
+		m_pFont = nullptr;
 		m_FontSize = 0;
 
 		m_StringInfo.m_QuadBufferObjectIndex = m_StringInfo.m_QuadBufferContainerIndex = m_StringInfo.m_SelectionQuadContainerIndex = -1;
@@ -615,14 +615,14 @@ class CTextRender : public IEngineTextRender
 public:
 	CTextRender()
 	{
-		m_pGraphics = 0;
+		m_pGraphics = nullptr;
 
 		m_Color = DefaultTextColor();
 		m_OutlineColor = DefaultTextOutlineColor();
 		m_SelectionColor = DefaultSelectionColor();
 
-		m_pCurFont = 0;
-		m_pDefaultFont = 0;
+		m_pCurFont = nullptr;
+		m_pDefaultFont = nullptr;
 		m_FTLibrary = 0;
 
 		m_RenderFlags = 0;
@@ -676,7 +676,7 @@ public:
 		pAttr->m_DataTypeCount = 2;
 		pAttr->m_FuncType = 0;
 		pAttr->m_Normalized = false;
-		pAttr->m_pOffset = 0;
+		pAttr->m_pOffset = nullptr;
 		pAttr->m_Type = GRAPHICS_TYPE_FLOAT;
 		m_DefaultTextContainerInfo.m_vAttributes.emplace_back();
 		pAttr = &m_DefaultTextContainerInfo.m_vAttributes.back();

@@ -78,7 +78,7 @@ void CConsoleLogger::OnConsoleDeletion()
 
 CGameConsole::CInstance::CInstance(int Type)
 {
-	m_pHistoryEntry = 0x0;
+	m_pHistoryEntry = nullptr;
 
 	m_Type = Type;
 
@@ -128,7 +128,7 @@ void CGameConsole::CInstance::ClearBacklogYOffsets()
 void CGameConsole::CInstance::ClearHistory()
 {
 	m_History.Init();
-	m_pHistoryEntry = 0;
+	m_pHistoryEntry = nullptr;
 }
 
 void CGameConsole::CInstance::ExecuteLine(const char *pLine)
@@ -289,7 +289,7 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 				}
 				ExecuteLine(m_Input.GetString());
 				m_Input.Clear();
-				m_pHistoryEntry = 0x0;
+				m_pHistoryEntry = nullptr;
 			}
 
 			Handled = true;

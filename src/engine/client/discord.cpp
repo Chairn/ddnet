@@ -35,9 +35,9 @@ class CDiscord : public IDiscord
 public:
 	bool Init(FDiscordCreate pfnDiscordCreate)
 	{
-		m_pCore = 0;
+		m_pCore = nullptr;
 		mem_zero(&m_ActivityEvents, sizeof(m_ActivityEvents));
-		m_pActivityManager = 0;
+		m_pActivityManager = nullptr;
 
 		DiscordCreateParams Params;
 		DiscordCreateParamsSetDefault(&Params);

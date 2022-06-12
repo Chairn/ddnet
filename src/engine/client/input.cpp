@@ -50,7 +50,7 @@ CInput::CInput()
 	m_MouseFocus = true;
 
 	m_VideoRestartNeeded = 0;
-	m_pClipboardText = NULL;
+	m_pClipboardText = nullptr;
 
 	m_NumTextInputInstances = 0;
 	m_EditingTextLen = -1;

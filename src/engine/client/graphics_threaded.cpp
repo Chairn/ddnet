@@ -117,7 +117,7 @@ CGraphics_Threaded::CGraphics_Threaded()
 	m_State.m_WrapMode = CCommandBuffer::WRAP_REPEAT;
 
 	m_CurrentCommandBuffer = 0;
-	m_pCommandBuffer = 0x0;
+	m_pCommandBuffer = nullptr;
 	m_apCommandBuffers[0] = 0x0;
 	m_apCommandBuffers[1] = 0x0;
 
@@ -680,7 +680,7 @@ int CGraphics_Threaded::LoadPNG(CImageInfo *pImg, const char *pFilename, int Sto
 void CGraphics_Threaded::FreePNG(CImageInfo *pImg)
 {
 	free(pImg->m_pData);
-	pImg->m_pData = NULL;
+	pImg->m_pData = nullptr;
 }
 
 bool CGraphics_Threaded::CheckImageDivisibility(const char *pFileName, CImageInfo &Img, int DivX, int DivY, bool AllowResize)
@@ -1444,7 +1444,7 @@ void CGraphics_Threaded::QuadContainerUpload(int ContainerIndex)
 				pAttr->m_DataTypeCount = 2;
 				pAttr->m_FuncType = 0;
 				pAttr->m_Normalized = false;
-				pAttr->m_pOffset = 0;
+				pAttr->m_pOffset = nullptr;
 				pAttr->m_Type = GRAPHICS_TYPE_FLOAT;
 				Info.m_vAttributes.emplace_back();
 				pAttr = &Info.m_vAttributes.back();
@@ -1929,7 +1929,7 @@ int CGraphics_Threaded::CreateBufferObject(size_t UploadDataSize, void *pUploadD
 		}
 		else
 		{
-			Cmd.m_pUploadData = NULL;
+			Cmd.m_pUploadData = nullptr;
 
 			if(!AddCmd(
 				   Cmd, [] { return true; }, "failed to allocate memory for create buffer object command"))
@@ -1999,7 +1999,7 @@ void CGraphics_Threaded::RecreateBufferObject(int BufferIndex, size_t UploadData
 		}
 		else
 		{
-			Cmd.m_pUploadData = NULL;
+			Cmd.m_pUploadData = nullptr;
 
 			if(!AddCmd(
 				   Cmd, [] { return true; }, "failed to allocate memory for update buffer object command"))
@@ -2502,7 +2502,7 @@ void CGraphics_Threaded::Shutdown()
 	// shutdown the backend
 	m_pBackend->Shutdown();
 	delete m_pBackend;
-	m_pBackend = 0x0;
+	m_pBackend = nullptr;
 
 	// delete the command buffers
 	for(auto &pCommandBuffer : m_apCommandBuffers)

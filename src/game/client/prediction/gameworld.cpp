@@ -22,10 +22,10 @@ CGameWorld::CGameWorld()
 		pFirstEntityType = 0;
 	for(auto &pCharacter : m_apCharacters)
 		pCharacter = 0;
-	m_pCollision = 0;
+	m_pCollision = nullptr;
 	m_GameTick = 0;
-	m_pParent = 0;
-	m_pChild = 0;
+	m_pParent = nullptr;
+	m_pChild = nullptr;
 }
 
 CGameWorld::~CGameWorld()
@@ -37,10 +37,10 @@ CGameWorld::~CGameWorld()
 	if(m_pChild && m_pChild->m_pParent == this)
 	{
 		OnModified();
-		m_pChild->m_pParent = 0;
+		m_pChild->m_pParent = nullptr;
 	}
 	if(m_pParent && m_pParent->m_pChild == this)
-		m_pParent->m_pChild = 0;
+		m_pParent->m_pChild = nullptr;
 }
 
 CEntity *CGameWorld::FindFirst(int Type)
@@ -81,8 +81,8 @@ int CGameWorld::FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, 
 void CGameWorld::InsertEntity(CEntity *pEnt, bool Last)
 {
 	pEnt->m_pGameWorld = this;
-	pEnt->m_pNextTypeEntity = 0x0;
-	pEnt->m_pPrevTypeEntity = 0x0;
+	pEnt->m_pNextTypeEntity = nullptr;
+	pEnt->m_pPrevTypeEntity = nullptr;
 
 	// insert it
 	if(!Last)
@@ -90,7 +90,7 @@ void CGameWorld::InsertEntity(CEntity *pEnt, bool Last)
 		if(m_apFirstEntityTypes[pEnt->m_ObjType])
 			m_apFirstEntityTypes[pEnt->m_ObjType]->m_pPrevTypeEntity = pEnt;
 		pEnt->m_pNextTypeEntity = m_apFirstEntityTypes[pEnt->m_ObjType];
-		pEnt->m_pPrevTypeEntity = 0x0;
+		pEnt->m_pPrevTypeEntity = nullptr;
 		m_apFirstEntityTypes[pEnt->m_ObjType] = pEnt;
 	}
 	else
@@ -106,7 +106,7 @@ void CGameWorld::InsertEntity(CEntity *pEnt, bool Last)
 		else
 			m_apFirstEntityTypes[pEnt->m_ObjType] = pEnt;
 		pEnt->m_pPrevTypeEntity = pLast;
-		pEnt->m_pNextTypeEntity = 0x0;
+		pEnt->m_pNextTypeEntity = nullptr;
 	}
 
 	if(pEnt->m_ObjType == ENTTYPE_CHARACTER)
@@ -140,12 +140,12 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 	if(m_pNextTraverseEntity == pEnt)
 		m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
 
-	pEnt->m_pNextTypeEntity = 0;
-	pEnt->m_pPrevTypeEntity = 0;
+	pEnt->m_pNextTypeEntity = nullptr;
+	pEnt->m_pPrevTypeEntity = nullptr;
 
 	if(m_IsValidCopy && m_pParent && m_pParent->m_pChild == this && pEnt->m_pParent)
 		pEnt->m_pParent->m_DestroyTick = GameTick();
-	pEnt->m_pParent = 0;
+	pEnt->m_pParent = nullptr;
 }
 
 void CGameWorld::RemoveCharacter(CCharacter *pChar)

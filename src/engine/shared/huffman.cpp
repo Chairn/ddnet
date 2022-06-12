@@ -95,7 +95,7 @@ void CHuffman::Init(const unsigned *pFrequencies)
 	// make sure to cleanout every thing
 	mem_zero(m_aNodes, sizeof(m_aNodes));
 	mem_zero(m_apDecodeLut, sizeof(m_apDecodeLut));
-	m_pStartNode = 0x0;
+	m_pStartNode = nullptr;
 	m_NumNodes = 0;
 
 	// construct the tree

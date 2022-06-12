@@ -93,7 +93,7 @@ void CChat::Reset()
 	m_aCompletionBuffer[0] = 0;
 	m_PlaceholderOffset = 0;
 	m_PlaceholderLength = 0;
-	m_pHistoryEntry = 0x0;
+	m_pHistoryEntry = nullptr;
 	m_PendingChatCounter = 0;
 	m_LastChatSend = 0;
 	m_CurrentLine = 0;
@@ -298,7 +298,7 @@ bool CChat::OnInput(IInput::CEvent Event)
 				mem_copy(pEntry->m_aText, m_Input.GetString(), m_Input.GetLength() + 1);
 			}
 		}
-		m_pHistoryEntry = 0x0;
+		m_pHistoryEntry = nullptr;
 		DisableMode();
 		m_pClient->OnRelease();
 		m_Input.Clear();

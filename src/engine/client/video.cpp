@@ -35,12 +35,12 @@ CVideo::CVideo(CGraphics_Threaded *pGraphics, ISound *pSound, IStorage *pStorage
 	m_pStorage(pStorage),
 	m_pSound(pSound)
 {
-	m_pFormatContext = 0;
-	m_pFormat = 0;
-	m_pOptDict = 0;
+	m_pFormatContext = nullptr;
+	m_pFormat = nullptr;
+	m_pOptDict = nullptr;
 
-	m_pVideoCodec = 0;
-	m_pAudioCodec = 0;
+	m_pVideoCodec = nullptr;
+	m_pAudioCodec = nullptr;
 
 	m_Width = Width;
 	m_Height = Height;

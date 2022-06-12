@@ -38,17 +38,17 @@ vec2 ClampVel(int MoveRestriction, vec2 Vel)
 
 CCollision::CCollision()
 {
-	m_pTiles = 0;
+	m_pTiles = nullptr;
 	m_Width = 0;
 	m_Height = 0;
-	m_pLayers = 0;
+	m_pLayers = nullptr;
 
-	m_pTele = 0;
-	m_pSpeedup = 0;
-	m_pFront = 0;
-	m_pSwitch = 0;
-	m_pDoor = 0;
-	m_pTune = 0;
+	m_pTele = nullptr;
+	m_pSpeedup = nullptr;
+	m_pFront = nullptr;
+	m_pSwitch = nullptr;
+	m_pDoor = nullptr;
+	m_pTune = nullptr;
 }
 
 CCollision::~CCollision()
@@ -90,7 +90,7 @@ void CCollision::Init(class CLayers *pLayers)
 	}
 	else
 	{
-		m_pDoor = 0;
+		m_pDoor = nullptr;
 	}
 
 	if(m_pLayers->TuneLayer())
@@ -548,16 +548,16 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 void CCollision::Dest()
 {
 	delete[] m_pDoor;
-	m_pTiles = 0;
+	m_pTiles = nullptr;
 	m_Width = 0;
 	m_Height = 0;
-	m_pLayers = 0;
-	m_pTele = 0;
-	m_pSpeedup = 0;
-	m_pFront = 0;
-	m_pSwitch = 0;
-	m_pTune = 0;
-	m_pDoor = 0;
+	m_pLayers = nullptr;
+	m_pTele = nullptr;
+	m_pSpeedup = nullptr;
+	m_pFront = nullptr;
+	m_pSwitch = nullptr;
+	m_pTune = nullptr;
+	m_pDoor = nullptr;
 }
 
 int CCollision::IsSolid(int x, int y) const

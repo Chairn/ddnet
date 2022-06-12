@@ -68,7 +68,7 @@ enum
 void CGameContext::Construct(int Resetting)
 {
 	m_Resetting = false;
-	m_pServer = 0;
+	m_pServer = nullptr;
 
 	for(auto &pPlayer : m_apPlayers)
 		pPlayer = 0;
@@ -76,12 +76,12 @@ void CGameContext::Construct(int Resetting)
 	mem_zero(&m_aLastPlayerInput, sizeof(m_aLastPlayerInput));
 	mem_zero(&m_aPlayerHasInput, sizeof(m_aPlayerHasInput));
 
-	m_pController = 0;
+	m_pController = nullptr;
 	m_aVoteCommand[0] = 0;
 	m_VoteType = VOTE_TYPE_UNKNOWN;
 	m_VoteCloseTime = 0;
-	m_pVoteOptionFirst = 0;
-	m_pVoteOptionLast = 0;
+	m_pVoteOptionFirst = nullptr;
+	m_pVoteOptionLast = nullptr;
 	m_NumVoteOptions = 0;
 	m_LastMapVote = 0;
 
@@ -2892,7 +2892,7 @@ void CGameContext::AddVote(const char *pDescription, const char *pCommand)
 	int Len = str_length(pCommand);
 
 	pOption = (CVoteOptionServer *)m_pVoteOptionHeap->Allocate(sizeof(CVoteOptionServer) + Len, alignof(CVoteOptionServer));
-	pOption->m_pNext = 0;
+	pOption->m_pNext = nullptr;
 	pOption->m_pPrev = m_pVoteOptionLast;
 	if(pOption->m_pPrev)
 		pOption->m_pPrev->m_pNext = pOption;
@@ -2953,7 +2953,7 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 		// copy option
 		int Len = str_length(pSrc->m_aCommand);
 		CVoteOptionServer *pDst = (CVoteOptionServer *)pVoteOptionHeap->Allocate(sizeof(CVoteOptionServer) + Len);
-		pDst->m_pNext = 0;
+		pDst->m_pNext = nullptr;
 		pDst->m_pPrev = pVoteOptionLast;
 		if(pDst->m_pPrev)
 			pDst->m_pPrev->m_pNext = pDst;
@@ -3049,8 +3049,8 @@ void CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
 	pSelf->Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1);
 	pSelf->m_pVoteOptionHeap->Reset();
-	pSelf->m_pVoteOptionFirst = 0;
-	pSelf->m_pVoteOptionLast = 0;
+	pSelf->m_pVoteOptionFirst = nullptr;
+	pSelf->m_pVoteOptionLast = nullptr;
 	pSelf->m_NumVoteOptions = 0;
 
 	// reset sending of vote options
@@ -3642,7 +3642,7 @@ void CGameContext::OnShutdown()
 	Console()->ResetServerGameSettings();
 	Collision()->Dest();
 	delete m_pController;
-	m_pController = 0;
+	m_pController = nullptr;
 	Clear();
 }
 

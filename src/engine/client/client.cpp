@@ -308,15 +308,15 @@ CClient::CClient() :
 	for(auto &DemoRecorder : m_DemoRecorder)
 		DemoRecorder = CDemoRecorder(&m_SnapshotDelta);
 
-	m_pEditor = 0;
-	m_pInput = 0;
-	m_pGraphics = 0;
-	m_pSound = 0;
-	m_pGameClient = 0;
-	m_pMap = 0;
-	m_pConfigManager = 0;
-	m_pConfig = 0;
-	m_pConsole = 0;
+	m_pEditor = nullptr;
+	m_pInput = nullptr;
+	m_pGraphics = nullptr;
+	m_pSound = nullptr;
+	m_pGameClient = nullptr;
+	m_pMap = nullptr;
+	m_pConfigManager = nullptr;
+	m_pConfig = nullptr;
+	m_pConsole = nullptr;
 
 	m_RenderFrameTime = 0.0001f;
 	m_RenderFrameTimeLow = 1.0f;
@@ -356,7 +356,7 @@ CClient::CClient() :
 	m_aMapdownloadFilename[0] = 0;
 	m_aMapdownloadFilenameTemp[0] = 0;
 	m_aMapdownloadName[0] = 0;
-	m_pMapdownloadTask = NULL;
+	m_pMapdownloadTask = nullptr;
 	m_MapdownloadFileTemp = 0;
 	m_MapdownloadChunk = 0;
 	m_MapdownloadSha256Present = false;
@@ -371,7 +371,7 @@ CClient::CClient() :
 	m_MapDetailsCrc = 0;
 
 	IStorage::FormatTmpPath(m_aDDNetInfoTmp, sizeof(m_aDDNetInfoTmp), DDNET_INFO);
-	m_pDDNetInfoTask = NULL;
+	m_pDDNetInfoTask = nullptr;
 	m_aNews[0] = '\0';
 	m_aMapDownloadUrl[0] = '\0';
 	m_Points = -1;
@@ -2191,7 +2191,7 @@ void CClient::ResetMapDownload()
 	if(m_pMapdownloadTask)
 	{
 		m_pMapdownloadTask->Abort();
-		m_pMapdownloadTask = NULL;
+		m_pMapdownloadTask = nullptr;
 	}
 	m_MapdownloadFileTemp = 0;
 	m_MapdownloadAmount = 0;
@@ -2240,7 +2240,7 @@ void CClient::ResetDDNetInfo()
 	if(m_pDDNetInfoTask)
 	{
 		m_pDDNetInfoTask->Abort();
-		m_pDDNetInfoTask = NULL;
+		m_pDDNetInfoTask = nullptr;
 	}
 }
 
@@ -2774,7 +2774,7 @@ void CClient::Update()
 		}
 		else if(m_pMapdownloadTask->State() == HTTP_ABORTED)
 		{
-			m_pMapdownloadTask = NULL;
+			m_pMapdownloadTask = nullptr;
 		}
 	}
 
@@ -2790,7 +2790,7 @@ void CClient::Update()
 		else if(m_pDDNetInfoTask->State() == HTTP_ABORTED)
 		{
 			Storage()->RemoveFile(m_aDDNetInfoTmp, IStorage::TYPE_SAVE);
-			m_pDDNetInfoTask = NULL;
+			m_pDDNetInfoTask = nullptr;
 		}
 	}
 

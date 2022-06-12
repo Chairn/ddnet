@@ -29,7 +29,7 @@ class CCommandBuffer
 		~CBuffer()
 		{
 			delete[] m_pData;
-			m_pData = 0x0;
+			m_pData = nullptr;
 			m_Used = 0;
 			m_Size = 0;
 		}
@@ -1154,7 +1154,7 @@ public:
 	template<typename TName>
 	void FlushVerticesImpl(bool KeepVertices, int &PrimType, int &PrimCount, int &NumVerts, TName &Command, size_t VertSize)
 	{
-		Command.m_pVertices = NULL;
+		Command.m_pVertices = nullptr;
 		if(m_NumVertices == 0)
 			return;
 

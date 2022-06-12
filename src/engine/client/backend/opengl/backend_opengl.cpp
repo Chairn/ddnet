@@ -336,7 +336,7 @@ bool CCommandProcessorFragment_OpenGL::InitOpenGL(const SCommand_Init *pCommand)
 	// parse version string
 	ParseVersionString(pCommand->m_RequestedBackend, pVersionString, pCommand->m_pCapabilities->m_ContextMajor, pCommand->m_pCapabilities->m_ContextMinor, pCommand->m_pCapabilities->m_ContextPatch);
 
-	*pCommand->m_pInitError = 0;
+	*pCommand->m_pInitError = nullptr;
 
 	int BlocklistMajor = -1, BlocklistMinor = -1, BlocklistPatch = -1;
 	bool RequiresWarning = false;
@@ -1975,7 +1975,7 @@ void CCommandProcessorFragment_OpenGL2::Cmd_DeleteBufferObject(const CCommandBuf
 	}
 
 	free(BufferObject.m_pData);
-	BufferObject.m_pData = NULL;
+	BufferObject.m_pData = nullptr;
 }
 
 void CCommandProcessorFragment_OpenGL2::Cmd_CreateBufferContainer(const CCommandBuffer::SCommand_CreateBufferContainer *pCommand)
@@ -2036,7 +2036,7 @@ void CCommandProcessorFragment_OpenGL2::Cmd_DeleteBufferContainer(const CCommand
 			}
 
 			free(m_vBufferObjectIndices[VertBufferID].m_pData);
-			m_vBufferObjectIndices[VertBufferID].m_pData = NULL;
+			m_vBufferObjectIndices[VertBufferID].m_pData = nullptr;
 		}
 	}
 

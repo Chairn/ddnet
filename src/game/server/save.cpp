@@ -417,8 +417,8 @@ bool CSaveTee::IsHooking() const
 CSaveTeam::CSaveTeam(IGameController *Controller)
 {
 	m_pController = Controller;
-	m_pSwitchers = 0;
-	m_pSavedTees = 0;
+	m_pSwitchers = nullptr;
+	m_pSavedTees = nullptr;
 }
 
 CSaveTeam::~CSaveTeam()
@@ -631,7 +631,7 @@ int CSaveTeam::FromString(const char *String)
 	if(m_pSavedTees)
 	{
 		delete[] m_pSavedTees;
-		m_pSavedTees = 0;
+		m_pSavedTees = nullptr;
 	}
 
 	if(m_MembersCount > 64)
@@ -684,7 +684,7 @@ int CSaveTeam::FromString(const char *String)
 	if(m_pSwitchers)
 	{
 		delete[] m_pSwitchers;
-		m_pSwitchers = 0;
+		m_pSwitchers = nullptr;
 	}
 
 	if(m_HighestSwitchNumber)

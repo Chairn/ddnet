@@ -23,7 +23,7 @@ using namespace std::chrono_literals;
 CMapLayers::CMapLayers(int t, bool OnlineOnly)
 {
 	m_Type = t;
-	m_pLayers = 0;
+	m_pLayers = nullptr;
 	m_CurrentLocalTick = 0;
 	m_LastLocalTick = 0;
 	m_EnvelopeUpdate = false;
@@ -324,11 +324,11 @@ CMapLayers::STileLayerVisuals::~STileLayerVisuals()
 	delete[] m_pBorderLeft;
 	delete[] m_pBorderRight;
 
-	m_pTilesOfLayer = NULL;
-	m_pBorderTop = NULL;
-	m_pBorderBottom = NULL;
-	m_pBorderLeft = NULL;
-	m_pBorderRight = NULL;
+	m_pTilesOfLayer = nullptr;
+	m_pBorderTop = nullptr;
+	m_pBorderBottom = nullptr;
+	m_pBorderLeft = nullptr;
+	m_pBorderRight = nullptr;
 }
 
 bool AddTile(std::vector<SGraphicTile> &TmpTiles, std::vector<SGraphicTileTexureCoords> &TmpTileTexCoords, bool As3DTextureCoord, unsigned char Index, unsigned char Flags, int x, int y, CMapItemGroup *pGroup, bool DoTextureCoords, bool FillSpeedup = false, int AngleRotate = -1)
@@ -846,7 +846,7 @@ void CMapLayers::OnMapLoad()
 							pAttr->m_DataTypeCount = 2;
 							pAttr->m_Type = GRAPHICS_TYPE_FLOAT;
 							pAttr->m_Normalized = false;
-							pAttr->m_pOffset = 0;
+							pAttr->m_pOffset = nullptr;
 							pAttr->m_FuncType = 0;
 							if(DoTextureCoords)
 							{
@@ -949,7 +949,7 @@ void CMapLayers::OnMapLoad()
 					pAttr->m_DataTypeCount = 4;
 					pAttr->m_Type = GRAPHICS_TYPE_FLOAT;
 					pAttr->m_Normalized = false;
-					pAttr->m_pOffset = 0;
+					pAttr->m_pOffset = nullptr;
 					pAttr->m_FuncType = 0;
 					ContainerInfo.m_vAttributes.emplace_back();
 					pAttr = &ContainerInfo.m_vAttributes.back();

@@ -175,6 +175,8 @@ static int GetMoveRestrictionsRaw(int Direction, int Tile, int Flags)
 		case TILEFLAG_HFLIP ^ ROTATION_90: return CANTMOVE_RIGHT;
 		case TILEFLAG_HFLIP ^ ROTATION_180: return CANTMOVE_DOWN;
 		case TILEFLAG_HFLIP ^ ROTATION_270: return CANTMOVE_LEFT;
+
+		default: dbg_assert(false, "test");
 		}
 		break;
 	case TILE_STOPS:
@@ -190,6 +192,8 @@ static int GetMoveRestrictionsRaw(int Direction, int Tile, int Flags)
 		case TILEFLAG_HFLIP ^ ROTATION_90:
 		case TILEFLAG_HFLIP ^ ROTATION_270:
 			return CANTMOVE_LEFT | CANTMOVE_RIGHT;
+		default:
+			dbg_assert(false, "test");
 		}
 		break;
 	case TILE_STOPA:

@@ -1463,6 +1463,8 @@ int CMenus::Render()
 				case IClient::CONNECTIVITY_REACHABLE:
 					pExtraText = Localize("No answer from server yet.");
 					break;
+				default:
+					dbg_assert(false, "Invalid connectivity");
 				}
 			}
 			else if(Client()->MapDownloadTotalsize() > 0)

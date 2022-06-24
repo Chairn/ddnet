@@ -201,6 +201,9 @@ int CInput::CJoystick::GetJoystickHatKey(int Hat, int HatValue)
 	case SDL_HAT_LEFTDOWN: return KEY_JOY_HAT0_LEFTDOWN + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	case SDL_HAT_DOWN: return KEY_JOY_HAT0_DOWN + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
 	case SDL_HAT_RIGHTDOWN: return KEY_JOY_HAT0_RIGHTDOWN + Hat * NUM_JOYSTICK_BUTTONS_PER_HAT;
+	// case SDL_HAT_CENTERED: return KEY_JOY_HAT0_CENTERED;
+	default:
+		dbg_assert(false, "robyt, please add default case here");
 	}
 	return -1;
 }

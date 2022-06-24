@@ -18,6 +18,8 @@ bool CCommandProcessorFragment_Null::RunCommand(const CCommandBuffer::SCommand *
 	case CCommandBuffer::CMD_TEXT_TEXTURE_UPDATE:
 		Cmd_TextTexture_Update(static_cast<const CCommandBuffer::SCommand_TextTexture_Update *>(pBaseCommand));
 		break;
+	default:
+		dbg_assert(false, "Invalid command");
 	}
 	return true;
 }

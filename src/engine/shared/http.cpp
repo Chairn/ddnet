@@ -247,6 +247,8 @@ int CHttpRequest::RunImpl(CURL *pUser)
 		curl_easy_setopt(pHandle, CURLOPT_POSTFIELDS, m_pBody);
 		curl_easy_setopt(pHandle, CURLOPT_POSTFIELDSIZE, m_BodyLength);
 		break;
+	default:
+		dbg_assert(false, "Invalid or unknown request type");
 	}
 
 	curl_easy_setopt(pHandle, CURLOPT_HTTPHEADER, m_pHeaders);

@@ -173,8 +173,9 @@ const char *CRegister::ProtocolToScheme(int Protocol)
 	case PROTOCOL_TW6_IPV4: return "tw-0.6+udp://";
 	case PROTOCOL_TW7_IPV6: return "tw-0.7+udp://";
 	case PROTOCOL_TW7_IPV4: return "tw-0.7+udp://";
+	default: dbg_assert(false, "invalid protocol");
 	}
-	dbg_assert(false, "invalid protocol");
+
 	dbg_break();
 }
 
@@ -186,8 +187,9 @@ const char *CRegister::ProtocolToString(int Protocol)
 	case PROTOCOL_TW6_IPV4: return "tw0.6/ipv4";
 	case PROTOCOL_TW7_IPV6: return "tw0.7/ipv6";
 	case PROTOCOL_TW7_IPV4: return "tw0.7/ipv4";
+	default: dbg_assert(false, "invalid protocol");
 	}
-	dbg_assert(false, "invalid protocol");
+
 	dbg_break();
 }
 
@@ -225,8 +227,9 @@ const char *CRegister::ProtocolToSystem(int Protocol)
 	case PROTOCOL_TW6_IPV4: return "register/6/ipv4";
 	case PROTOCOL_TW7_IPV6: return "register/7/ipv6";
 	case PROTOCOL_TW7_IPV4: return "register/7/ipv4";
+	default: dbg_assert(false, "invalid protocol");
 	}
-	dbg_assert(false, "invalid protocol");
+
 	dbg_break();
 }
 
@@ -238,8 +241,9 @@ IPRESOLVE CRegister::ProtocolToIpresolve(int Protocol)
 	case PROTOCOL_TW6_IPV4: return IPRESOLVE::V4;
 	case PROTOCOL_TW7_IPV6: return IPRESOLVE::V6;
 	case PROTOCOL_TW7_IPV4: return IPRESOLVE::V4;
+	default: dbg_assert(false, "invalid protocol");
 	}
-	dbg_assert(false, "invalid protocol");
+
 	dbg_break();
 }
 
@@ -383,6 +387,8 @@ void CRegister::CProtocol::CheckChallengeStatus()
 			// Act immediately if the master requests more info.
 			m_NextRegister = time_get();
 			break;
+		default:
+			dbg_assert(false, "heinrich, please add default here");
 		}
 	}
 }

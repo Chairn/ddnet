@@ -2202,6 +2202,8 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket, int Conn, bool Dummy)
 								case EMOTE_BLINK:
 									str_format(aBufEmote, sizeof(aBufEmote), "emote blink %d", g_Config.m_ClEyeDuration);
 									break;
+								default:
+									dbg_assert(false, "Invalid emote");
 								}
 								if(aBufEmote[0])
 								{

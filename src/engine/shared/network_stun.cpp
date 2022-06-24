@@ -11,6 +11,8 @@ static int IndexFromNetType(int NetType)
 		return 0;
 	case NETTYPE_IPV4:
 		return 1;
+	default:
+		dbg_assert(false, "Invalid nettype");
 	}
 	return -1;
 }
@@ -23,6 +25,8 @@ static const char *IndexToSystem(int Index)
 		return "stun/6";
 	case 1:
 		return "stun/4";
+	default:
+		dbg_assert(false, "Invalid index");
 	}
 	dbg_break();
 	return nullptr;

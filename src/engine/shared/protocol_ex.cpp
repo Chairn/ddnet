@@ -98,6 +98,7 @@ int UnpackMessageID(int *pID, bool *pSys, CUuid *pUuid, CUnpacker *pUnpacker, CM
 			}
 			break;
 		default:
+			dbg_assert(false, "another default heere @heinrich please");
 			break;
 		}
 	}

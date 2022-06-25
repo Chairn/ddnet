@@ -120,6 +120,7 @@ void CPickup::Tick()
 			}
 
 			default:
+				dbg_assert(false, "Invalid or unknown powerup");
 				break;
 			};
 		}

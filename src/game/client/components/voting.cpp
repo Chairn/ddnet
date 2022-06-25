@@ -258,6 +258,7 @@ void CVoting::OnMessage(int MsgType, void *pRawMsg)
 			case 13: AddOption(pMsg->m_pDescription13); break;
 			case 14: AddOption(pMsg->m_pDescription14); break;
 			default:
+				dbg_assert(false, "Too many vote options");
 				dbg_msg("vote", "Too many options to add: %d", NumOptions);
 				Stop = true; // don't spam if NumOptions is really high
 				break;

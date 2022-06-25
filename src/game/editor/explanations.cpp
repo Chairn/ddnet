@@ -482,7 +482,7 @@ const char *CEditor::Explain(int ExplanationID, int Tile, int Layer) //TODO: Add
 			if(Layer == LAYER_GAME || Layer == LAYER_FRONT)
 				return "TELELASER OFF: Turn laser off as telegun weapon.";
 			break;
-		default:
+		default: // ignore invalid/reserved tiles
 			break;
 		}
 		if(Tile >= TILE_TIME_CHECKPOINT_FIRST && Tile <= TILE_TIME_CHECKPOINT_LAST && (Layer == LAYER_GAME || Layer == LAYER_FRONT))
@@ -588,7 +588,7 @@ const char *CEditor::Explain(int ExplanationID, int Tile, int Layer) //TODO: Add
 			if(Layer == LAYER_GAME)
 				return "SPIKE: Old FNG spikes. Deprecated.";
 			break;
-		default:
+		default: // ignore invalid/reserved tiles
 			break;
 		}
 		if((Tile >= TILE_PUB_CREDITS1 && Tile <= TILE_PUB_CREDITS8) && Layer == LAYER_GAME)
@@ -658,7 +658,7 @@ const char *CEditor::Explain(int ExplanationID, int Tile, int Layer) //TODO: Add
 			if(Layer == LAYER_GAME)
 				return "LASER: Gives you laser weapon with 10 charges.";
 			break;
-		default:
+		default: // ignore invalid/reserved tiles
 			break;
 		}
 		if((Tile >= TILE_PUB_CREDITS1 && Tile <= TILE_PUB_CREDITS8) && Layer == LAYER_GAME)
@@ -666,5 +666,5 @@ const char *CEditor::Explain(int ExplanationID, int Tile, int Layer) //TODO: Add
 		else if((Tile == TILE_PUB_ENTITIES_OFF1 || Tile == TILE_PUB_ENTITIES_OFF2) && Layer == LAYER_GAME)
 			return "ENTITIES OFF SIGN: Informs people playing with entities about important marks, tips, information or text on the map.";
 	}
-	return "Unknown or invalid tile";
+	return "";
 }

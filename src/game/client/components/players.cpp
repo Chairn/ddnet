@@ -617,7 +617,9 @@ void CPlayers::RenderPlayer(
 			case WEAPON_GUN: RenderHand(&RenderInfo, WeaponPosition, Direction, -3 * pi / 4, vec2(-15, 4), Alpha); break;
 			case WEAPON_SHOTGUN: RenderHand(&RenderInfo, WeaponPosition, Direction, -pi / 2, vec2(-5, 4), Alpha); break;
 			case WEAPON_GRENADE: RenderHand(&RenderInfo, WeaponPosition, Direction, -pi / 2, vec2(-4, 7), Alpha); break;
-            default: break; // don't render non projectile weapon
+            default:
+                dbg_assert(false, "???");
+                break; // don't render non projectile weapon
 			}
 		}
 	}

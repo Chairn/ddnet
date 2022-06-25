@@ -67,6 +67,7 @@ vec2 CProjectile::GetPos(float Time)
 		Speed = pTuning->m_GunSpeed;
 		break;
 	default:
+		dbg_assert(false, "projectile in non projectile weapon");
 		break; // ignore non projectile weapons
 	}
 

@@ -199,7 +199,6 @@ static int GetMoveRestrictionsRaw(int Direction, int Tile, int Flags)
 	case TILE_STOPA:
 		return CANTMOVE_LEFT | CANTMOVE_RIGHT | CANTMOVE_UP | CANTMOVE_DOWN;
 	default: // other tiles don't prevent movement
-        dbg_msg("collision", "tile %d", Tile);
 //		dbg_assert(false, "Invalid tile in getmoverestriction"); // triggered in client
   		break;
 	}

@@ -1289,6 +1289,7 @@ void CGameContext::ProgressVoteOptions(int ClientID)
 		case 13: OptionMsg.m_pDescription13 = pCurrent->m_aDescription; break;
 		case 14: OptionMsg.m_pDescription14 = pCurrent->m_aDescription; break;
 		default:
+			dbg_assert(false, "Too many vote options to send");
 			dbg_msg("vote", "Votes to send too big: %d", NumVotesToSend);
 			Stop = true;
 			break;
@@ -2456,6 +2457,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					EmoteType = EMOTE_ANGRY;
 					break;
 				default:
+					dbg_assert(false, "Invalid emote");
 					break;
 				}
 				pChr->SetEmote(EmoteType, Server()->Tick() + 2 * Server()->TickSpeed());

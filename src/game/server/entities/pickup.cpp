@@ -153,6 +153,7 @@ void CPickup::Tick()
 				break;
 			}
 			default:
+				dbg_assert(false, "Invalid powerup");
 				break;
 			};
 		}

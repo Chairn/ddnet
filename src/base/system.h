@@ -49,11 +49,17 @@ extern "C" {
  *
  * @see dbg_break
  */
-#define dbg_assert(test, msg) do { if(!(test)) dbg_assert_imp(__FILE__, __LINE__, msg); } while(0)
+#define dbg_assert(test, msg) \
+	do \
+	{ \
+		if(!(test)) \
+			dbg_assert_imp(__FILE__, __LINE__, msg); \
+	} while(0)
 #if defined(__cplusplus)
 [[noreturn]]
 #endif
-void dbg_assert_imp(const char *filename, int line, const char *msg);
+void
+dbg_assert_imp(const char *filename, int line, const char *msg);
 
 #ifdef __clang_analyzer__
 #include <assert.h>

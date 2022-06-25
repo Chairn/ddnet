@@ -89,7 +89,8 @@ class CCommandProcessorFragment_Vulkan : public CCommandProcessorFragment_GLBase
 		case MEMORY_BLOCK_USAGE_STAGING:
 			pUsage = "staging buffer";
 			break;
-		default: break;
+		default:
+			dbg_assert(false, "Invalid memory usage");
 		}
 		dbg_msg("vulkan", "allocated chunk of memory with size: %" PRIu64 " for frame %" PRIu64 " (%s)", (size_t)Size, (size_t)m_CurImageIndex, pUsage);
 	}
@@ -111,7 +112,8 @@ class CCommandProcessorFragment_Vulkan : public CCommandProcessorFragment_GLBase
 		case MEMORY_BLOCK_USAGE_STAGING:
 			pUsage = "staging buffer";
 			break;
-		default: break;
+		default:
+			dbg_assert(false, "Invalid memory usage");
 		}
 		dbg_msg("vulkan", "deallocated chunk of memory with size: %" PRIu64 " for frame %" PRIu64 " (%s)", (size_t)Size, (size_t)m_CurImageIndex, pUsage);
 	}
@@ -6297,7 +6299,7 @@ public:
 			Cmd_PostShutdown(static_cast<const CCommandProcessorFragment_GLBase::SCommand_PostShutdown *>(pBaseCommand));
 			break;
 		default:
-			return false;
+			dbg_assert(false, "Invalid or unknown command");
 		}
 
 		return true;

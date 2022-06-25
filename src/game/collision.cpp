@@ -176,7 +176,7 @@ static int GetMoveRestrictionsRaw(int Direction, int Tile, int Flags)
 		case TILEFLAG_HFLIP ^ ROTATION_180: return CANTMOVE_DOWN;
 		case TILEFLAG_HFLIP ^ ROTATION_270: return CANTMOVE_LEFT;
 
-		default: dbg_assert(false, "test");
+		default: dbg_assert(false, "Invalid flags for stopper in getmoverestriction");
 		}
 		break;
 	case TILE_STOPS:
@@ -193,13 +193,15 @@ static int GetMoveRestrictionsRaw(int Direction, int Tile, int Flags)
 		case TILEFLAG_HFLIP ^ ROTATION_270:
 			return CANTMOVE_LEFT | CANTMOVE_RIGHT;
 		default:
-			dbg_assert(false, "test");
+			dbg_assert(false, "Invalid flags for stops in getmoverestriction");
 		}
 		break;
 	case TILE_STOPA:
 		return CANTMOVE_LEFT | CANTMOVE_RIGHT | CANTMOVE_UP | CANTMOVE_DOWN;
 	default: // other tiles don't prevent movement
-		break;
+        dbg_msg("collision", "tile %d", Tile);
+//		dbg_assert(false, "Invalid tile in getmoverestriction"); // triggered in client
+  		break;
 	}
 	return 0;
 }
@@ -807,6 +809,7 @@ vec2 CCollision::CpSpeed(int Index, int Flags) const
 			target.y = 0;
 			break;
 		default:
+			dbg_assert(false, "Invalid rotation");
 			target = vec2(0, 0);
 			break;
 		}
@@ -1069,10 +1072,8 @@ int CCollision::Entity(int x, int y, int Layer) const
 			str_format(aBuf, sizeof(aBuf), "Tune");
 			break;
 		default:
-			str_format(aBuf, sizeof(aBuf), "Unknown");
+			dbg_assert(false, "Invalid layer");
 		}
-		dbg_msg("collision", "something is VERY wrong with the %s layer please report this at https://github.com/ddnet/ddnet, you will need to post the map as well and any steps that u think may have led to this", aBuf);
-		return 0;
 	}
 	switch(Layer)
 	{
@@ -1089,8 +1090,7 @@ int CCollision::Entity(int x, int y, int Layer) const
 	case LAYER_TUNE:
 		return m_pTune[y * m_Width + x].m_Type - ENTITY_OFFSET;
 	default:
-		return 0;
-		break;
+		dbg_assert(false, "Invalid layer");
 	}
 }
 

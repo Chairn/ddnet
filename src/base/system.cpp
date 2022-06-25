@@ -321,7 +321,7 @@ int io_seek(IOHANDLE io, int offset, int origin)
 		real_origin = SEEK_END;
 		break;
 	default:
-		return -1;
+		dbg_assert(false, "Invalid origin");
 	}
 
 	return fseek((FILE *)io, offset, real_origin);
@@ -2542,8 +2542,8 @@ int time_season()
 		return SEASON_AUTUMN;
 	default:
 		dbg_assert(false, "Invalid or unknown time data");
-		return SEASON_SPRING; // should never happen
 	}
+	return SEASON_SPRING; // should never happen
 }
 
 void str_append(char *dst, const char *src, int dst_size)
@@ -3269,9 +3269,9 @@ int str_time(int64_t centisecs, int format, char *buffer, int buffer_size)
 		return str_format(buffer, buffer_size, "%02" PRId64 ":%02" PRId64 ".%02" PRId64, centisecs / min,
 			(centisecs % min) / sec, centisecs % sec);
 	default:
-		dbg_msg("time", "Invalid time formatting data");
-		return -1;
+		dbg_assert(false, "Invalid time formatting data");
 	}
+	return -1;
 }
 
 int str_time_float(float secs, int format, char *buffer, int buffer_size)

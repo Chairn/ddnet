@@ -169,6 +169,7 @@ public:
 		case LEVEL_INFO: AndroidLevel = ANDROID_LOG_INFO; break;
 		case LEVEL_WARN: AndroidLevel = ANDROID_LOG_WARN; break;
 		case LEVEL_ERROR: AndroidLevel = ANDROID_LOG_ERROR; break;
+		default: dbg_assert(false, "invalid log level");
 		}
 		__android_log_write(AndroidLevel, pMessage->m_aSystem, pMessage->Message());
 	}

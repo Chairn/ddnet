@@ -221,7 +221,7 @@ void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, in
 			str_format(aBuf, sizeof(aBuf), "unbanned %s", NetToString(&pBan->m_Data, aTemp, sizeof(aTemp)));
 			break;
 		default:
-			aBuf[0] = 0;
+			dbg_assert(false, "Invalid or unknown msgtype");
 		}
 	}
 

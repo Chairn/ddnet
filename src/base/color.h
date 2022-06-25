@@ -218,8 +218,8 @@ inline ColorRGBA color_cast(const ColorHSLA &hsl)
 		rgb.r = c;
 		rgb.b = x;
 		break;
-	default: // leave black color
-		break;
+	default:
+		__builtin_trap();
 	}
 
 	float m = hsl.l - (c / 2);

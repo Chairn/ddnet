@@ -1707,6 +1707,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 							break;
 						}
 						default:
+							dbg_assert(false, "invalid auth level");
 							str_format(aBuf, sizeof(aBuf), "ClientID=%d invalid authentication level=%d", ClientID, AuthLevel);
 							break;
 						}

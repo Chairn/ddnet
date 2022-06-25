@@ -28,7 +28,6 @@ static const char *IndexToSystem(int Index)
 	default:
 		dbg_assert(false, "Invalid index");
 	}
-	dbg_break();
 	return nullptr;
 }
 

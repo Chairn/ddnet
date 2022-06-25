@@ -908,7 +908,7 @@ bool CVideo::AddStream(OutputStream *pStream, AVFormatContext *pOC, const AVCode
 		break;
 
 	default:
-		break;
+		dbg_assert(false, "Invalid media type");
 	}
 
 	/* Some formats want stream headers to be separate. */

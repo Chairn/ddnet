@@ -191,7 +191,7 @@ int CNetConnection::Connect(NETADDR *pAddr)
 	m_PeerAddr = *pAddr;
 	mem_zero(m_aErrorString, sizeof(m_aErrorString));
 	m_State = NET_CONNSTATE_CONNECT;
-	SendControl(NET_CTRLMSG_CONNECT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+	SendControl(NET_CTRLMSG_CONNECT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic));
 	return 0;
 }
 
@@ -326,7 +326,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 					m_LastSendTime = Now;
 					m_LastRecvTime = Now;
 					m_LastUpdateTime = Now;
-					if(m_SecurityToken == NET_SECURITY_TOKEN_UNKNOWN && pPacket->m_DataSize >= (int)(1 + sizeof(SECURITY_TOKEN_MAGIC) + sizeof(m_SecurityToken)) && !mem_comp(&pPacket->m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC)))
+					if(m_SecurityToken == NET_SECURITY_TOKEN_UNKNOWN && pPacket->m_DataSize >= (int)(1 + sizeof(g_aSecurityTokenMagic) + sizeof(m_SecurityToken)) && !mem_comp(&pPacket->m_aChunkData[1], g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic)))
 					{
 						m_SecurityToken = NET_SECURITY_TOKEN_UNSUPPORTED;
 						if(g_Config.m_Debug)
@@ -338,7 +338,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 							dbg_msg("security", "token not supported by client (packet size %d)", pPacket->m_DataSize);
 						m_SecurityToken = NET_SECURITY_TOKEN_UNSUPPORTED;
 					}
-					SendControl(NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+					SendControl(NET_CTRLMSG_CONNECTACCEPT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic));
 					if(g_Config.m_Debug)
 						dbg_msg("connection", "got connection, sending connect+accept");
 				}
@@ -348,9 +348,9 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 				// connection made
 				if(CtrlMsg == NET_CTRLMSG_CONNECTACCEPT)
 				{
-					if(m_SecurityToken == NET_SECURITY_TOKEN_UNKNOWN && pPacket->m_DataSize >= (int)(1 + sizeof(SECURITY_TOKEN_MAGIC) + sizeof(m_SecurityToken)) && !mem_comp(&pPacket->m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC)))
+					if(m_SecurityToken == NET_SECURITY_TOKEN_UNKNOWN && pPacket->m_DataSize >= (int)(1 + sizeof(g_aSecurityTokenMagic) + sizeof(m_SecurityToken)) && !mem_comp(&pPacket->m_aChunkData[1], g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic)))
 					{
-						m_SecurityToken = ToSecurityToken(&pPacket->m_aChunkData[1 + sizeof(SECURITY_TOKEN_MAGIC)]);
+						m_SecurityToken = ToSecurityToken(&pPacket->m_aChunkData[1 + sizeof(g_aSecurityTokenMagic)]);
 						if(g_Config.m_Debug)
 							dbg_msg("security", "got token %d", m_SecurityToken);
 					}
@@ -452,12 +452,12 @@ int CNetConnection::Update()
 	else if(State() == NET_CONNSTATE_CONNECT)
 	{
 		if(time_get() - m_LastSendTime > time_freq() / 2) // send a new connect every 500ms
-			SendControl(NET_CTRLMSG_CONNECT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+			SendControl(NET_CTRLMSG_CONNECT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic));
 	}
 	else if(State() == NET_CONNSTATE_PENDING)
 	{
 		if(time_get() - m_LastSendTime > time_freq() / 2) // send a new connect/accept every 500ms
-			SendControl(NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+			SendControl(NET_CTRLMSG_CONNECTACCEPT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic));
 	}
 
 	return 0;

@@ -99,7 +99,7 @@ typedef int SECURITY_TOKEN;
 
 SECURITY_TOKEN ToSecurityToken(unsigned char *pData);
 
-extern const unsigned char SECURITY_TOKEN_MAGIC[4];
+extern const unsigned char g_aSecurityTokenMagic[4];
 
 enum
 {

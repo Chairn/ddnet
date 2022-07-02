@@ -943,7 +943,7 @@ void CChat::OnPrepareLines()
 {
 	float x = 5.0f;
 	float y = 300.0f - 28.0f;
-	float FontSize = FONT_SIZE;
+	float FontSize = ms_FontSize;
 
 	float ScreenRatio = Graphics()->ScreenAspect();
 
@@ -957,9 +957,9 @@ void CChat::OnPrepareLines()
 	m_PrevScoreBoardShowed = IsScoreBoardOpen;
 	m_PrevShowChat = ShowLargeArea;
 
-	float RealMsgPaddingX = MESSAGE_PADDING_X;
-	float RealMsgPaddingY = MESSAGE_PADDING_Y;
-	float RealMsgPaddingTee = MESSAGE_TEE_SIZE + MESSAGE_TEE_PADDING_RIGHT;
+	float RealMsgPaddingX = ms_MessagePaddingX;
+	float RealMsgPaddingY = ms_MessagePaddingY;
+	float RealMsgPaddingTee = ms_MessageTeeSize + ms_MessageTeePaddingRight;
 
 	if(g_Config.m_ClChatOld)
 	{
@@ -1174,7 +1174,7 @@ void CChat::OnPrepareLines()
 		{
 			float Height = m_aLines[r].m_YOffset[OffsetType];
 			Graphics()->SetColor(1, 1, 1, 1);
-			m_aLines[r].m_QuadContainerIndex = RenderTools()->CreateRoundRectQuadContainer(Begin, y, (AppendCursor.m_LongestLineWidth - TextBegin) + RealMsgPaddingX * 1.5f, Height, MESSAGE_ROUNDING, CUI::CORNER_ALL);
+			m_aLines[r].m_QuadContainerIndex = RenderTools()->CreateRoundRectQuadContainer(Begin, y, (AppendCursor.m_LongestLineWidth - TextBegin) + RealMsgPaddingX * 1.5f, Height, ms_MessageRounding, CUI::CORNER_ALL);
 		}
 
 		TextRender()->SetRenderFlags(CurRenderFlags);
@@ -1289,8 +1289,8 @@ void CChat::OnRender()
 	float HeightLimit = IsScoreBoardOpen ? 180.0f : m_PrevShowChat ? 50.0f : 200.0f;
 	int OffsetType = IsScoreBoardOpen ? 1 : 0;
 
-	float RealMsgPaddingX = MESSAGE_PADDING_X;
-	float RealMsgPaddingY = MESSAGE_PADDING_Y;
+	float RealMsgPaddingX = ms_MessagePaddingX;
+	float RealMsgPaddingY = ms_MessagePaddingY;
 
 	if(g_Config.m_ClChatOld)
 	{
@@ -1337,16 +1337,16 @@ void CChat::OnRender()
 
 				RenderInfo.m_ColorBody = m_aLines[r].m_ColorBody;
 				RenderInfo.m_ColorFeet = m_aLines[r].m_ColorFeet;
-				RenderInfo.m_Size = MESSAGE_TEE_SIZE;
+				RenderInfo.m_Size = ms_MessageTeeSize;
 
-				float RowHeight = FONT_SIZE + RealMsgPaddingY;
-				float OffsetTeeY = MESSAGE_TEE_SIZE / 2.0f;
-				float FullHeightMinusTee = RowHeight - MESSAGE_TEE_SIZE;
+				float RowHeight = ms_FontSize + RealMsgPaddingY;
+				float OffsetTeeY = ms_MessageTeeSize / 2.0f;
+				float FullHeightMinusTee = RowHeight - ms_MessageTeeSize;
 
 				CAnimState *pIdleState = CAnimState::GetIdle();
 				vec2 OffsetToMid;
 				RenderTools()->GetRenderTeeOffsetToRenderedTee(pIdleState, &RenderInfo, OffsetToMid);
-				vec2 TeeRenderPos(x + (RealMsgPaddingX + MESSAGE_TEE_SIZE) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
+				vec2 TeeRenderPos(x + (RealMsgPaddingX + ms_MessageTeeSize) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
 				RenderTools()->RenderTee(pIdleState, &RenderInfo, EMOTE_NORMAL, vec2(1, 0.1f), TeeRenderPos, Blend);
 			}
 

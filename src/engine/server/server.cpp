@@ -2172,19 +2172,19 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, int Type, bool Sen
 		if(Type == SERVERINFO_EXTENDED)
 		{
 			if(&Chunk == &pCache->m_Cache.front())
-				p.AddRaw(SERVERBROWSE_INFO_EXTENDED, sizeof(SERVERBROWSE_INFO_EXTENDED));
+				p.AddRaw(g_aServerBrowseInfoExtended, sizeof(g_aServerBrowseInfoExtended));
 			else
-				p.AddRaw(SERVERBROWSE_INFO_EXTENDED_MORE, sizeof(SERVERBROWSE_INFO_EXTENDED_MORE));
+				p.AddRaw(g_aServerBrowseInfoExtendedMore, sizeof(g_aServerBrowseInfoExtendedMore));
 			ADD_INT(p, Token);
 		}
 		else if(Type == SERVERINFO_64_LEGACY)
 		{
-			ADD_RAW(p, SERVERBROWSE_INFO_64_LEGACY);
+			ADD_RAW(p, g_aServerBrowseInfo64Legacy);
 			ADD_INT(p, Token);
 		}
 		else if(Type == SERVERINFO_VANILLA || Type == SERVERINFO_INGAME)
 		{
-			ADD_RAW(p, SERVERBROWSE_INFO);
+			ADD_RAW(p, g_aServerBrowseInfo);
 			ADD_INT(p, Token);
 		}
 		else
@@ -2204,7 +2204,7 @@ void CServer::GetServerInfoSixup(CPacker *pPacker, int Token, bool SendClients)
 	if(Token != -1)
 	{
 		pPacker->Reset();
-		pPacker->AddRaw(SERVERBROWSE_INFO, sizeof(SERVERBROWSE_INFO));
+		pPacker->AddRaw(g_aServerBrowseInfo, sizeof(g_aServerBrowseInfo));
 		pPacker->AddInt(Token);
 	}
 
@@ -2357,8 +2357,8 @@ void CServer::PumpNetwork(bool PacketWaiting)
 				{
 					int ExtraToken = 0;
 					int Type = -1;
-					if(Packet.m_DataSize >= (int)sizeof(SERVERBROWSE_GETINFO) + 1 &&
-						mem_comp(Packet.m_pData, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO)) == 0)
+					if(Packet.m_DataSize >= (int)sizeof(g_aServerBrowseGetInfo) + 1 &&
+						mem_comp(Packet.m_pData, g_aServerBrowseGetInfo, sizeof(g_aServerBrowseGetInfo)) == 0)
 					{
 						if(Packet.m_Flags & NETSENDFLAG_EXTENDED)
 						{
@@ -2368,15 +2368,15 @@ void CServer::PumpNetwork(bool PacketWaiting)
 						else
 							Type = SERVERINFO_VANILLA;
 					}
-					else if(Packet.m_DataSize >= (int)sizeof(SERVERBROWSE_GETINFO_64_LEGACY) + 1 &&
-						mem_comp(Packet.m_pData, SERVERBROWSE_GETINFO_64_LEGACY, sizeof(SERVERBROWSE_GETINFO_64_LEGACY)) == 0)
+					else if(Packet.m_DataSize >= (int)sizeof(g_aServerBrowseGetInfo64Legacy) + 1 &&
+						mem_comp(Packet.m_pData, g_aServerBrowseGetInfo64Legacy, sizeof(g_aServerBrowseGetInfo64Legacy)) == 0)
 					{
 						Type = SERVERINFO_64_LEGACY;
 					}
 					if(Type == SERVERINFO_VANILLA && ResponseToken != NET_SECURITY_TOKEN_UNKNOWN && Config()->m_SvSixup)
 					{
 						CUnpacker Unpacker;
-						Unpacker.Reset((unsigned char *)Packet.m_pData + sizeof(SERVERBROWSE_GETINFO), Packet.m_DataSize - sizeof(SERVERBROWSE_GETINFO));
+						Unpacker.Reset((unsigned char *)Packet.m_pData + sizeof(g_aServerBrowseGetInfo), Packet.m_DataSize - sizeof(g_aServerBrowseGetInfo));
 						int SrvBrwsToken = Unpacker.GetInt();
 						if(Unpacker.Error())
 							continue;
@@ -2395,7 +2395,7 @@ void CServer::PumpNetwork(bool PacketWaiting)
 					}
 					else if(Type != -1)
 					{
-						int Token = ((unsigned char *)Packet.m_pData)[sizeof(SERVERBROWSE_GETINFO)];
+						int Token = ((unsigned char *)Packet.m_pData)[sizeof(g_aServerBrowseGetInfo)];
 						Token |= ExtraToken << 8;
 						SendServerInfoConnless(&Packet.m_Address, Token, Type);
 					}

@@ -65,7 +65,7 @@ class CHud : public CComponent
 	void RenderWarmupTimer();
 	void RenderLocalTime(float x);
 
-	static constexpr float MOVEMENT_INFORMATION_LINE_HEIGHT = 8.0f;
+	static constexpr float ms_MovementInformationLineHeight = 8.0f;
 
 public:
 	CHud();

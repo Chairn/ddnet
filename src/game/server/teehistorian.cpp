@@ -5,10 +5,10 @@
 #include <engine/shared/snapshot.h>
 #include <game/gamecore.h>
 
-static const char TEEHISTORIAN_NAME[] = "teehistorian@ddnet.tw";
-static const CUuid TEEHISTORIAN_UUID = CalculateUuid(TEEHISTORIAN_NAME);
-static const char TEEHISTORIAN_VERSION[] = "2";
-static const char TEEHISTORIAN_VERSION_MINOR[] = "4";
+static const char gs_aTeeHistorianName[] = "teehistorian@ddnet.tw";
+static const CUuid gs_TeeHistorianUUID = CalculateUuid(gs_aTeeHistorianName);
+static const char gs_aTeeHistorianVersion[] = "2";
+static const char gs_aTeeHistorianVersionMinor[] = "4";
 
 #define UUID(id, name) static const CUuid UUID_##id = CalculateUuid(name);
 #include <engine/shared/teehistorian_ex_chunks.h>
@@ -71,7 +71,7 @@ void CTeeHistorian::Reset(const CGameInfo *pGameInfo, WRITE_CALLBACK pfnWriteCal
 
 void CTeeHistorian::WriteHeader(const CGameInfo *pGameInfo)
 {
-	Write(&TEEHISTORIAN_UUID, sizeof(TEEHISTORIAN_UUID));
+	Write(&gs_TeeHistorianUUID, sizeof(gs_TeeHistorianUUID));
 
 	char aGameUuid[UUID_MAXSTRSIZE];
 	char aStartTime[128];
@@ -111,9 +111,9 @@ void CTeeHistorian::WriteHeader(const CGameInfo *pGameInfo)
 		"\"map_crc\":\"%08x\","
 		"\"prng_description\":\"%s\","
 		"\"config\":{",
-		E(aCommentBuffer, TEEHISTORIAN_NAME),
-		TEEHISTORIAN_VERSION,
-		TEEHISTORIAN_VERSION_MINOR,
+		E(aCommentBuffer, gs_aTeeHistorianName),
+		gs_aTeeHistorianVersion,
+		gs_aTeeHistorianVersionMinor,
 		aGameUuid,
 		E(aServerVersionBuffer, pGameInfo->m_pServerVersion),
 		E(aStartTimeBuffer, aStartTime),

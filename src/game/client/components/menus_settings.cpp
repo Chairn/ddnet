@@ -2651,10 +2651,10 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		ColorRGBA ClientColor = color_cast<ColorRGBA, ColorHSLA>(ColorHSLA(g_Config.m_ClMessageClientColor));
 		ColorRGBA DefaultNameColor(0.8f, 0.8f, 0.8f, 1.0f);
 
-		constexpr float RealFontSize = CChat::FONT_SIZE * 2;
-		const float RealMsgPaddingX = (!g_Config.m_ClChatOld ? CChat::MESSAGE_PADDING_X : 0) * 2;
-		const float RealMsgPaddingY = (!g_Config.m_ClChatOld ? CChat::MESSAGE_PADDING_Y : 0) * 2;
-		const float RealMsgPaddingTee = (!g_Config.m_ClChatOld ? CChat::MESSAGE_TEE_SIZE + CChat::MESSAGE_TEE_PADDING_RIGHT : 0) * 2;
+		constexpr float RealFontSize = CChat::ms_FontSize * 2;
+		const float RealMsgPaddingX = (!g_Config.m_ClChatOld ? CChat::ms_MessagePaddingX : 0) * 2;
+		const float RealMsgPaddingY = (!g_Config.m_ClChatOld ? CChat::ms_MessagePaddingY : 0) * 2;
+		const float RealMsgPaddingTee = (!g_Config.m_ClChatOld ? CChat::ms_MessageTeeSize + CChat::ms_MessageTeePaddingRight : 0) * 2;
 		const float RealOffsetY = RealFontSize + RealMsgPaddingY;
 
 		const float X = 5.0f + RealMsgPaddingX / 2.0f + Section.x;
@@ -2667,8 +2667,8 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 
 		CAnimState *pIdleState = CAnimState::GetIdle();
 		constexpr int PreviewTeeCount = 4;
-		constexpr float RealTeeSize = CChat::MESSAGE_TEE_SIZE * 2;
-		constexpr float RealTeeSizeHalved = CChat::MESSAGE_TEE_SIZE;
+		constexpr float RealTeeSize = CChat::ms_MessageTeeSize * 2;
+		constexpr float RealTeeSizeHalved = CChat::ms_MessageTeeSize;
 		constexpr float TWSkinUnreliableOffset = -0.25f;
 		constexpr float OffsetTeeY = RealTeeSizeHalved;
 		const float FullHeightMinusTee = RealOffsetY - RealTeeSize;
@@ -2685,7 +2685,7 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 			char LineBuilder[128];
 			float Width;
 			float TempY = Y;
-			constexpr float RealBackgroundRounding = CChat::MESSAGE_ROUNDING * 2.0f;
+			constexpr float RealBackgroundRounding = CChat::ms_MessageRounding * 2.0f;
 
 			if(g_Config.m_ClShowChatSystem)
 			{

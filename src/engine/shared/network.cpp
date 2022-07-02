@@ -6,7 +6,7 @@
 #include "huffman.h"
 #include "network.h"
 
-const unsigned char SECURITY_TOKEN_MAGIC[4] = {'T', 'K', 'E', 'N'};
+const unsigned char g_aSecurityTokenMagic[4] = {'T', 'K', 'E', 'N'};
 
 void CNetRecvUnpacker::Clear()
 {

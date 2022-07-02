@@ -9,7 +9,7 @@
 
 // "6b407e81-8b77-3e04-a207-8da17f37d000"
 // "save-no-save-id@ddnet.tw"
-static const CUuid UUID_NO_SAVE_ID =
+static const CUuid gs_UUIDNoSaveID =
 	{{0x6b, 0x40, 0x7e, 0x81, 0x8b, 0x77, 0x3e, 0x04,
 		0xa2, 0x07, 0x8d, 0xa1, 0x7f, 0x37, 0xd0, 0x00}};
 
@@ -1497,12 +1497,12 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 		return false;
 	}
 
-	pResult->m_SaveID = UUID_NO_SAVE_ID;
+	pResult->m_SaveID = gs_UUIDNoSaveID;
 	if(!pSqlServer->IsNull(3))
 	{
 		char aSaveID[UUID_MAXSTRSIZE];
 		pSqlServer->GetString(3, aSaveID, sizeof(aSaveID));
-		if(ParseUuid(&pResult->m_SaveID, aSaveID) || pResult->m_SaveID == UUID_NO_SAVE_ID)
+		if(ParseUuid(&pResult->m_SaveID, aSaveID) || pResult->m_SaveID == gs_UUIDNoSaveID)
 		{
 			str_copy(pResult->m_aMessage, "Unable to load savegame: SaveID corrupted", sizeof(pResult->m_aMessage));
 			return false;
@@ -1554,7 +1554,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 		"DELETE FROM %s_saves "
 		"WHERE Code = ? AND Map = ? AND SaveID %s",
 		pSqlServer->GetPrefix(),
-		pResult->m_SaveID != UUID_NO_SAVE_ID ? "= ?" : "IS NULL");
+		pResult->m_SaveID != gs_UUIDNoSaveID ? "= ?" : "IS NULL");
 	if(pSqlServer->PrepareStatement(aBuf, pError, ErrorSize))
 	{
 		return true;
@@ -1562,7 +1562,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	pSqlServer->BindString(1, pData->m_aCode);
 	pSqlServer->BindString(2, pData->m_aMap);
 	char aUuid[UUID_MAXSTRSIZE];
-	if(pResult->m_SaveID != UUID_NO_SAVE_ID)
+	if(pResult->m_SaveID != gs_UUIDNoSaveID)
 	{
 		FormatUuid(pResult->m_SaveID, aUuid, sizeof(aUuid));
 		pSqlServer->BindString(3, aUuid);

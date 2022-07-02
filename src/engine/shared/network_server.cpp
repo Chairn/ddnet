@@ -470,14 +470,14 @@ void CNetServer::OnConnCtrlMsg(NETADDR &Addr, int ClientID, int ControlMsg, cons
 		// got connection attempt inside of valid session
 		// the client probably wants to reconnect
 		bool SupportsToken = Packet.m_DataSize >=
-					     (int)(1 + sizeof(SECURITY_TOKEN_MAGIC) + sizeof(SECURITY_TOKEN)) &&
-				     !mem_comp(&Packet.m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
+					     (int)(1 + sizeof(g_aSecurityTokenMagic) + sizeof(SECURITY_TOKEN)) &&
+				     !mem_comp(&Packet.m_aChunkData[1], g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic));
 
 		if(SupportsToken)
 		{
 			// response connection request with token
 			SECURITY_TOKEN Token = GetToken(Addr);
-			SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC), Token);
+			SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic), Token);
 		}
 
 		if(g_Config.m_Debug)
@@ -509,14 +509,14 @@ void CNetServer::OnTokenCtrlMsg(NETADDR &Addr, int ControlMsg, const CNetPacketC
 	{
 		// websocket client doesn't send token
 		// direct accept
-		SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC), NET_SECURITY_TOKEN_UNSUPPORTED);
+		SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic), NET_SECURITY_TOKEN_UNSUPPORTED);
 		TryAcceptClient(Addr, NET_SECURITY_TOKEN_UNSUPPORTED);
 	}
 	else if(ControlMsg == NET_CTRLMSG_CONNECT)
 	{
 		// response connection request with token
 		SECURITY_TOKEN Token = GetToken(Addr);
-		SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC), Token);
+		SendControl(Addr, NET_CTRLMSG_CONNECTACCEPT, g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic), Token);
 	}
 	else if(ControlMsg == NET_CTRLMSG_ACCEPT)
 	{
@@ -598,7 +598,7 @@ static bool IsDDNetControlMsg(const CNetPacketConstruct *pPacket)
 	{
 		return false;
 	}
-	if(pPacket->m_aChunkData[0] == NET_CTRLMSG_CONNECT && pPacket->m_DataSize >= (int)(1 + sizeof(SECURITY_TOKEN_MAGIC) + sizeof(SECURITY_TOKEN)) && mem_comp(&pPacket->m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC)) == 0)
+	if(pPacket->m_aChunkData[0] == NET_CTRLMSG_CONNECT && pPacket->m_DataSize >= (int)(1 + sizeof(g_aSecurityTokenMagic) + sizeof(SECURITY_TOKEN)) && mem_comp(&pPacket->m_aChunkData[1], g_aSecurityTokenMagic, sizeof(g_aSecurityTokenMagic)) == 0)
 	{
 		// DDNet CONNECT
 		return true;

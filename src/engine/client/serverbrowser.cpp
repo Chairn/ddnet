@@ -768,7 +768,7 @@ void CServerBrowser::Refresh(int Type)
 
 	if(Type == IServerBrowser::TYPE_LAN)
 	{
-		unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO) + 1];
+		unsigned char aBuffer[sizeof(g_aServerBrowseGetInfo) + 1];
 		CNetChunk Packet;
 		int i;
 
@@ -782,8 +782,8 @@ void CServerBrowser::Refresh(int Type)
 		mem_zero(&Packet.m_aExtraData, sizeof(Packet.m_aExtraData));
 
 		int Token = GenerateToken(Packet.m_Address);
-		mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
-		Buffer[sizeof(SERVERBROWSE_GETINFO)] = GetBasicToken(Token);
+		mem_copy(aBuffer, g_aServerBrowseGetInfo, sizeof(g_aServerBrowseGetInfo));
+		aBuffer[sizeof(g_aServerBrowseGetInfo)] = GetBasicToken(Token);
 
 		Packet.m_aExtraData[0] = GetExtraToken(Token) >> 8;
 		Packet.m_aExtraData[1] = GetExtraToken(Token) & 0xff;
@@ -816,7 +816,7 @@ void CServerBrowser::Refresh(int Type)
 
 void CServerBrowser::RequestImpl(const NETADDR &Addr, CServerEntry *pEntry, int *pBasicToken, int *pToken, bool RandomToken) const
 {
-	unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO) + 1];
+	unsigned char aBuffer[sizeof(g_aServerBrowseGetInfo) + 1];
 	CNetChunk Packet;
 
 	if(g_Config.m_Debug)
@@ -847,8 +847,8 @@ void CServerBrowser::RequestImpl(const NETADDR &Addr, CServerEntry *pEntry, int 
 		*pBasicToken = GetBasicToken(Token);
 	}
 
-	mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
-	Buffer[sizeof(SERVERBROWSE_GETINFO)] = GetBasicToken(Token);
+	mem_copy(aBuffer, g_aServerBrowseGetInfo, sizeof(g_aServerBrowseGetInfo));
+	aBuffer[sizeof(g_aServerBrowseGetInfo)] = GetBasicToken(Token);
 
 	Packet.m_ClientID = -1;
 	Packet.m_Address = Addr;
@@ -867,7 +867,7 @@ void CServerBrowser::RequestImpl(const NETADDR &Addr, CServerEntry *pEntry, int 
 
 void CServerBrowser::RequestImpl64(const NETADDR &Addr, CServerEntry *pEntry) const
 {
-	unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO_64_LEGACY) + 1];
+	unsigned char aBuffer[sizeof(g_aServerBrowseGetInfo64Legacy) + 1];
 	CNetChunk Packet;
 
 	if(g_Config.m_Debug)
@@ -879,8 +879,8 @@ void CServerBrowser::RequestImpl64(const NETADDR &Addr, CServerEntry *pEntry) co
 		m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client_srvbrowse", aBuf);
 	}
 
-	mem_copy(Buffer, SERVERBROWSE_GETINFO_64_LEGACY, sizeof(SERVERBROWSE_GETINFO_64_LEGACY));
-	Buffer[sizeof(SERVERBROWSE_GETINFO_64_LEGACY)] = GetBasicToken(GenerateToken(Addr));
+	mem_copy(aBuffer, g_aServerBrowseGetInfo64Legacy, sizeof(g_aServerBrowseGetInfo64Legacy));
+	aBuffer[sizeof(g_aServerBrowseGetInfo64Legacy)] = GetBasicToken(GenerateToken(Addr));
 
 	Packet.m_ClientID = -1;
 	Packet.m_Address = Addr;

@@ -31,13 +31,13 @@ int main(int argc, const char **argv)
 	if(Addr.port == 0)
 		Addr.port = 8303;
 
-	unsigned char Buffer[sizeof(SERVERBROWSE_GETINFO) + 1];
+	unsigned char aBuffer[sizeof(g_aServerBrowseGetInfo) + 1];
 	CNetChunk Packet;
 
-	mem_copy(Buffer, SERVERBROWSE_GETINFO, sizeof(SERVERBROWSE_GETINFO));
+	mem_copy(aBuffer, g_aServerBrowseGetInfo, sizeof(g_aServerBrowseGetInfo));
 
 	int CurToken = rand() % 256;
-	Buffer[sizeof(SERVERBROWSE_GETINFO)] = CurToken;
+	aBuffer[sizeof(g_aServerBrowseGetInfo)] = CurToken;
 
 	Packet.m_ClientID = -1;
 	Packet.m_Address = Addr;
@@ -55,12 +55,12 @@ int main(int argc, const char **argv)
 
 	while(g_NetOp.Recv(&Packet))
 	{
-		if(Packet.m_DataSize >= (int)sizeof(SERVERBROWSE_INFO) && mem_comp(Packet.m_pData, SERVERBROWSE_INFO, sizeof(SERVERBROWSE_INFO)) == 0)
+		if(Packet.m_DataSize >= (int)sizeof(g_aServerBrowseInfo) && mem_comp(Packet.m_pData, g_aServerBrowseInfo, sizeof(g_aServerBrowseInfo)) == 0)
 		{
 			// we got ze info
 			CUnpacker Up;
 
-			Up.Reset((unsigned char *)Packet.m_pData + sizeof(SERVERBROWSE_INFO), Packet.m_DataSize - sizeof(SERVERBROWSE_INFO));
+			Up.Reset((unsigned char *)Packet.m_pData + sizeof(g_aServerBrowseInfo), Packet.m_DataSize - sizeof(g_aServerBrowseInfo));
 			int Token = str_toint(Up.GetString());
 			if(Token != CurToken)
 				continue;

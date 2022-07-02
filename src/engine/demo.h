@@ -21,7 +21,7 @@ typedef bool (*DEMOFUNC_FILTER)(const void *pData, int DataSize, void *pUser);
 // TODO: Properly extend demo format using uuids
 // "6be6da4a-cebd-380c-9b5b-1289c842d780"
 // "demoitem-sha256@ddnet.tw"
-extern const CUuid SHA256_EXTENSION;
+extern const CUuid g_SHA256Extension;
 
 struct CDemoHeader
 {

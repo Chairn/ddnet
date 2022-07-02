@@ -128,7 +128,7 @@ class CRegister : public IRegister
 	int m_NumExtraHeaders = 0;
 	char m_aaExtraHeaders[8][128];
 
-	char m_aVerifyPacketPrefix[sizeof(SERVERBROWSE_CHALLENGE) + UUID_MAXSTRSIZE];
+	char m_aVerifyPacketPrefix[sizeof(g_aServerBrowseChallenge) + UUID_MAXSTRSIZE];
 	CUuid m_Secret = RandomUuid();
 	CUuid m_ChallengeSecret = RandomUuid();
 	bool m_GotServerInfo = false;
@@ -489,8 +489,8 @@ CRegister::CRegister(CConfig *pConfig, IConsole *pConsole, IEngine *pEngine, int
 		CProtocol(this, PROTOCOL_TW7_IPV4),
 	}
 {
-	const int HEADER_LEN = sizeof(SERVERBROWSE_CHALLENGE);
-	mem_copy(m_aVerifyPacketPrefix, SERVERBROWSE_CHALLENGE, HEADER_LEN);
+	const int HEADER_LEN = sizeof(g_aServerBrowseChallenge);
+	mem_copy(m_aVerifyPacketPrefix, g_aServerBrowseChallenge, HEADER_LEN);
 	FormatUuid(m_ChallengeSecret, m_aVerifyPacketPrefix + HEADER_LEN, sizeof(m_aVerifyPacketPrefix) - HEADER_LEN);
 	m_aVerifyPacketPrefix[HEADER_LEN + UUID_MAXSTRSIZE - 1] = ':';
 

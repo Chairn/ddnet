@@ -1363,7 +1363,7 @@ inline int CHud::GetDigitsIndex(int Value, int Max)
 
 inline float CHud::GetMovementInformationBoxHeight()
 {
-	float BoxHeight = 3 * MOVEMENT_INFORMATION_LINE_HEIGHT * (g_Config.m_ClShowhudPlayerPosition + g_Config.m_ClShowhudPlayerSpeed) + 2 * MOVEMENT_INFORMATION_LINE_HEIGHT * g_Config.m_ClShowhudPlayerAngle;
+	float BoxHeight = 3 * ms_MovementInformationLineHeight * (g_Config.m_ClShowhudPlayerPosition + g_Config.m_ClShowhudPlayerSpeed) + 2 * ms_MovementInformationLineHeight * g_Config.m_ClShowhudPlayerAngle;
 	if(g_Config.m_ClShowhudPlayerPosition || g_Config.m_ClShowhudPlayerSpeed || g_Config.m_ClShowhudPlayerAngle)
 	{
 		BoxHeight += 2;
@@ -1468,47 +1468,47 @@ void CHud::RenderMovementInformation(const int ClientID)
 	if(g_Config.m_ClShowhudPlayerPosition)
 	{
 		TextRender()->Text(0, xl, y, Fontsize, Localize("Position:"), -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 
 		TextRender()->Text(0, xl, y, Fontsize, "X:", -1.0f);
 		str_format(aBuf, sizeof(aBuf), "%.2f", PosX);
 		DigitsIndex = GetDigitsIndex(PosX, 5);
 		w = (PosX < 0) ? s_TextWidthMinus[DigitsIndex] : s_TextWidth[DigitsIndex];
 		TextRender()->Text(0, xr - w, y, Fontsize, aBuf, -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 
 		TextRender()->Text(0, xl, y, Fontsize, "Y:", -1.0f);
 		str_format(aBuf, sizeof(aBuf), "%.2f", PosY);
 		DigitsIndex = GetDigitsIndex(PosY, 5);
 		w = (PosY < 0) ? s_TextWidthMinus[DigitsIndex] : s_TextWidth[DigitsIndex];
 		TextRender()->Text(0, xr - w, y, Fontsize, aBuf, -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 	}
 
 	if(g_Config.m_ClShowhudPlayerSpeed)
 	{
 		TextRender()->Text(0, xl, y, Fontsize, Localize("Speed:"), -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 
 		TextRender()->Text(0, xl, y, Fontsize, "X:", -1.0f);
 		str_format(aBuf, sizeof(aBuf), "%.2f", DisplaySpeedX);
 		DigitsIndex = GetDigitsIndex(DisplaySpeedX, 5);
 		w = (DisplaySpeedX < 0) ? s_TextWidthMinus[DigitsIndex] : s_TextWidth[DigitsIndex];
 		TextRender()->Text(0, xr - w, y, Fontsize, aBuf, -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 
 		TextRender()->Text(0, xl, y, Fontsize, "Y:", -1.0f);
 		str_format(aBuf, sizeof(aBuf), "%.2f", DisplaySpeedY);
 		DigitsIndex = GetDigitsIndex(DisplaySpeedY, 5);
 		w = (DisplaySpeedY < 0) ? s_TextWidthMinus[DigitsIndex] : s_TextWidth[DigitsIndex];
 		TextRender()->Text(0, xr - w, y, Fontsize, aBuf, -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 	}
 
 	if(g_Config.m_ClShowhudPlayerAngle)
 	{
 		TextRender()->Text(0, xl, y, Fontsize, Localize("Angle:"), -1.0f);
-		y += MOVEMENT_INFORMATION_LINE_HEIGHT;
+		y += ms_MovementInformationLineHeight;
 		str_format(aBuf, sizeof(aBuf), "%.2f", DisplayAngle);
 		DigitsIndex = GetDigitsIndex(DisplayAngle, 5);
 		w = (DisplayAngle < 0) ? s_TextWidthMinus[DigitsIndex] : s_TextWidth[DigitsIndex];

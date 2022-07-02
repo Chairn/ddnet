@@ -17,9 +17,9 @@ class CChat : public CComponent
 {
 	CLineInput m_Input;
 
-	static constexpr float CHAT_WIDTH = 200.0f;
-	static constexpr float CHAT_HEIGHT_FULL = 200.0f;
-	static constexpr float CHAT_HEIGHT_MIN = 50.0f;
+	static constexpr float ms_ChatWidth = 200.0f;
+	static constexpr float ms_ChatHeightFull = 200.0f;
+	static constexpr float ms_ChatHeightMin = 50.0f;
 
 	enum
 	{
@@ -139,13 +139,13 @@ public:
 	CChat();
 	virtual int Sizeof() const override { return sizeof(*this); }
 
-	static constexpr float MESSAGE_PADDING_X = 5.0f;
-	static constexpr float MESSAGE_TEE_SIZE = 7.0f;
-	static constexpr float MESSAGE_TEE_PADDING_RIGHT = 0.5f;
-	static constexpr float FONT_SIZE = 6.0f;
-	static constexpr float MESSAGE_PADDING_Y = 1.0f;
-	static constexpr float MESSAGE_ROUNDING = 3.0f;
-	static_assert(FONT_SIZE + MESSAGE_PADDING_Y >= MESSAGE_ROUNDING * 2.0f, "Corners for background chat are too huge for this combination of font size and message padding.");
+	static constexpr float ms_MessagePaddingX = 5.0f;
+	static constexpr float ms_MessageTeeSize = 7.0f;
+	static constexpr float ms_MessageTeePaddingRight = 0.5f;
+	static constexpr float ms_FontSize = 6.0f;
+	static constexpr float ms_MessagePaddingY = 1.0f;
+	static constexpr float ms_MessageRounding = 3.0f;
+	static_assert(ms_FontSize + ms_MessagePaddingY >= ms_MessageRounding * 2.0f, "Corners for background chat are too huge for this combination of font size and message padding.");
 
 	bool IsActive() const { return m_Mode != MODE_NONE; }
 	void AddLine(int ClientID, int Team, const char *pLine);

@@ -1336,22 +1336,22 @@ const char *CClient::LoadMapSearch(const char *pMapName, SHA256_DIGEST *pWantedS
 void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 {
 	// server info
-	if(pPacket->m_DataSize >= (int)sizeof(SERVERBROWSE_INFO))
+	if(pPacket->m_DataSize >= (int)sizeof(g_aServerBrowseInfo))
 	{
 		int Type = -1;
-		if(mem_comp(pPacket->m_pData, SERVERBROWSE_INFO, sizeof(SERVERBROWSE_INFO)) == 0)
+		if(mem_comp(pPacket->m_pData, g_aServerBrowseInfo, sizeof(g_aServerBrowseInfo)) == 0)
 			Type = SERVERINFO_VANILLA;
-		else if(mem_comp(pPacket->m_pData, SERVERBROWSE_INFO_64_LEGACY, sizeof(SERVERBROWSE_INFO_64_LEGACY)) == 0)
+		else if(mem_comp(pPacket->m_pData, g_aServerBrowseInfo64Legacy, sizeof(g_aServerBrowseInfo64Legacy)) == 0)
 			Type = SERVERINFO_64_LEGACY;
-		else if(mem_comp(pPacket->m_pData, SERVERBROWSE_INFO_EXTENDED, sizeof(SERVERBROWSE_INFO_EXTENDED)) == 0)
+		else if(mem_comp(pPacket->m_pData, g_aServerBrowseInfoExtended, sizeof(g_aServerBrowseInfoExtended)) == 0)
 			Type = SERVERINFO_EXTENDED;
-		else if(mem_comp(pPacket->m_pData, SERVERBROWSE_INFO_EXTENDED_MORE, sizeof(SERVERBROWSE_INFO_EXTENDED_MORE)) == 0)
+		else if(mem_comp(pPacket->m_pData, g_aServerBrowseInfoExtendedMore, sizeof(g_aServerBrowseInfoExtendedMore)) == 0)
 			Type = SERVERINFO_EXTENDED_MORE;
 
 		if(Type != -1)
 		{
-			void *pData = (unsigned char *)pPacket->m_pData + sizeof(SERVERBROWSE_INFO);
-			int DataSize = pPacket->m_DataSize - sizeof(SERVERBROWSE_INFO);
+			void *pData = (unsigned char *)pPacket->m_pData + sizeof(g_aServerBrowseInfo);
+			int DataSize = pPacket->m_DataSize - sizeof(g_aServerBrowseInfo);
 			ProcessServerInfo(Type, &pPacket->m_Address, pData, DataSize);
 		}
 	}

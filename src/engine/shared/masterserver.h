@@ -4,16 +4,16 @@
 #define ENGINE_SHARED_MASTERSERVER_H
 
 #define SERVERBROWSE_SIZE 8
-extern const unsigned char SERVERBROWSE_GETINFO[SERVERBROWSE_SIZE];
-extern const unsigned char SERVERBROWSE_INFO[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseGetInfo[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseInfo[SERVERBROWSE_SIZE];
 
-extern const unsigned char SERVERBROWSE_GETINFO_64_LEGACY[SERVERBROWSE_SIZE];
-extern const unsigned char SERVERBROWSE_INFO_64_LEGACY[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseGetInfo64Legacy[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseInfo64Legacy[SERVERBROWSE_SIZE];
 
-extern const unsigned char SERVERBROWSE_INFO_EXTENDED[SERVERBROWSE_SIZE];
-extern const unsigned char SERVERBROWSE_INFO_EXTENDED_MORE[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseInfoExtended[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseInfoExtendedMore[SERVERBROWSE_SIZE];
 
-extern const unsigned char SERVERBROWSE_CHALLENGE[SERVERBROWSE_SIZE];
+extern const unsigned char g_aServerBrowseChallenge[SERVERBROWSE_SIZE];
 
 enum
 {

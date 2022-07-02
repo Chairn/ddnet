@@ -3,7 +3,7 @@
 
 #include <base/system.h>
 
-static const int BUF_SIZE = 64 * 1024;
+static const int gs_BufSize = 64 * 1024;
 
 class Async : public ::testing::Test
 {
@@ -39,7 +39,7 @@ protected:
 		aio_wait(m_pAio);
 		aio_free(m_pAio);
 
-		char aBuf[BUF_SIZE];
+		char aBuf[gs_BufSize];
 		IOHANDLE File = io_open(m_Info.m_aFilename, IOFLAG_READ);
 		ASSERT_TRUE(File);
 		int Read = io_read(File, aBuf, sizeof(aBuf));
@@ -65,7 +65,7 @@ TEST_F(Async, Simple)
 
 TEST_F(Async, Long)
 {
-	char aText[BUF_SIZE + 1];
+	char aText[gs_BufSize + 1];
 	for(unsigned i = 0; i < sizeof(aText) - 1; i++)
 	{
 		aText[i] = 'a';
@@ -77,7 +77,7 @@ TEST_F(Async, Long)
 
 TEST_F(Async, Pieces)
 {
-	char aText[BUF_SIZE + 1];
+	char aText[gs_BufSize + 1];
 	for(unsigned i = 0; i < sizeof(aText) - 1; i++)
 	{
 		aText[i] = 'a';
@@ -92,7 +92,7 @@ TEST_F(Async, Pieces)
 
 TEST_F(Async, Mixed)
 {
-	char aText[BUF_SIZE + 1];
+	char aText[gs_BufSize + 1];
 	for(unsigned i = 0; i < sizeof(aText) - 1; i++)
 	{
 		aText[i] = 'a' + i % 26;
@@ -108,15 +108,15 @@ TEST_F(Async, Mixed)
 
 TEST_F(Async, NonDivisor)
 {
-	static const int NUM_LETTERS = 13;
-	static const int SIZE = BUF_SIZE / NUM_LETTERS * NUM_LETTERS;
-	char aText[SIZE + 1];
+	static const int s_NumLetters = 13;
+	static const int s_Size = gs_BufSize / s_NumLetters * s_NumLetters;
+	char aText[s_Size + 1];
 	for(unsigned i = 0; i < sizeof(aText) - 1; i++)
 	{
-		aText[i] = 'a' + i % NUM_LETTERS;
+		aText[i] = 'a' + i % s_NumLetters;
 	}
 	aText[sizeof(aText) - 1] = 0;
-	for(unsigned i = 0; i < (sizeof(aText) - 1) / NUM_LETTERS; i++)
+	for(unsigned i = 0; i < (sizeof(aText) - 1) / s_NumLetters; i++)
 	{
 		Write("abcdefghijklm");
 	}
@@ -125,18 +125,18 @@ TEST_F(Async, NonDivisor)
 
 TEST_F(Async, Transaction)
 {
-	static const int NUM_LETTERS = 13;
-	static const int SIZE = BUF_SIZE / NUM_LETTERS * NUM_LETTERS;
-	char aText[SIZE + 1];
+	static const int s_NumLetters = 13;
+	static const int s_Size = gs_BufSize / s_NumLetters * s_NumLetters;
+	char aText[s_Size + 1];
 	for(unsigned i = 0; i < sizeof(aText) - 1; i++)
 	{
-		aText[i] = 'a' + i % NUM_LETTERS;
+		aText[i] = 'a' + i % s_NumLetters;
 	}
 	aText[sizeof(aText) - 1] = 0;
-	for(unsigned i = 0; i < (sizeof(aText) - 1) / NUM_LETTERS; i++)
+	for(unsigned i = 0; i < (sizeof(aText) - 1) / s_NumLetters; i++)
 	{
 		aio_lock(m_pAio);
-		for(char c = 'a'; c < 'a' + NUM_LETTERS; c++)
+		for(char c = 'a'; c < 'a' + s_NumLetters; c++)
 		{
 			aio_write_unlocked(m_pAio, &c, 1);
 		}

@@ -88,20 +88,20 @@ protected:
 
 	void Expect(const unsigned char *pOutput, int OutputSize)
 	{
-		static CUuid TEEHISTORIAN_UUID = CalculateUuid("teehistorian@ddnet.tw");
-		static const char PREFIX1[] = "{\"comment\":\"teehistorian@ddnet.tw\",\"version\":\"2\",\"version_minor\":\"4\",\"game_uuid\":\"a1eb7182-796e-3b3e-941d-38ca71b2a4a8\",\"server_version\":\"DDNet test\",\"start_time\":\"";
-		static const char PREFIX2[] = "\",\"server_name\":\"server name\",\"server_port\":\"8303\",\"game_type\":\"game type\",\"map_name\":\"Kobra 3 Solo\",\"map_size\":\"903514\",\"map_sha256\":\"0123456789012345678901234567890123456789012345678901234567890123\",\"map_crc\":\"eceaf25c\",\"prng_description\":\"test-prng:02468ace\",\"config\":{},\"tuning\":{},\"uuids\":[";
-		static const char PREFIX3[] = "]}";
+		static CUuid s_TeeHistorianUUID = CalculateUuid("teehistorian@ddnet.tw");
+		static const char s_aPrefix1[] = "{\"comment\":\"teehistorian@ddnet.tw\",\"version\":\"2\",\"version_minor\":\"4\",\"game_uuid\":\"a1eb7182-796e-3b3e-941d-38ca71b2a4a8\",\"server_version\":\"DDNet test\",\"start_time\":\"";
+		static const char s_aPrefix2[] = "\",\"server_name\":\"server name\",\"server_port\":\"8303\",\"game_type\":\"game type\",\"map_name\":\"Kobra 3 Solo\",\"map_size\":\"903514\",\"map_sha256\":\"0123456789012345678901234567890123456789012345678901234567890123\",\"map_crc\":\"eceaf25c\",\"prng_description\":\"test-prng:02468ace\",\"config\":{},\"tuning\":{},\"uuids\":[";
+		static const char s_aPrefix3[] = "]}";
 
 		char aTimeBuf[64];
 		str_timestamp_ex(m_GameInfo.m_StartTime, aTimeBuf, sizeof(aTimeBuf), "%Y-%m-%dT%H:%M:%S%z");
 
 		CPacker Buffer;
 		Buffer.Reset();
-		Buffer.AddRaw(&TEEHISTORIAN_UUID, sizeof(TEEHISTORIAN_UUID));
-		Buffer.AddRaw(PREFIX1, str_length(PREFIX1));
+		Buffer.AddRaw(&s_TeeHistorianUUID, sizeof(s_TeeHistorianUUID));
+		Buffer.AddRaw(s_aPrefix1, str_length(s_aPrefix1));
 		Buffer.AddRaw(aTimeBuf, str_length(aTimeBuf));
-		Buffer.AddRaw(PREFIX2, str_length(PREFIX2));
+		Buffer.AddRaw(s_aPrefix2, str_length(s_aPrefix2));
 		for(int i = 0; i < m_UuidManager.NumUuids(); i++)
 		{
 			char aBuf[64];
@@ -110,7 +110,7 @@ protected:
 				m_UuidManager.GetName(OFFSET_UUID + i));
 			Buffer.AddRaw(aBuf, str_length(aBuf));
 		}
-		Buffer.AddRaw(PREFIX3, str_length(PREFIX3));
+		Buffer.AddRaw(s_aPrefix3, str_length(s_aPrefix3));
 		Buffer.AddRaw("", 1);
 		Buffer.AddRaw(pOutput, OutputSize);
 
@@ -221,26 +221,26 @@ TEST_F(TeeHistorian, Empty)
 
 TEST_F(TeeHistorian, Finished)
 {
-	const unsigned char EXPECTED[] = {0x40}; // FINISH
+	const unsigned char aExpected[] = {0x40}; // FINISH
 	m_TH.Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickImplicitOneTick)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x42, 0x00, 0x01, 0x02, // PLAYERNEW cid=0 x=1 y=2
 		0x40, // FINISH
 	};
 	Tick(1);
 	Player(0, 1, 2);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickImplicitTwoTicks)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x42, 0x00, 0x01, 0x02, // PLAYER_NEW cid=0 x=1 y=2
 		0x00, 0x01, 0x40, // PLAYER cid=0 dx=1 dy=-1
 		0x40, // FINISH
@@ -250,12 +250,12 @@ TEST_F(TeeHistorian, TickImplicitTwoTicks)
 	Tick(2);
 	Player(0, 2, 1);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickImplicitDescendingClientID)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x42, 0x01, 0x02, 0x03, // PLAYER_NEW cid=1 x=2 y=3
 		0x42, 0x00, 0x04, 0x05, // PLAYER_NEW cid=0 x=4 y=5
 		0x40, // FINISH
@@ -267,12 +267,12 @@ TEST_F(TeeHistorian, TickImplicitDescendingClientID)
 	Player(0, 4, 5);
 	Player(1, 2, 3);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickExplicitAscendingClientID)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x42, 0x00, 0x04, 0x05, // PLAYER_NEW cid=0 x=4 y=5
 		0x41, 0x00, // TICK_SKIP dt=0
 		0x42, 0x01, 0x02, 0x03, // PLAYER_NEW cid=1 x=2 y=3
@@ -285,12 +285,12 @@ TEST_F(TeeHistorian, TickExplicitAscendingClientID)
 	Player(0, 4, 5);
 	Player(1, 2, 3);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickImplicitEmpty)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x40, // FINISH
 	};
 	for(int i = 1; i < 500; i++)
@@ -302,12 +302,12 @@ TEST_F(TeeHistorian, TickImplicitEmpty)
 		Tick(i);
 	}
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickExplicitStart)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x41, 0xb3, 0x07, // TICK_SKIP dt=499
 		0x42, 0x00, 0x40, 0x40, // PLAYER_NEW cid=0 x=-1 y=-1
 		0x40, // FINISH
@@ -315,12 +315,12 @@ TEST_F(TeeHistorian, TickExplicitStart)
 	Tick(500);
 	Player(0, -1, -1);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TickExplicitPlayerMessage)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x41, 0x00, // TICK_SKIP dt=0
 		0x46, 0x3f, 0x01, 0x00, // MESSAGE cid=63 msg="\0"
 		0x40, // FINISH
@@ -329,12 +329,12 @@ TEST_F(TeeHistorian, TickExplicitPlayerMessage)
 	Inputs();
 	m_TH.RecordPlayerMessage(63, "", 1);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, ExtraMessage)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		0x41, 0x00, // TICK_SKIP dt=0
 		// EX uuid=6bb8ba88-0f0b-382e-8dae-dbf4052b8b7d data_len=0
 		0x4a,
@@ -347,12 +347,12 @@ TEST_F(TeeHistorian, ExtraMessage)
 	Inputs();
 	m_TH.RecordTestExtra();
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, DDNetVersion)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=60daba5c-52c4-3aeb-b8ba-b2953fb55a17 data_len=50
 		0x4a,
 		0x13, 0x97, 0xb6, 0x3e, 0xee, 0x4e, 0x39, 0x19,
@@ -383,12 +383,12 @@ TEST_F(TeeHistorian, DDNetVersion)
 	m_TH.RecordDDNetVersion(0, ConnectionID, 13010, "DDNet 13.1 (3623f5e4cd184556)");
 	m_TH.RecordDDNetVersionOld(1, 13010);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, Auth)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=60daba5c-52c4-3aeb-b8ba-b2953fb55a17 data_len=16
 		0x4a,
 		0x60, 0xda, 0xba, 0x5c, 0x52, 0xc4, 0x3a, 0xeb,
@@ -426,12 +426,12 @@ TEST_F(TeeHistorian, Auth)
 	m_TH.RecordAuthLogin(2, AUTHED_HELPER, "help");
 	m_TH.RecordAuthLogout(1);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, JoinLeave)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=1899a382-71e3-36da-937d-c9de6bb95b1d data_len=1
 		0x4a,
 		0x18, 0x99, 0xa3, 0x82, 0x71, 0xe3, 0x36, 0xda,
@@ -460,13 +460,13 @@ TEST_F(TeeHistorian, JoinLeave)
 	m_TH.RecordPlayerJoin(7, CTeeHistorian::PROTOCOL_7);
 	m_TH.RecordPlayerDrop(6, "too many pancakes");
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, Input)
 {
 	CNetObj_PlayerInput Input = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// TICK_SKIP dt=0
 		0x41, 0x00,
 		// new player -> InputNew
@@ -501,12 +501,12 @@ TEST_F(TeeHistorian, Input)
 	m_TH.RecordPlayerInput(0, 2, &Input);
 
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, SaveSuccess)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=4560c756-da29-3036-81d4-90a50f0182cd datalen=42
 		0x4a,
 		0x45, 0x60, 0xc7, 0x56, 0xda, 0x29, 0x30, 0x36,
@@ -528,12 +528,12 @@ TEST_F(TeeHistorian, SaveSuccess)
 	const char *pTeamSave = "2\tH.\nll0";
 	m_TH.RecordTeamSaveSuccess(21, SaveID, pTeamSave);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, SaveFailed)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=b29901d5-1244-3bd0-bbde-23d04b1f7ba9 datalen=42
 		0x4a,
 		0xb2, 0x99, 0x01, 0xd5, 0x12, 0x44, 0x3b, 0xd0,
@@ -545,12 +545,12 @@ TEST_F(TeeHistorian, SaveFailed)
 
 	m_TH.RecordTeamSaveFailure(12);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, LoadSuccess)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=e05408d3-a313-33df-9eb3-ddb990ab954a datalen=42
 		0x4a,
 		0xe0, 0x54, 0x08, 0xd3, 0xa3, 0x13, 0x33, 0xdf,
@@ -572,12 +572,12 @@ TEST_F(TeeHistorian, LoadSuccess)
 	const char *pTeamSave = "2\tH.\nll0";
 	m_TH.RecordTeamLoadSuccess(21, SaveID, pTeamSave);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, LoadFailed)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=ef8905a2-c695-3591-a1cd-53d2015992dd datalen=42
 		0x4a,
 		0xef, 0x89, 0x05, 0xa2, 0xc6, 0x95, 0x35, 0x91,
@@ -589,12 +589,12 @@ TEST_F(TeeHistorian, LoadFailed)
 
 	m_TH.RecordTeamLoadFailure(12);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, PlayerSwap)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// TICK_SKIP dt=0
 		0x41, 0x00,
 		// EX uuid=5de9b633-49cf-3e99-9a25-d4a78e9717d7 datalen=2
@@ -612,12 +612,12 @@ TEST_F(TeeHistorian, PlayerSwap)
 	m_TH.RecordPlayerSwap(11, 21);
 	Finish();
 
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, PlayerTeam)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// TICK_SKIP dt=0
 		0x41, 0x00,
 		// EX uuid=a111c04e-1ea8-38e0-90b1-d7f993ca0da9 datalen=2
@@ -655,12 +655,12 @@ TEST_F(TeeHistorian, PlayerTeam)
 	m_TH.RecordPlayerTeam(33, 0);
 	m_TH.RecordPlayerTeam(45, 0);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, TeamPractice)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// TICK_SKIP dt=0
 		0x41, 0x00,
 		// EX uuid=5792834e-81d1-34c9-a29b-b5ff25dac3bc datalen=2
@@ -698,12 +698,12 @@ TEST_F(TeeHistorian, TeamPractice)
 	m_TH.RecordTeamPractice(16, 0);
 	m_TH.RecordTeamPractice(23, 0);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, PlayerReady)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// EX uuid=638587c9-3f75-3887-918e-a3c2614ffaa0 datalen=1
 		0x4a,
 		0x63, 0x85, 0x87, 0xc9, 0x3f, 0x75, 0x38, 0x87,
@@ -716,12 +716,12 @@ TEST_F(TeeHistorian, PlayerReady)
 
 	m_TH.RecordPlayerReady(63);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }
 
 TEST_F(TeeHistorian, PlayerReadyMultiple)
 {
-	const unsigned char EXPECTED[] = {
+	const unsigned char aExpected[] = {
 		// TICK_SKIP dt=0
 		0x41, 0x00,
 		// EX uuid=638587c9-3f75-3887-918e-a3c2614ffaa0 datalen=1
@@ -755,5 +755,5 @@ TEST_F(TeeHistorian, PlayerReadyMultiple)
 	Tick(2);
 	m_TH.RecordPlayerReady(63);
 	Finish();
-	Expect(EXPECTED, sizeof(EXPECTED));
+	Expect(aExpected, sizeof(aExpected));
 }

@@ -20,8 +20,8 @@ TEST(Hash, Sha256)
 	Expect(sha256_finish(&ctxt), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
 	// printf 'The quick brown fox jumps over the lazy dog.' | sha256sum
-	char QUICK_BROWN_FOX[] = "The quick brown fox jumps over the lazy dog.";
-	Expect(sha256(QUICK_BROWN_FOX, str_length(QUICK_BROWN_FOX)), "ef537f25c895bfa782526529a9b63d97aa631564d5d789c2b765448c8635fb6c");
+	char aQuickBrownFox[] = "The quick brown fox jumps over the lazy dog.";
+	Expect(sha256(aQuickBrownFox, str_length(aQuickBrownFox)), "ef537f25c895bfa782526529a9b63d97aa631564d5d789c2b765448c8635fb6c");
 
 	sha256_init(&ctxt);
 	sha256_update(&ctxt, "The ", 4);
@@ -103,8 +103,8 @@ TEST(Hash, Md5)
 	md5_init(&ctxt);
 	Expect2(md5_finish(&ctxt), "d41d8cd98f00b204e9800998ecf8427e");
 
-	char QUICK_BROWN_FOX[] = "The quick brown fox jumps over the lazy dog.";
-	Expect2(md5(QUICK_BROWN_FOX, str_length(QUICK_BROWN_FOX)), "e4d909c290d0fb1ca068ffaddf22cbd0");
+	char aQuickBrownFox[] = "The quick brown fox jumps over the lazy dog.";
+	Expect2(md5(aQuickBrownFox, str_length(aQuickBrownFox)), "e4d909c290d0fb1ca068ffaddf22cbd0");
 
 	md5_init(&ctxt);
 	md5_update(&ctxt, "The ", 4);

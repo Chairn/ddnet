@@ -7,7 +7,7 @@
 
 #include <functional>
 
-static const int TEST_NUM_THREADS = 4;
+static const int gs_TestNumThreads = 4;
 
 class Jobs : public ::testing::Test
 {
@@ -16,7 +16,7 @@ protected:
 
 	Jobs()
 	{
-		m_Pool.Init(TEST_NUM_THREADS);
+		m_Pool.Init(gs_TestNumThreads);
 	}
 
 	void Add(std::shared_ptr<IJob> pJob)
@@ -68,12 +68,12 @@ TEST_F(Jobs, Wait)
 
 TEST_F(Jobs, LookupHost)
 {
-	static const char *HOST = "example.com";
-	static const int NETTYPE = NETTYPE_ALL;
-	auto pJob = std::make_shared<CHostLookup>(HOST, NETTYPE);
+	static const char *s_pHost = "example.com";
+	static const int s_NetType = NETTYPE_ALL;
+	auto pJob = std::make_shared<CHostLookup>(s_pHost, s_NetType);
 
-	EXPECT_STREQ(pJob->m_aHostname, HOST);
-	EXPECT_EQ(pJob->m_Nettype, NETTYPE);
+	EXPECT_STREQ(pJob->m_aHostname, s_pHost);
+	EXPECT_EQ(pJob->m_Nettype, s_NetType);
 
 	Add(pJob);
 	while(pJob->Status() != IJob::STATE_DONE)
@@ -82,10 +82,10 @@ TEST_F(Jobs, LookupHost)
 		thread_yield();
 	}
 
-	EXPECT_STREQ(pJob->m_aHostname, HOST);
-	EXPECT_EQ(pJob->m_Nettype, NETTYPE);
+	EXPECT_STREQ(pJob->m_aHostname, s_pHost);
+	EXPECT_EQ(pJob->m_Nettype, s_NetType);
 	ASSERT_EQ(pJob->m_Result, 0);
-	EXPECT_EQ(pJob->m_Addr.type & NETTYPE, pJob->m_Addr.type);
+	EXPECT_EQ(pJob->m_Addr.type & s_NetType, pJob->m_Addr.type);
 }
 
 TEST_F(Jobs, Many)
@@ -94,11 +94,11 @@ TEST_F(Jobs, Many)
 	std::vector<std::shared_ptr<IJob>> vpJobs;
 	SEMAPHORE sphore;
 	sphore_init(&sphore);
-	for(int i = 0; i < TEST_NUM_THREADS; i++)
+	for(int i = 0; i < gs_TestNumThreads; i++)
 	{
 		std::shared_ptr<IJob> pJob = std::make_shared<CJob>([&] {
 			int Prev = ThreadsRunning.fetch_add(1);
-			if(Prev == TEST_NUM_THREADS - 1)
+			if(Prev == gs_TestNumThreads - 1)
 			{
 				sphore_signal(&sphore);
 			}

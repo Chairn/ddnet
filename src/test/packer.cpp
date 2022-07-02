@@ -7,11 +7,11 @@
 // pExpected is NULL if an error is expected
 static void ExpectAddString5(const char *pString, int Limit, const char *pExpected)
 {
-	static char ZEROS[CPacker::PACKER_BUFFER_SIZE] = {0};
-	static const int OFFSET = CPacker::PACKER_BUFFER_SIZE - 5;
+	static char s_aZeros[CPacker::PACKER_BUFFER_SIZE] = {0};
+	static const int s_Offset = CPacker::PACKER_BUFFER_SIZE - 5;
 	CPacker Packer;
 	Packer.Reset();
-	Packer.AddRaw(ZEROS, OFFSET);
+	Packer.AddRaw(s_aZeros, s_Offset);
 	Packer.AddString(pString, Limit);
 
 	EXPECT_EQ(pExpected == 0, Packer.Error());
@@ -19,10 +19,10 @@ static void ExpectAddString5(const char *pString, int Limit, const char *pExpect
 	{
 		// Include null termination.
 		int ExpectedLength = str_length(pExpected) + 1;
-		EXPECT_EQ(ExpectedLength, Packer.Size() - OFFSET);
-		if(ExpectedLength == Packer.Size() - OFFSET)
+		EXPECT_EQ(ExpectedLength, Packer.Size() - s_Offset);
+		if(ExpectedLength == Packer.Size() - s_Offset)
 		{
-			EXPECT_STREQ(pExpected, (const char *)Packer.Data() + OFFSET);
+			EXPECT_STREQ(pExpected, (const char *)Packer.Data() + s_Offset);
 		}
 	}
 }

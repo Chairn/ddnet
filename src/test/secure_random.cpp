@@ -21,10 +21,10 @@ TEST(SecureRandom, Below1)
 
 TEST(SecureRandom, Below)
 {
-	int BOUNDS[] = {2, 3, 4, 5, 10, 100, 127, 128, 129};
-	for(unsigned i = 0; i < std::size(BOUNDS); i++)
+	int aBounds[] = {2, 3, 4, 5, 10, 100, 127, 128, 129};
+	for(unsigned i = 0; i < std::size(aBounds); i++)
 	{
-		int Below = BOUNDS[i];
+		int Below = aBounds[i];
 		for(int j = 0; j < 10; j++)
 		{
 			int Random = secure_rand_below(Below);

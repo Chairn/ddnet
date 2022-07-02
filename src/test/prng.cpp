@@ -41,7 +41,7 @@
 // Only the first 6 numbers are taken from the generator directly, after this,
 // something more complicated is done.
 
-static const unsigned int PCG32_GLOBAL_DEMO[] = {
+static const unsigned int gs_aPCG32GlobalDemo[] = {
 	0xa15c02b7,
 	0x7b47f409,
 	0xba1d3330,
@@ -56,9 +56,9 @@ TEST(Prng, EqualsPcg32GlobalDemo)
 
 	CPrng Prng;
 	Prng.Seed(aSeed);
-	for(unsigned i = 0; i < std::size(PCG32_GLOBAL_DEMO); i++)
+	for(unsigned i = 0; i < std::size(gs_aPCG32GlobalDemo); i++)
 	{
-		EXPECT_EQ(Prng.RandomBits(), PCG32_GLOBAL_DEMO[i]);
+		EXPECT_EQ(Prng.RandomBits(), gs_aPCG32GlobalDemo[i]);
 	}
 }
 

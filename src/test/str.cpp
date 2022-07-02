@@ -302,12 +302,12 @@ TEST(Str, Base64DecodeError)
 TEST(Str, Tokenize)
 {
 	char aTest[] = "GER,RUS,ZAF,BRA,CAN";
-	const char *aOut[] = {"GER", "RUS", "ZAF", "BRA", "CAN"};
+	const char *apOut[] = {"GER", "RUS", "ZAF", "BRA", "CAN"};
 	char aBuf[4];
 
 	int n = 0;
 	for(const char *tok = aTest; (tok = str_next_token(tok, ",", aBuf, sizeof(aBuf)));)
-		EXPECT_STREQ(aOut[n++], aBuf);
+		EXPECT_STREQ(apOut[n++], aBuf);
 
 	char aTest2[] = "";
 	EXPECT_EQ(str_next_token(aTest2, ",", aBuf, sizeof(aBuf)), nullptr);

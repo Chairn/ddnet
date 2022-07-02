@@ -2,19 +2,19 @@
 
 #include <engine/shared/compression.h>
 
-static const int DATA[] = {0, 1, -1, 32, 64, 256, -512, 12345, -123456, 1234567, 12345678, 123456789, 2147483647, (-2147483647 - 1)};
-static const int NUM = std::size(DATA);
-static const int SIZES[NUM] = {1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5};
+static const int gs_aData[] = {0, 1, -1, 32, 64, 256, -512, 12345, -123456, 1234567, 12345678, 123456789, 2147483647, (-2147483647 - 1)};
+static const int gs_Num = std::size(gs_aData);
+static const int gs_aSizes[gs_Num] = {1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5};
 
 TEST(CVariableInt, RoundtripPackUnpack)
 {
-	for(int i = 0; i < NUM; i++)
+	for(int i = 0; i < gs_Num; i++)
 	{
 		unsigned char aPacked[CVariableInt::MAX_BYTES_PACKED];
 		int Result;
-		EXPECT_EQ(int(CVariableInt::Pack(aPacked, DATA[i], sizeof(aPacked)) - aPacked), SIZES[i]);
-		EXPECT_EQ(int(CVariableInt::Unpack(aPacked, &Result, sizeof(aPacked)) - aPacked), SIZES[i]);
-		EXPECT_EQ(Result, DATA[i]);
+		EXPECT_EQ(int(CVariableInt::Pack(aPacked, gs_aData[i], sizeof(aPacked)) - aPacked), gs_aSizes[i]);
+		EXPECT_EQ(int(CVariableInt::Unpack(aPacked, &Result, sizeof(aPacked)) - aPacked), gs_aSizes[i]);
+		EXPECT_EQ(Result, gs_aData[i]);
 	}
 }
 
@@ -52,26 +52,26 @@ TEST(CVariableInt, UnpackBufferTooSmall)
 
 TEST(CVariableInt, RoundtripCompressDecompress)
 {
-	unsigned char aCompressed[NUM * CVariableInt::MAX_BYTES_PACKED];
-	int aDecompressed[NUM];
+	unsigned char aCompressed[gs_Num * CVariableInt::MAX_BYTES_PACKED];
+	int aDecompressed[gs_Num];
 	long ExpectedCompressedSize = 0;
-	for(int i = 0; i < NUM; i++)
-		ExpectedCompressedSize += SIZES[i];
+	for(int i = 0; i < gs_Num; i++)
+		ExpectedCompressedSize += gs_aSizes[i];
 
-	long CompressedSize = CVariableInt::Compress(DATA, sizeof(DATA), aCompressed, sizeof(aCompressed));
+	long CompressedSize = CVariableInt::Compress(gs_aData, sizeof(gs_aData), aCompressed, sizeof(aCompressed));
 	ASSERT_EQ(CompressedSize, ExpectedCompressedSize);
 	long DecompressedSize = CVariableInt::Decompress(aCompressed, ExpectedCompressedSize, aDecompressed, sizeof(aDecompressed));
-	ASSERT_EQ(DecompressedSize, sizeof(DATA));
-	for(int i = 0; i < NUM; i++)
+	ASSERT_EQ(DecompressedSize, sizeof(gs_aData));
+	for(int i = 0; i < gs_Num; i++)
 	{
-		EXPECT_EQ(aDecompressed[i], DATA[i]);
+		EXPECT_EQ(aDecompressed[i], gs_aData[i]);
 	}
 }
 
 TEST(CVariableInt, CompressBufferTooSmall)
 {
-	unsigned char aCompressed[NUM]; // too small
-	long CompressedSize = CVariableInt::Compress(DATA, sizeof(DATA), aCompressed, sizeof(aCompressed));
+	unsigned char aCompressed[gs_Num]; // too small
+	long CompressedSize = CVariableInt::Compress(gs_aData, sizeof(gs_aData), aCompressed, sizeof(aCompressed));
 	ASSERT_EQ(CompressedSize, -1);
 }
 

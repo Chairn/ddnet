@@ -2933,16 +2933,18 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 
 		// ***** Laser ***** //
 		LeftView.HSplitTop(HeadlineAndVMargin, &Label, &LeftView);
-		UI()->DoLabel(&Label, Localize("Laser"), HeadlineFontSize, TEXTALIGN_LEFT);
+		UI()->DoLabel(&Label, Localize("Weapons"), HeadlineFontSize, TEXTALIGN_LEFT);
 
 		// General laser settings
-		LeftView.HSplitTop(SectionTotalMargin + 2 * ColorPickerLineSize, &Section, &LeftView);
+		LeftView.HSplitTop(SectionTotalMargin + 4 * ColorPickerLineSize, &Section, &LeftView);
 		Section.Margin(SectionMargin, &Section);
 
-		static CButtonContainer s_LaserOutResetID, s_LaserInResetID;
+		static CButtonContainer LaserRifleOutResetID, LaserRifleInResetID, LaserShotgunOutResetID, LaserShotgunInResetID;
 
-		ColorHSLA LaserOutlineColor = DoLine_ColorPicker(&s_LaserOutResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Laser Outline Color"), &g_Config.m_ClLaserOutlineColor, ColorRGBA(0.074402f, 0.074402f, 0.247166f, 1.0f), false);
-		ColorHSLA LaserInnerColor = DoLine_ColorPicker(&s_LaserInResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Laser Inner Color"), &g_Config.m_ClLaserInnerColor, ColorRGBA(0.498039f, 0.498039f, 1.0f, 1.0f), false);
+		ColorHSLA LaserRifleOutlineColor = DoLine_ColorPicker(&LaserRifleOutResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Rifle Laser Outline Color"), &g_Config.m_ClLaserRifleOutlineColor, ColorRGBA(0.074402f, 0.074402f, 0.247166f, 1.0f), false);
+		ColorHSLA LaserRifleInnerColor = DoLine_ColorPicker(&LaserRifleInResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Rifle Laser Inner Color"), &g_Config.m_ClLaserRifleInnerColor, ColorRGBA(0.498039f, 0.498039f, 1.0f, 1.0f), false);
+		ColorHSLA LaserShotgunOutlineColor = DoLine_ColorPicker(&LaserShotgunOutResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Shotgun Laser Outline Color"), &g_Config.m_ClLaserShotgunOutlineColor, ColorRGBA(0.19215686274f, 0.10980392156f, 0.03921568627f, 1.0f), false);
+		ColorHSLA LaserShotgunInnerColor = DoLine_ColorPicker(&LaserShotgunInResetID, ColorPickerLineSize, LeftViewColorPickerPosition, ColorPickerLabelSize, ColorPickerLineSpacing, &Section, Localize("Shotgun Laser Inner Color"), &g_Config.m_ClLaserShotgunInnerColor, ColorRGBA(0.76862745098f, 0.50588235294f, 0.26666666666f, 1.0f), false);
 
 		// ***** Laser Preview ***** //
 		RightView.HSplitTop(HeadlineAndVMargin, &Label, &RightView);
@@ -2951,7 +2953,12 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		RightView.HSplitTop(SectionTotalMargin + 50.0f, &Section, &RightView);
 		Section.Margin(SectionMargin, &Section);
 
-		DoLaserPreview(&Section, LaserOutlineColor, LaserInnerColor);
+		DoLaserPreview(&Section, LaserRifleOutlineColor, LaserRifleInnerColor, true);
+
+		RightView.HSplitTop(SectionTotalMargin + 50.0f, &Section, &RightView);
+		Section.Margin(SectionMargin, &Section);
+
+		DoLaserPreview(&Section, LaserShotgunOutlineColor, LaserShotgunInnerColor, false);
 	}
 }
 

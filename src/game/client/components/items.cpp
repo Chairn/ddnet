@@ -237,15 +237,41 @@ void CItems::RenderFlag(const CNetObj_Flag *pPrev, const CNetObj_Flag *pCurrent,
 	Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, QuadOffset, Pos.x, Pos.y - Size * 0.75f);
 }
 
-void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent, bool IsPredicted)
+void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent,  const int ColorMode, bool IsPredicted)
 {
 	ColorRGBA RGB;
 	vec2 Pos = vec2(pCurrent->m_X, pCurrent->m_Y);
 	vec2 From = vec2(pCurrent->m_FromX, pCurrent->m_FromY);
 	float Len = distance(Pos, From);
-	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserOutlineColor));
+
+	int ColorModeOut, ColorModeIn;
+
+	switch(ColorMode){
+		case 1:
+			ColorModeOut = g_Config.m_ClLaserRifleOutlineColor;
+			ColorModeIn = g_Config.m_ClLaserRifleInnerColor;
+			break;
+		case 2:
+			ColorModeOut = g_Config.m_ClLaserShotgunOutlineColor;
+			ColorModeIn = g_Config.m_ClLaserShotgunInnerColor;
+			break;
+		case 3:
+			ColorModeOut = g_Config.m_ClLaserDoorOutlineColor;
+			ColorModeIn = g_Config.m_ClLaserDoorInnerColor;
+			break;
+		case 4:
+			ColorModeOut = g_Config.m_ClLaserFreezeOutlineColor;
+			ColorModeIn = g_Config.m_ClLaserFreezeInnerColor;
+			break;
+		default:
+			ColorModeOut = g_Config.m_ClLaserDoorOutlineColor;
+			ColorModeIn = g_Config.m_ClLaserDoorInnerColor;
+		
+	}
+
+	RGB = color_cast<ColorRGBA>(ColorHSLA(ColorModeOut));
 	ColorRGBA OuterColor(RGB.r, RGB.g, RGB.b, 1.0f);
-	RGB = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClLaserInnerColor));
+	RGB = color_cast<ColorRGBA>(ColorHSLA(ColorModeIn));
 	ColorRGBA InnerColor(RGB.r, RGB.g, RGB.b, 1.0f);
 
 	int TuneZone = GameClient()->m_GameWorld.m_WorldConfig.m_UseTuneZones ? Collision()->IsTune(Collision()->GetMapIndex(From)) : 0;
@@ -323,6 +349,7 @@ void CItems::OnRender()
 	int SwitcherTeam = m_pClient->SwitchStateTeam();
 	int DraggerStartTick = maximum((Client()->GameTick(g_Config.m_ClDummy) / 7) * 7, Client()->GameTick(g_Config.m_ClDummy) - 4);
 	int GunStartTick = (Client()->GameTick(g_Config.m_ClDummy) / 7) * 7;
+	int ColorMode = 0;
 
 	bool UsePredicted = GameClient()->Predict() && GameClient()->AntiPingGunfire();
 	auto &aSwitchers = GameClient()->Switchers();
@@ -343,7 +370,7 @@ void CItems::OnRender()
 				continue;
 			CNetObj_Laser Data;
 			pLaser->FillInfo(&Data);
-			RenderLaser(&Data, true);
+			RenderLaser(&Data, 1, true);
 		}
 		for(auto *pPickup = (CPickup *)GameClient()->m_PredictedWorld.FindFirst(CGameWorld::ENTTYPE_PICKUP); pPickup; pPickup = (CPickup *)pPickup->NextEntity())
 		{
@@ -436,18 +463,26 @@ void CItems::OnRender()
 					if(Inactive && BlinkingLight)
 						continue;
 					Laser.m_StartTick = DraggerStartTick;
+					ColorMode = 4;
 				}
 				if(pEntEx->m_EntityClass >= ENTITYCLASS_GUN_NORMAL && pEntEx->m_EntityClass <= ENTITYCLASS_GUN_UNFREEZE)
 				{
 					if(Inactive && BlinkingGun)
 						continue;
 					Laser.m_StartTick = GunStartTick;
+					if(pEntEx->m_EntityClass == ENTITYCLASS_GUN_FREEZE)
+					{
+						ColorMode = 4;
+					} else {
+						ColorMode = 3;
+					}
 				}
 				if(pEntEx->m_EntityClass >= ENTITYCLASS_DRAGGER_WEAK && pEntEx->m_EntityClass <= ENTITYCLASS_DRAGGER_STRONG)
 				{
 					if(Inactive && BlinkingDragger)
 						continue;
 					Laser.m_StartTick = DraggerStartTick;
+					ColorMode = 3;
 				}
 				if(pEntEx->m_EntityClass == ENTITYCLASS_DOOR)
 				{
@@ -457,9 +492,10 @@ void CItems::OnRender()
 						Laser.m_FromY = Laser.m_Y;
 					}
 					Laser.m_StartTick = Client()->GameTick(g_Config.m_ClDummy);
+					ColorMode = 3;
 				}
 			}
-			RenderLaser(&Laser);
+			RenderLaser(&Laser, ColorMode);
 		}
 	}
 

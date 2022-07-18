@@ -4,6 +4,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 class CFavorites : public IFavorites
 {

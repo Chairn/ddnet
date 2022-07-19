@@ -10,8 +10,8 @@
 #include <game/mapitems.h>
 
 #include <game/client/gameclient.h>
-#include <game/client/projectile_data.h>
 #include <game/client/laser_data.h>
+#include <game/client/projectile_data.h>
 #include <game/client/render.h>
 
 #include <game/client/prediction/entities/laser.h>
@@ -250,25 +250,25 @@ void CItems::RenderLaser(const CLaserData *pCurrent, bool IsPredicted)
 	int ColorIn, ColorOut;
 	switch(Type)
 	{
-		case LASERTYPE_RIFLE:
-			ColorOut = g_Config.m_ClLaserRifleOutlineColor;
-			ColorIn = g_Config.m_ClLaserRifleInnerColor;
-			break;
-		case LASERTYPE_SHOTGUN:
-			ColorOut = g_Config.m_ClLaserShotgunOutlineColor;
-			ColorIn = g_Config.m_ClLaserShotgunInnerColor;
-			break;
-		case LASERTYPE_DOOR:
-			ColorOut = g_Config.m_ClLaserDoorOutlineColor;
-			ColorIn = g_Config.m_ClLaserDoorInnerColor;
-			break;
-		case LASERTYPE_FREEZE:
-			ColorOut = g_Config.m_ClLaserFreezeOutlineColor;
-			ColorIn = g_Config.m_ClLaserFreezeInnerColor;
-			break;
-		default:
-			ColorOut = g_Config.m_ClLaserRifleOutlineColor;
-			ColorIn = g_Config.m_ClLaserRifleInnerColor;
+	case LASERTYPE_RIFLE:
+		ColorOut = g_Config.m_ClLaserRifleOutlineColor;
+		ColorIn = g_Config.m_ClLaserRifleInnerColor;
+		break;
+	case LASERTYPE_SHOTGUN:
+		ColorOut = g_Config.m_ClLaserShotgunOutlineColor;
+		ColorIn = g_Config.m_ClLaserShotgunInnerColor;
+		break;
+	case LASERTYPE_DOOR:
+		ColorOut = g_Config.m_ClLaserDoorOutlineColor;
+		ColorIn = g_Config.m_ClLaserDoorInnerColor;
+		break;
+	case LASERTYPE_FREEZE:
+		ColorOut = g_Config.m_ClLaserFreezeOutlineColor;
+		ColorIn = g_Config.m_ClLaserFreezeInnerColor;
+		break;
+	default:
+		ColorOut = g_Config.m_ClLaserRifleOutlineColor;
+		ColorIn = g_Config.m_ClLaserRifleInnerColor;
 	}
 
 	RGB = color_cast<ColorRGBA>(ColorHSLA(ColorOut));
@@ -358,7 +358,6 @@ void CItems::OnRender()
 	int SwitcherTeam = m_pClient->SwitchStateTeam();
 	int DraggerStartTick = maximum((Client()->GameTick(g_Config.m_ClDummy) / 7) * 7, Client()->GameTick(g_Config.m_ClDummy) - 4);
 	int GunStartTick = (Client()->GameTick(g_Config.m_ClDummy) / 7) * 7;
-	int ColorMode = 0;
 
 	bool UsePredicted = GameClient()->Predict() && GameClient()->AntiPingGunfire();
 	auto &aSwitchers = GameClient()->Switchers();

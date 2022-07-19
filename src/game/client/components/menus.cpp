@@ -318,7 +318,7 @@ int CMenus::DoButton_CheckBox_Common(const void *pID, const char *pText, const c
 	return UI()->DoButtonLogic(pID, 0, pRect);
 }
 
-void CMenus::DoLaserPreview(const CUIRect *pRect, const ColorHSLA LaserOutlineColor, const ColorHSLA LaserInnerColor, bool IsRifle)
+void CMenus::DoLaserPreview(const CUIRect *pRect, const ColorHSLA LaserOutlineColor, const ColorHSLA LaserInnerColor, const int LaserType)
 {
 	ColorRGBA LaserRGB;
 	CUIRect Section = *pRect;
@@ -359,19 +359,34 @@ void CMenus::DoLaserPreview(const CUIRect *pRect, const ColorHSLA LaserOutlineCo
 	Graphics()->QuadsDraw(&QuadItem, 1);
 	Graphics()->QuadsEnd();
 
-	if(IsRifle)
+	switch(LaserType)
 	{
+	case LASERTYPE_RIFLE:
 		Graphics()->TextureSet(GameClient()->m_GameSkin.m_SpriteWeaponLaser);
 		RenderTools()->SelectSprite(SPRITE_WEAPON_LASER_BODY);
-	}
-	else
-	{
+		Graphics()->QuadsBegin();
+		Graphics()->QuadsSetSubset(0, 0, 1, 1);
+		RenderTools()->DrawSprite(Section.x + 30.0f, Section.y + Section.h / 2.0f, 60.0f);
+
+		break;
+	case LASERTYPE_SHOTGUN:
 		Graphics()->TextureSet(GameClient()->m_GameSkin.m_SpriteWeaponShotgun);
 		RenderTools()->SelectSprite(SPRITE_WEAPON_SHOTGUN_BODY);
+		Graphics()->QuadsBegin();
+		Graphics()->QuadsSetSubset(0, 0, 1, 1);
+		RenderTools()->DrawSprite(Section.x + 30.0f, Section.y + Section.h / 2.0f, 60.0f);
+
+		break;
+	default:
+		Graphics()->QuadsBegin();
+		Graphics()->SetColor(OuterColor.r, OuterColor.g, OuterColor.b, 1.0f);
+		QuadItem = IGraphics::CQuadItem(From.x, From.y, 24, 24);
+		Graphics()->QuadsDraw(&QuadItem, 1);
+		Graphics()->SetColor(InnerColor.r, InnerColor.g, InnerColor.b, 1.0f);
+		QuadItem = IGraphics::CQuadItem(From.x, From.y, 20, 20);
+		Graphics()->QuadsDraw(&QuadItem, 1);
 	}
-	Graphics()->QuadsBegin();
-	Graphics()->QuadsSetSubset(0, 0, 1, 1);
-	RenderTools()->DrawSprite(Section.x + 30.0f, Section.y + Section.h / 2.0f, 60.0f);
+
 	Graphics()->QuadsEnd();
 }
 

@@ -2,10 +2,10 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "laser.h"
 #include "character.h"
+#include <game/client/laser_data.h>
 #include <game/collision.h>
 #include <game/generated/protocol.h>
 #include <game/mapitems.h>
-#include <game/client/laser_data.h>
 
 #include <engine/shared/config.h>
 

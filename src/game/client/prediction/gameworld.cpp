@@ -9,8 +9,8 @@
 #include "entity.h"
 #include <algorithm>
 #include <engine/shared/config.h>
-#include <game/client/projectile_data.h>
 #include <game/client/laser_data.h>
+#include <game/client/projectile_data.h>
 #include <game/mapitems.h>
 #include <utility>
 

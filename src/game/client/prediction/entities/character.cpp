@@ -1130,7 +1130,7 @@ CCharacter::CCharacter(CGameWorld *pGameWorld, int ID, CNetObj_Character *pChar,
 	m_Core.Reset();
 	m_Core.Init(&GameWorld()->m_Core, GameWorld()->Collision(), GameWorld()->Teams());
 	m_Core.m_Id = ID;
-	mem_zero(&m_Core.m_Ninja, sizeof(m_Core.m_Ninja));
+	m_Core.m_Ninja = CCharacterCore::SNinja();
 	m_Core.m_LeftWall = true;
 	m_ReloadTimer = 0;
 	m_NumObjectsHit = 0;
@@ -1140,7 +1140,7 @@ CCharacter::CCharacter(CGameWorld *pGameWorld, int ID, CNetObj_Character *pChar,
 	m_TeleCheckpoint = 0;
 	m_StrongWeakID = 0;
 
-	mem_zero(&m_Input, sizeof(m_Input));
+	m_Input = CNetObj_PlayerInput();
 	// never initialize both to zero
 	m_Input.m_TargetX = 0;
 	m_Input.m_TargetY = -1;
@@ -1329,8 +1329,7 @@ void CCharacter::Read(CNetObj_Character *pChar, CNetObj_DDNetCharacter *pExtende
 	// reset all input except direction and hook for non-local players (as in vanilla prediction)
 	if(!IsLocal)
 	{
-		mem_zero(&m_Input, sizeof(m_Input));
-		mem_zero(&m_SavedInput, sizeof(m_SavedInput));
+		m_Input = m_SavedInput = CNetObj_PlayerInput();
 		m_Input.m_Direction = m_SavedInput.m_Direction = m_Core.m_Direction;
 		m_Input.m_Hook = m_SavedInput.m_Hook = (m_Core.m_HookState != HOOK_IDLE);
 

@@ -814,8 +814,7 @@ void CGraphics_Threaded::KickCommandBuffer()
 bool CGraphics_Threaded::ScreenshotDirect()
 {
 	// add swap command
-	CImageInfo Image;
-	mem_zero(&Image, sizeof(Image));
+	CImageInfo Image{};
 
 	bool DidSwap = false;
 
@@ -3254,9 +3253,6 @@ int CGraphics_Threaded::GetVideoModes(CVideoMode *pModes, int MaxModes, int Scre
 	}
 
 	// add videomodes command
-	CImageInfo Image;
-	mem_zero(&Image, sizeof(Image));
-
 	int NumModes = 0;
 	m_pBackend->GetVideoModes(pModes, MaxModes, &NumModes, m_ScreenHiDPIScale, g_Config.m_GfxDesktopWidth, g_Config.m_GfxDesktopHeight, Screen);
 

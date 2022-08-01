@@ -570,7 +570,7 @@ void CLayerTiles::BrushRotate(float Amount)
 	{
 		// 90° rotation
 		CTile *pTempData = new CTile[m_Width * m_Height];
-		std::copy(m_pTiles, m_pTiles + m_Width * m_Height, pTempData);
+		std::copy_n(m_pTiles, m_Width * m_Height, pTempData);
 		memequalaa(m_pTiles, pTempData,  m_Width * m_Height);
 		CTile *pDst = m_pTiles;
 		bool Rotate = !(m_Game || m_Front) || m_pEditor->m_AllowPlaceUnusedTiles;
@@ -612,7 +612,7 @@ void CLayerTiles::Resize(int NewW, int NewH)
 	// copy old data
 	for(int y = 0; y < minimum(NewH, m_Height); y++)
 	{
-		std::copy(&m_pTiles[y * m_Width], &m_pTiles[y * m_Width + minimum(m_Width, NewW)], &pNewData[y * NewW]);
+		std::copy_n(&m_pTiles[y * m_Width], minimum(m_Width, NewW), &pNewData[y * NewW]);
 		memequalaa(&m_pTiles[y * m_Width], &pNewData[y * NewW], minimum(m_Width, NewW));
 	}
 
@@ -1116,7 +1116,7 @@ void CLayerTele::Resize(int NewW, int NewH)
 	// copy old data
 	for(int y = 0; y < minimum(NewH, m_Height); y++)
 	{
-		std::copy(&m_pTeleTile[y * m_Width], &m_pTeleTile[y * m_Width + minimum(m_Width, NewW)], &pNewTeleData[y * NewW]);
+		std::copy_n(&m_pTeleTile[y * m_Width], minimum(m_Width, NewW), &pNewTeleData[y * NewW]);
 		memequalaa(&m_pTeleTile[y * m_Width], &pNewTeleData[y * NewW], minimum(m_Width, NewW));
 	}
 	// replace old
@@ -1229,9 +1229,9 @@ void CLayerTele::BrushRotate(float Amount)
 		// 90° rotation
 		CTeleTile *pTempData1 = new CTeleTile[m_Width * m_Height]{};
 		CTile *pTempData2 = new CTile[m_Width * m_Height]{};
-		std::copy(m_pTeleTile, m_pTeleTile + m_Width * m_Height, pTempData1);
+		std::copy_n(m_pTeleTile, m_Width * m_Height, pTempData1);
 		memequalaa(m_pTeleTile, pTempData1, m_Width * m_Height);
-		std::copy(m_pTiles, m_pTiles + m_Width * m_Height, pTempData2);
+		std::copy_n(m_pTiles, m_Width * m_Height, pTempData2);
 		memequalaa(m_pTiles, pTempData2, m_Width * m_Height);
 		CTeleTile *pDst1 = m_pTeleTile;
 		CTile *pDst2 = m_pTiles;
@@ -1349,7 +1349,7 @@ void CLayerSpeedup::Resize(int NewW, int NewH)
 	// copy old data
 	for(int y = 0; y < minimum(NewH, m_Height); y++)
 	{
-		std::copy(&m_pSpeedupTile[y * m_Width], &m_pSpeedupTile[y * m_Width + minimum(m_Width, NewW)], &pNewSpeedupData[y * NewW]);
+		std::copy_n(&m_pSpeedupTile[y * m_Width], minimum(m_Width, NewW), &pNewSpeedupData[y * NewW]);
 		memequalaa(&m_pSpeedupTile[y * m_Width], &pNewSpeedupData[y * NewW], minimum(m_Width, NewW));
 	}
 
@@ -1480,8 +1480,10 @@ void CLayerSpeedup::BrushRotate(float Amount)
 		// 90° rotation
 		CSpeedupTile *pTempData1 = new CSpeedupTile[m_Width * m_Height];
 		CTile *pTempData2 = new CTile[m_Width * m_Height];
-		std::copy(m_pSpeedupTile, m_pSpeedupTile + m_Width * m_Height, pTempData1);
-		std::copy(m_pTiles, m_pTiles + m_Width * m_Height, pTempData2);
+		std::copy_n(m_pSpeedupTile, m_Width * m_Height, pTempData1);
+		memequalaa(m_pSpeedupTile, pTempData1, m_Width * m_Height);
+		std::copy_n(m_pTiles, m_Width * m_Height, pTempData2);
+		memequalaa(m_pTiles, pTempData2, m_Width * m_Height);
 		CSpeedupTile *pDst1 = m_pSpeedupTile;
 		CTile *pDst2 = m_pTiles;
 		for(int x = 0; x < m_Width; ++x)
@@ -1636,7 +1638,7 @@ void CLayerSwitch::Resize(int NewW, int NewH)
 
 	// copy old data
 	for(int y = 0; y < minimum(NewH, m_Height); y++)
-		std::copy(&m_pSwitchTile[y * m_Width], &m_pSwitchTile[y * m_Width + minimum(m_Width, NewW)], &pNewSwitchData[y * NewW]);
+		std::copy_n(&m_pSwitchTile[y * m_Width], minimum(m_Width, NewW), &pNewSwitchData[y * NewW]);
 
 	// replace old
 	delete[] m_pSwitchTile;
@@ -1762,8 +1764,8 @@ void CLayerSwitch::BrushRotate(float Amount)
 		// 90° rotation
 		CSwitchTile *pTempData1 = new CSwitchTile[m_Width * m_Height];
 		CTile *pTempData2 = new CTile[m_Width * m_Height];
-		std::copy(m_pSwitchTile, m_pSwitchTile + m_Width * m_Height, pTempData1);
-		std::copy(m_pTiles, m_pTiles + m_Width * m_Height, pTempData2);
+		std::copy_n(m_pSwitchTile, m_Width * m_Height, pTempData1);
+		std::copy_n(m_pTiles, m_Width * m_Height, pTempData2);
 		CSwitchTile *pDst1 = m_pSwitchTile;
 		CTile *pDst2 = m_pTiles;
 		for(int x = 0; x < m_Width; ++x)
@@ -1893,7 +1895,7 @@ void CLayerTune::Resize(int NewW, int NewH)
 
 	// copy old data
 	for(int y = 0; y < minimum(NewH, m_Height); y++)
-		std::copy(&m_pTuneTile[y * m_Width], &m_pTuneTile[y * m_Width + minimum(m_Width, NewW)], &pNewTuneData[y * NewW]);
+		std::copy_n(&m_pTuneTile[y * m_Width], minimum(m_Width, NewW), &pNewTuneData[y * NewW]);
 
 	// replace old
 	delete[] m_pTuneTile;
@@ -2007,8 +2009,8 @@ void CLayerTune::BrushRotate(float Amount)
 		// 90° rotation
 		CTuneTile *pTempData1 = new CTuneTile[m_Width * m_Height];
 		CTile *pTempData2 = new CTile[m_Width * m_Height];
-		std::copy(m_pTuneTile, m_pTuneTile + m_Width * m_Height, pTempData1);
-		std::copy(m_pTiles, m_pTiles + m_Width * m_Height, pTempData2);
+		std::copy_n(m_pTuneTile, m_Width * m_Height, pTempData1);
+		std::copy_n(m_pTiles, m_Width * m_Height, pTempData2);
 		CTuneTile *pDst1 = m_pTuneTile;
 		CTile *pDst2 = m_pTiles;
 		for(int x = 0; x < m_Width; ++x)

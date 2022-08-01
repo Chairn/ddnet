@@ -517,7 +517,8 @@ void CServerBrowser::SetInfo(CServerEntry *pEntry, const CServerInfo &Info)
 	pEntry->m_Info.m_Favorite = TmpInfo.m_Favorite;
 	pEntry->m_Info.m_FavoriteAllowPing = TmpInfo.m_FavoriteAllowPing;
 	pEntry->m_Info.m_Official = TmpInfo.m_Official;
-	std::copy(TmpInfo.m_aAddresses, TmpInfo.m_aAddresses + MAX_SERVER_ADDRESSES, pEntry->m_Info.m_aAddresses);
+	std::copy_n(TmpInfo.m_aAddresses, MAX_SERVER_ADDRESSES, pEntry->m_Info.m_aAddresses);
+	memequalaa(TmpInfo.m_aAddresses, pEntry->m_Info.m_aAddresses, MAX_SERVER_ADDRESSES);
 	pEntry->m_Info.m_NumAddresses = TmpInfo.m_NumAddresses;
 	ServerBrowserFormatAddresses(pEntry->m_Info.m_aAddress, sizeof(pEntry->m_Info.m_aAddress), pEntry->m_Info.m_aAddresses, pEntry->m_Info.m_NumAddresses);
 
@@ -597,7 +598,7 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR *pAddrs, int Num
 	dbg_assert(mem_is_null(pEntry, sizeof(*pEntry)), "mem not null");
 
 	// set the info
-	std::copy(pAddrs, pAddrs + NumAddrs, pEntry->m_Info.m_aAddresses);
+	std::copy_n(pAddrs, NumAddrs, pEntry->m_Info.m_aAddresses);
 	memequalaa(pAddrs, pEntry->m_Info.m_aAddresses, MAX_SERVER_ADDRESSES);
 	pEntry->m_Info.m_NumAddresses = NumAddrs;
 

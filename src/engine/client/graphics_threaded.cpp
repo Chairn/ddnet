@@ -64,7 +64,7 @@ void CGraphics_Threaded::FlushVertices(bool KeepVertices)
 
 	if(Cmd.m_pVertices != NULL)
 	{
-		std::copy(m_aVertices, m_aVertices + NumVerts, Cmd.m_pVertices);
+		std::copy_n(m_aVertices, NumVerts, Cmd.m_pVertices);
 		memequalaa(m_aVertices, Cmd.m_pVertices, NumVerts);
 	}
 }
@@ -78,7 +78,7 @@ void CGraphics_Threaded::FlushVerticesTex3D()
 
 	if(Cmd.m_pVertices != NULL)
 	{
-		std::copy(m_aVerticesTex3D, m_aVerticesTex3D + NumVerts, Cmd.m_pVertices);
+		std::copy_n(m_aVerticesTex3D, NumVerts, Cmd.m_pVertices);
 		memequalaa(m_aVerticesTex3D, Cmd.m_pVertices, NumVerts);
 	}
 }
@@ -1738,7 +1738,8 @@ void CGraphics_Threaded::RenderQuadLayer(int BufferContainerIndex, SQuadRenderIn
 		return;
 	}
 
-	std::copy(pQuadInfo, pQuadInfo + QuadNum, Cmd.m_pQuadInfo);
+	std::copy_n(pQuadInfo, QuadNum, Cmd.m_pQuadInfo);
+	memequalaa(pQuadInfo, Cmd.m_pQuadInfo, QuadNum);
 
 	m_pCommandBuffer->AddRenderCalls(((QuadNum - 1) / gs_GraphicsMaxQuadsRenderCount) + 1);
 }
@@ -2220,7 +2221,8 @@ void CGraphics_Threaded::RenderQuadContainerAsSpriteMultiple(int ContainerIndex,
 			return;
 		}
 
-		std::copy(pRenderInfo, pRenderInfo + DrawCount, Cmd.m_pRenderInfo);
+		std::copy_n(pRenderInfo, DrawCount, Cmd.m_pRenderInfo);
+		memequalaa(pRenderInfo, Cmd.m_pRenderInfo, DrawCount);
 
 		m_pCommandBuffer->AddRenderCalls(((DrawCount - 1) / gs_GraphicsMaxParticlesRenderCount) + 1);
 
@@ -2523,7 +2525,8 @@ int CGraphics_Threaded::CreateBufferContainer(SBufferContainerInfo *pContainerIn
 		return -1;
 	}
 
-	std::copy(pContainerInfo->m_vAttributes.data(), pContainerInfo->m_vAttributes.data() + Cmd.m_AttrCount, Cmd.m_pAttributes);
+	std::copy_n(pContainerInfo->m_vAttributes.data(), Cmd.m_AttrCount, Cmd.m_pAttributes);
+	memequalaa(pContainerInfo->m_vAttributes.data(), Cmd.m_pAttributes, Cmd.m_AttrCount);
 
 	m_vVertexArrayInfo[Index].m_AssociatedBufferObjectIndex = pContainerInfo->m_VertBufferBindingIndex;
 
@@ -2589,7 +2592,8 @@ void CGraphics_Threaded::UpdateBufferContainerInternal(int ContainerIndex, SBuff
 		return;
 	}
 
-	std::copy(pContainerInfo->m_vAttributes.data(), pContainerInfo->m_vAttributes.data() + Cmd.m_AttrCount, Cmd.m_pAttributes);
+	std::copy_n(pContainerInfo->m_vAttributes.data(), Cmd.m_AttrCount, Cmd.m_pAttributes);
+	memequalaa(pContainerInfo->m_vAttributes.data(), Cmd.m_pAttributes, Cmd.m_AttrCount);
 
 	m_vVertexArrayInfo[ContainerIndex].m_AssociatedBufferObjectIndex = pContainerInfo->m_VertBufferBindingIndex;
 }
@@ -3238,7 +3242,8 @@ int CGraphics_Threaded::GetVideoModes(CVideoMode *pModes, int MaxModes, int Scre
 	if(g_Config.m_GfxDisplayAllVideoModes)
 	{
 		int Count = std::size(g_aFakeModes);
-		std::copy(g_aFakeModes, g_aFakeModes + Count, pModes);
+		std::copy_n(g_aFakeModes, Count, pModes);
+		memequalaa(g_aFakeModes, pModes, Count);
 		if(MaxModes < Count)
 			Count = MaxModes;
 		return Count;

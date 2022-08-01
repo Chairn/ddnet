@@ -952,7 +952,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				CMapItemEnvelope *pItem = (CMapItemEnvelope *)DataFile.GetItem(Start + e, nullptr, nullptr);
 				CEnvelope *pEnv = new CEnvelope(pItem->m_Channels);
 				pEnv->m_vPoints.resize(pItem->m_NumPoints);
-				std::copy(&pPoints[pItem->m_StartPoint], &pPoints[pItem->m_StartPoint] + pItem->m_NumPoints, pEnv->m_vPoints.data());
+				std::copy_n(&pPoints[pItem->m_StartPoint], pItem->m_NumPoints, pEnv->m_vPoints.data());
 				memequalaa(pEnv->m_vPoints.data(), &pPoints[pItem->m_StartPoint], pItem->m_NumPoints);
 				if(pItem->m_aName[0] != -1) // compatibility with old maps
 					IntsToStr(pItem->m_aName, sizeof(pItem->m_aName) / sizeof(int), pEnv->m_aName);

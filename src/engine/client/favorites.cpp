@@ -155,8 +155,9 @@ void CFavorites::Add(const NETADDR *pAddrs, int NumAddrs)
 		}
 	}
 	// Add the new entry.
-	CEntry NewEntry;
-	mem_zero(&NewEntry, sizeof(NewEntry));
+	CEntry NewEntry{};
+	memnull(NewEntry);
+	//mem_zero(NewEntry.m_aAddrs, sizeof(NewEntry.m_aAddrs));
 	NewEntry.m_NumAddrs = std::min(NumAddrs, (int)std::size(NewEntry.m_aAddrs));
 	for(int i = 0; i < NewEntry.m_NumAddrs; i++)
 	{

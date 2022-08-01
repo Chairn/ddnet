@@ -56,7 +56,8 @@ void CAntibot::Init()
 	dbg_assert(m_pServer && m_pConsole, "antibot requires server and console");
 	dbg_assert(AntibotAbiVersion() == ANTIBOT_ABI_VERSION, "antibot abi version mismatch");
 
-	mem_zero(&m_Data, sizeof(m_Data));
+	m_Data = CAntibotData();
+	memnull(m_Data);
 	CAntibotVersion Version = ANTIBOT_VERSION;
 	m_Data.m_Version = Version;
 
@@ -73,7 +74,8 @@ void CAntibot::Init()
 void CAntibot::RoundStart(IGameServer *pGameServer)
 {
 	m_pGameServer = pGameServer;
-	mem_zero(&m_RoundData, sizeof(m_RoundData));
+	m_RoundData = CAntibotRoundData();
+	memnull(m_RoundData);
 	m_RoundData.m_Map.m_pTiles = 0;
 	AntibotRoundStart(&m_RoundData);
 	Update();

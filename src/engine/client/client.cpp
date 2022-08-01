@@ -370,7 +370,8 @@ CClient::CClient() :
 	m_CurrentServerPingInfoType = -1;
 	m_CurrentServerPingBasicToken = -1;
 	m_CurrentServerPingToken = -1;
-	mem_zero(&m_CurrentServerPingUuid, sizeof(m_CurrentServerPingUuid));
+	m_CurrentServerPingUuid = CUuid();
+	dbg_assert(mem_is_null(&m_CurrentServerPingUuid, sizeof(m_CurrentServerPingUuid)), "mem not null");
 	m_CurrentServerCurrentPingTime = -1;
 	m_CurrentServerNextPingTime = -1;
 
@@ -378,7 +379,8 @@ CClient::CClient() :
 	m_aCurrentInput[1] = 0;
 	m_LastDummy = false;
 
-	mem_zero(&m_aInputs, sizeof(m_aInputs));
+	new(m_aInputs) std::remove_pointer<decltype(m_aInputs)>::type{};
+	dbg_assert(mem_is_null(m_aInputs, sizeof(m_aInputs)), "mem not null");
 
 	m_State = IClient::STATE_OFFLINE;
 	m_StateStartTime = time_get();
@@ -405,7 +407,8 @@ CClient::CClient() :
 	m_BenchmarkFile = 0;
 	m_BenchmarkStopTime = 0;
 
-	mem_zero(&m_Checksum, sizeof(m_Checksum));
+	m_Checksum = CChecksum();
+	dbg_assert(mem_is_null(&m_Checksum, sizeof(m_Checksum)), "mem not null");
 }
 
 // ----- send functions -----
@@ -428,7 +431,8 @@ static inline bool RepackMsg(const CMsgPacker *pMsg, CPacker &Packer)
 
 int CClient::SendMsg(int Conn, CMsgPacker *pMsg, int Flags)
 {
-	CNetChunk Packet;
+	CNetChunk Packet{};
+	dbg_assert(mem_is_null(&Packet, sizeof(Packet)), "mem not null");
 
 	if(State() == IClient::STATE_OFFLINE)
 		return 0;
@@ -438,7 +442,6 @@ int CClient::SendMsg(int Conn, CMsgPacker *pMsg, int Flags)
 	if(RepackMsg(pMsg, Pack))
 		return 0;
 
-	mem_zero(&Packet, sizeof(CNetChunk));
 	Packet.m_ClientID = 0;
 	Packet.m_pData = Pack.Data();
 	Packet.m_DataSize = Pack.Size();
@@ -850,7 +853,8 @@ void CClient::DisconnectWithReason(const char *pReason)
 	m_CurrentServerPingInfoType = -1;
 	m_CurrentServerPingBasicToken = -1;
 	m_CurrentServerPingToken = -1;
-	mem_zero(&m_CurrentServerPingUuid, sizeof(m_CurrentServerPingUuid));
+	m_CurrentServerPingUuid = CUuid();
+	dbg_assert(mem_is_null(&m_CurrentServerPingUuid, sizeof(m_CurrentServerPingUuid)), "mem not null");
 	m_CurrentServerCurrentPingTime = -1;
 	m_CurrentServerNextPingTime = -1;
 
@@ -872,7 +876,9 @@ void CClient::DisconnectWithReason(const char *pReason)
 	m_MapDetailsPresent = false;
 
 	// clear the current server info
-	mem_zero(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
+	m_CurrentServerInfo = CServerInfo();
+	dbg_assert(mem_is_null(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo)), "mem not null");
+	//mem_zero(m_CurrentServerInfo.m_aAddresses, sizeof(m_CurrentServerInfo.m_aAddresses));
 
 	// clear snapshots
 	m_aapSnapshots[g_Config.m_ClDummy][SNAP_CURRENT] = 0;
@@ -966,7 +972,9 @@ void CClient::GetServerInfo(CServerInfo *pServerInfo) const
 
 void CClient::ServerInfoRequest()
 {
-	mem_zero(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
+	m_CurrentServerInfo = CServerInfo();
+	dbg_assert(mem_is_null(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo)), "mem not null");
+	//mem_zero(m_CurrentServerInfo.m_aAddresses, sizeof(m_CurrentServerInfo.m_aAddresses));
 	m_CurrentServerInfoRequestTime = 0;
 }
 
@@ -4172,7 +4180,8 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 
 	if(Start <= (int)sizeof(m_Checksum.m_aBytes))
 	{
-		mem_zero(&m_Checksum.m_Data.m_Config, sizeof(m_Checksum.m_Data.m_Config));
+		m_Checksum.m_Data.m_Config = CConfig();
+		dbg_assert(mem_is_null(&m_Checksum.m_Data.m_Config, sizeof(m_Checksum.m_Data.m_Config)), "mem not null");
 #define CHECKSUM_RECORD(Flags) (((Flags)&CFGFLAG_CLIENT) == 0 || ((Flags)&CFGFLAG_INSENSITIVE) != 0)
 #define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Flags, Desc) \
 	if(CHECKSUM_RECORD(Flags)) \
@@ -4511,9 +4520,8 @@ void CClient::RegisterCommands()
 
 static CClient *CreateClient()
 {
-	CClient *pClient = static_cast<CClient *>(malloc(sizeof(*pClient)));
-	mem_zero(pClient, sizeof(CClient));
-	return new(pClient) CClient;
+	CClient *pClient = new CClient();
+	return pClient;
 }
 
 void CClient::HandleConnectAddress(const NETADDR *pAddr)
@@ -4756,8 +4764,7 @@ int main(int argc, const char **argv)
 
 	bool Restarting = pClient->State() == CClient::STATE_RESTARTING;
 
-	pClient->~CClient();
-	free(pClient);
+	delete pClient;
 
 	NotificationsUninit();
 	secure_random_uninit();

@@ -58,7 +58,10 @@ bool CServerInfo2::Validate() const
 
 bool CServerInfo2::FromJsonRaw(CServerInfo2 *pOut, const json_value *pJson)
 {
-	mem_zero(pOut, sizeof(*pOut));
+	*pOut = CServerInfo2();
+#ifdef __gcc__
+	dbg_assert(mem_is_null(pOut, sizeof(*pOut)), "mem not null");
+#endif
 	bool Error;
 
 	const json_value &ServerInfo = *pJson;

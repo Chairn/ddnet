@@ -66,7 +66,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
 
-	mem_zero(&m_LatestPrevPrevInput, sizeof(m_LatestPrevPrevInput));
+	m_LatestPrevPrevInput = CNetObj_PlayerInput();
+	memnull(m_LatestPrevPrevInput);
 	m_LatestPrevPrevInput.m_TargetY = -1;
 	m_NumInputs = 0;
 	m_SpawnTick = Server()->Tick();
@@ -861,15 +862,15 @@ void CCharacter::TickDeferred()
 
 	// update the m_SendCore if needed
 	{
-		CNetObj_Character Predicted;
-		CNetObj_Character Current;
-		mem_zero(&Predicted, sizeof(Predicted));
-		mem_zero(&Current, sizeof(Current));
+		CNetObj_Character Predicted{};
+		memnull(Predicted);
+		CNetObj_Character Current{};
+		memnull(Current);
 		m_ReckoningCore.Write(&Predicted);
 		m_Core.Write(&Current);
 
 		// only allow dead reackoning for a top of 3 seconds
-		if(m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0)
+		if(m_Core.m_Reset || m_ReckoningTick + Server()->TickSpeed() * 3 < Server()->Tick() || Predicted != Current)
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;

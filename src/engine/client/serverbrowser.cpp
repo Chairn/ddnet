@@ -593,7 +593,9 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR *pAddrs, int Num
 
 	// create new pEntry
 	pEntry = (CServerEntry *)m_ServerlistHeap.Allocate(sizeof(CServerEntry));
-	mem_zero(pEntry, sizeof(CServerEntry));
+	*pEntry = CServerEntry();
+	//mem_zero(pEntry->m_Info.m_aAddresses, sizeof(pEntry->m_Info.m_aAddresses));
+	dbg_assert(mem_is_null(pEntry, sizeof(pEntry)), "mem not null");
 
 	// set the info
 	mem_copy(pEntry->m_Info.m_aAddresses, pAddrs, NumAddrs * sizeof(pAddrs[0]));
@@ -758,12 +760,11 @@ void CServerBrowser::Refresh(int Type)
 	if(Type == IServerBrowser::TYPE_LAN)
 	{
 		unsigned char aBuffer[sizeof(SERVERBROWSE_GETINFO) + 1];
-		CNetChunk Packet;
+		CNetChunk Packet{};
+		memnull(Packet);
 		int i;
 
 		/* do the broadcast version */
-		Packet.m_ClientID = -1;
-		mem_zero(&Packet, sizeof(Packet));
 		Packet.m_Address.type = m_pNetClient->NetType() | NETTYPE_LINK_BROADCAST;
 		Packet.m_Flags = NETSENDFLAG_CONNLESS | NETSENDFLAG_EXTENDED;
 		Packet.m_DataSize = sizeof(aBuffer);

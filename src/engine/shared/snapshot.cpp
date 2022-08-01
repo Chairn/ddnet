@@ -239,7 +239,8 @@ CSnapshotDelta::CSnapshotDelta()
 	mem_zero(m_aItemSizes, sizeof(m_aItemSizes));
 	mem_zero(m_aSnapshotDataRate, sizeof(m_aSnapshotDataRate));
 	mem_zero(m_aSnapshotDataUpdates, sizeof(m_aSnapshotDataUpdates));
-	mem_zero(&m_Empty, sizeof(m_Empty));
+	m_Empty = CData();
+	memnull(m_Empty);
 }
 
 CSnapshotDelta::CSnapshotDelta(const CSnapshotDelta &Old)
@@ -247,7 +248,8 @@ CSnapshotDelta::CSnapshotDelta(const CSnapshotDelta &Old)
 	mem_copy(m_aItemSizes, Old.m_aItemSizes, sizeof(m_aItemSizes));
 	mem_copy(m_aSnapshotDataRate, Old.m_aSnapshotDataRate, sizeof(m_aSnapshotDataRate));
 	mem_copy(m_aSnapshotDataUpdates, Old.m_aSnapshotDataUpdates, sizeof(m_aSnapshotDataUpdates));
-	mem_zero(&m_Empty, sizeof(m_Empty));
+	m_Empty = CData();
+	memnull(m_Empty);
 }
 
 void CSnapshotDelta::SetStaticsize(int ItemType, int Size)
@@ -682,7 +684,8 @@ void *CSnapshotBuilder::NewItem(int Type, int ID, int Size)
 			return pObj;
 	}
 
-	mem_zero(pObj, sizeof(CSnapshotItem) + Size);
+	// FIXME: unsafe behavior in c++
+	mem_zero((void *)pObj, sizeof(CSnapshotItem) + Size);
 	pObj->m_TypeAndID = (Type << 16) | ID;
 	m_aOffsets[m_NumItems] = m_DataSize;
 	m_DataSize += sizeof(CSnapshotItem) + Size;

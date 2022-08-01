@@ -51,7 +51,8 @@ CTeamrank::CTeamrank() :
 {
 	for(auto &aName : m_aaNames)
 		aName[0] = '\0';
-	mem_zero(&m_TeamID.m_aData, sizeof(m_TeamID));
+	m_TeamID = CUuid();
+	memnull(m_TeamID);
 }
 
 bool CTeamrank::NextSqlResult(IDbConnection *pSqlServer, bool *pEnd, char *pError, int ErrorSize)

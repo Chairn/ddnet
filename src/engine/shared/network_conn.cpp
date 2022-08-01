@@ -45,7 +45,8 @@ void CNetConnection::Reset(bool Rejoin)
 
 	m_Buffer.Init();
 
-	mem_zero(&m_Construct, sizeof(m_Construct));
+	m_Construct = CNetPacketConstruct();
+	memnull(m_Construct);
 }
 
 const char *CNetConnection::ErrorString()
@@ -102,7 +103,8 @@ int CNetConnection::Flush()
 	m_LastSendTime = time_get();
 
 	// clear construct so we can start building a new package
-	mem_zero(&m_Construct, sizeof(m_Construct));
+	m_Construct = CNetPacketConstruct();
+	memnull(m_Construct);
 	return NumChunks;
 }
 

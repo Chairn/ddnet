@@ -58,10 +58,9 @@ void CGun::Fire()
 
 	// The closest player (within range) in a team is selected as the target
 	int aTargetIdInTeam[MAX_CLIENTS];
-	bool aIsTarget[MAX_CLIENTS];
-	int aMinDistInTeam[MAX_CLIENTS];
-	mem_zero(aMinDistInTeam, sizeof(aMinDistInTeam));
-	mem_zero(aIsTarget, sizeof(aIsTarget));
+	bool aIsTarget[MAX_CLIENTS] = {false};
+	dbg_assert(mem_is_null(aIsTarget, sizeof aIsTarget), "mem not null");
+	int aMinDistInTeam[MAX_CLIENTS] = {0};
 	for(int &TargetId : aTargetIdInTeam)
 	{
 		TargetId = -1;

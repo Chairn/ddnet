@@ -8,7 +8,8 @@
 bool CNetConsole::Open(NETADDR BindAddr, CNetBan *pNetBan)
 {
 	// zero out the whole structure
-	mem_zero(this, sizeof(*this));
+	*this = CNetConsole();
+	memnullp(this);
 	m_pNetBan = pNetBan;
 
 	// open socket

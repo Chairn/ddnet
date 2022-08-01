@@ -512,7 +512,8 @@ void CGameClient::OnConnected()
 
 	m_GameWorld.Clear();
 	m_GameWorld.m_WorldConfig.m_InfiniteAmmo = true;
-	mem_zero(&m_GameInfo, sizeof(m_GameInfo));
+	m_GameInfo = CGameInfo();
+	dbg_assert(mem_is_null(&m_GameInfo, sizeof(m_GameInfo)), "mem not null");
 	m_PredictedDummyID = -1;
 	LoadMapSettings();
 
@@ -1129,7 +1130,8 @@ static CGameInfo GetGameInfo(const CNetObj_GameInfoEx *pInfoEx, int InfoExSize, 
 void CGameClient::InvalidateSnapshot()
 {
 	// clear all pointers
-	mem_zero(&m_Snap, sizeof(m_Snap));
+	m_Snap = CGameClient::CSnapState();
+	memnull(m_Snap);
 	m_Snap.m_LocalClientID = -1;
 	SnapCollectEntities();
 }
@@ -1309,9 +1311,9 @@ void CGameClient::OnNewSnapshot()
 						// reuse the result from the previous evolve if the snapped character didn't change since the previous snapshot
 						if(EvolveCur && m_aClients[Item.m_ID].m_Evolved.m_Tick == Client()->PrevGameTick(g_Config.m_ClDummy))
 						{
-							if(mem_comp(&m_Snap.m_aCharacters[Item.m_ID].m_Prev, &m_aClients[Item.m_ID].m_Snapped, sizeof(CNetObj_Character)) == 0)
+							if(m_Snap.m_aCharacters[Item.m_ID].m_Prev == m_aClients[Item.m_ID].m_Snapped)
 								m_Snap.m_aCharacters[Item.m_ID].m_Prev = m_aClients[Item.m_ID].m_Evolved;
-							if(mem_comp(&m_Snap.m_aCharacters[Item.m_ID].m_Cur, &m_aClients[Item.m_ID].m_Snapped, sizeof(CNetObj_Character)) == 0)
+							if(m_Snap.m_aCharacters[Item.m_ID].m_Cur == m_aClients[Item.m_ID].m_Snapped)
 								m_Snap.m_aCharacters[Item.m_ID].m_Cur = m_aClients[Item.m_ID].m_Evolved;
 						}
 

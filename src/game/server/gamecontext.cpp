@@ -75,7 +75,8 @@ void CGameContext::Construct(int Resetting)
 	for(auto &pPlayer : m_apPlayers)
 		pPlayer = 0;
 
-	mem_zero(&m_aLastPlayerInput, sizeof(m_aLastPlayerInput));
+	new(m_aLastPlayerInput) std::remove_pointer<decltype(m_aLastPlayerInput)>::type{};
+	memnulla(m_aLastPlayerInput);
 	mem_zero(&m_aPlayerHasInput, sizeof(m_aPlayerHasInput));
 
 	m_pController = 0;
@@ -192,7 +193,8 @@ void CGameContext::FillAntibot(CAntibotRoundData *pData)
 		Collision()->FillAntibot(&pData->m_Map);
 	}
 	pData->m_Tick = Server()->Tick();
-	mem_zero(pData->m_aCharacters, sizeof(pData->m_aCharacters));
+	new(pData->m_aCharacters) std::remove_pointer<decltype(pData->m_aCharacters)>::type{};
+	memnulla(pData->m_aCharacters);
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		CAntibotCharacterData *pChar = &pData->m_aCharacters[i];
@@ -1393,7 +1395,7 @@ void CGameContext::OnClientEnter(int ClientID)
 	Server()->ExpireServerInfo();
 
 	CPlayer *pNewPlayer = m_apPlayers[ClientID];
-	mem_zero(&m_aLastPlayerInput[ClientID], sizeof(m_aLastPlayerInput[ClientID]));
+	m_aLastPlayerInput[ClientID] = CNetObj_PlayerInput();
 	m_aPlayerHasInput[ClientID] = false;
 
 	// new info for others

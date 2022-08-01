@@ -17,7 +17,8 @@
 
 CControls::CControls()
 {
-	mem_zero(&m_aLastData, sizeof(m_aLastData));
+	new(m_aLastData) std::remove_pointer<decltype(m_aLastData)>::type{};
+	memnulla(m_aLastData);
 	m_LastDummy = 0;
 	m_OtherFire = 0;
 }
@@ -284,7 +285,8 @@ int CControls::SnapInput(int *pData)
 		if(g_Config.m_DbgStress)
 		{
 			float t = Client()->LocalTime();
-			mem_zero(&m_aInputData[g_Config.m_ClDummy], sizeof(m_aInputData[0]));
+			m_aInputData[g_Config.m_ClDummy] = CNetObj_PlayerInput();
+			memnull(m_aInputData[g_Config.m_ClDummy]);
 
 			m_aInputData[g_Config.m_ClDummy].m_Direction = ((int)t / 2) & 1;
 			m_aInputData[g_Config.m_ClDummy].m_Jump = ((int)t);

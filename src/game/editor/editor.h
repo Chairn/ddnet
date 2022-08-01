@@ -553,7 +553,7 @@ protected:
 			ShiftBy = minimum(ShiftBy, m_Height);
 			for(int y = ShiftBy; y < m_Height; ++y)
 			{
-				mem_copy(&pTiles[(y - ShiftBy) * m_Width], &pTiles[y * m_Width], m_Width * sizeof(T));
+				std::copy_n(&pTiles[y * m_Width], m_Width, &pTiles[(y - ShiftBy) * m_Width]);
 			}
 			for(int y = m_Height - ShiftBy; y < m_Height; ++y)
 			{
@@ -564,7 +564,7 @@ protected:
 			ShiftBy = minimum(ShiftBy, m_Height);
 			for(int y = m_Height - ShiftBy - 1; y >= 0; --y)
 			{
-				mem_copy(&pTiles[(y + ShiftBy) * m_Width], &pTiles[y * m_Width], m_Width * sizeof(T));
+				std::copy_n(&pTiles[y * m_Width], m_Width, &pTiles[(y + ShiftBy) * m_Width]);
 			}
 			for(int y = 0; y < ShiftBy; ++y)
 			{

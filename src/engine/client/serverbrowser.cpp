@@ -597,7 +597,8 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR *pAddrs, int Num
 	dbg_assert(mem_is_null(pEntry, sizeof(*pEntry)), "mem not null");
 
 	// set the info
-	mem_copy(pEntry->m_Info.m_aAddresses, pAddrs, NumAddrs * sizeof(pAddrs[0]));
+	std::copy(pAddrs, pAddrs + NumAddrs, pEntry->m_Info.m_aAddresses);
+	memequalaa(pAddrs, pEntry->m_Info.m_aAddresses, MAX_SERVER_ADDRESSES);
 	pEntry->m_Info.m_NumAddresses = NumAddrs;
 
 	pEntry->m_Info.m_Latency = 999;

@@ -65,6 +65,7 @@ void CGraphics_Threaded::FlushVertices(bool KeepVertices)
 	if(Cmd.m_pVertices != NULL)
 	{
 		std::copy(m_aVertices, m_aVertices + NumVerts, Cmd.m_pVertices);
+		memequalaa(m_aVertices, Cmd.m_pVertices, NumVerts);
 	}
 }
 
@@ -78,6 +79,7 @@ void CGraphics_Threaded::FlushVerticesTex3D()
 	if(Cmd.m_pVertices != NULL)
 	{
 		std::copy(m_aVerticesTex3D, m_aVerticesTex3D + NumVerts, Cmd.m_pVertices);
+		memequalaa(m_aVerticesTex3D, Cmd.m_pVertices, NumVerts);
 	}
 }
 

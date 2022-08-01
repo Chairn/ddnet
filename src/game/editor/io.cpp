@@ -358,9 +358,9 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 	for(const auto &pEnvelope : m_vpEnvelopes)
 	{
-		int Count = pEnvelope->m_vPoints.size();
-		mem_copy(&pPoints[PointCount], pEnvelope->m_vPoints.data(), sizeof(CEnvPoint) * Count);
-		PointCount += Count;
+		std::copy(pEnvelope->m_vPoints.begin(), pEnvelope->m_vPoints.end(), pPoints);
+		memequalaa(pEnvelope->m_vPoints.data(), pPoints + PointCount, pEnvelope->m_vPoints.size());
+		PointCount += pEnvelope->m_vPoints.size();
 	}
 
 	df.AddItem(MAPITEMTYPE_ENVPOINTS, 0, TotalSize, pPoints);
@@ -952,7 +952,8 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				CMapItemEnvelope *pItem = (CMapItemEnvelope *)DataFile.GetItem(Start + e, nullptr, nullptr);
 				CEnvelope *pEnv = new CEnvelope(pItem->m_Channels);
 				pEnv->m_vPoints.resize(pItem->m_NumPoints);
-				mem_copy(pEnv->m_vPoints.data(), &pPoints[pItem->m_StartPoint], sizeof(CEnvPoint) * pItem->m_NumPoints);
+				std::copy(&pPoints[pItem->m_StartPoint], &pPoints[pItem->m_StartPoint] + pItem->m_NumPoints, pEnv->m_vPoints.data());
+				memequalaa(pEnv->m_vPoints.data(), &pPoints[pItem->m_StartPoint], pItem->m_NumPoints);
 				if(pItem->m_aName[0] != -1) // compatibility with old maps
 					IntsToStr(pItem->m_aName, sizeof(pItem->m_aName) / sizeof(int), pEnv->m_aName);
 				m_vpEnvelopes.push_back(pEnv);

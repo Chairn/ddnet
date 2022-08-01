@@ -536,7 +536,7 @@ protected:
 			for(int y = 0; y < m_Height; ++y)
 			{
 				if(ShiftBy < m_Width)
-					mem_move(&pTiles[y * m_Width], &pTiles[y * m_Width + ShiftBy], (m_Width - ShiftBy) * sizeof(T));
+					std::copy(&pTiles[y * m_Width + ShiftBy], &pTiles[(y + 1) * m_Width], &pTiles[y * m_Width]);
 				mem_zero(&pTiles[y * m_Width + (m_Width - ShiftBy)], ShiftBy * sizeof(T));
 			}
 			break;
@@ -545,7 +545,7 @@ protected:
 			for(int y = 0; y < m_Height; ++y)
 			{
 				if(ShiftBy < m_Width)
-					mem_move(&pTiles[y * m_Width + ShiftBy], &pTiles[y * m_Width], (m_Width - ShiftBy) * sizeof(T));
+					std::copy_backward(&pTiles[y * m_Width],  &pTiles[(y + 1) * m_Width - ShiftBy], &pTiles[(y + 1) * m_Width]);
 				mem_zero(&pTiles[y * m_Width], ShiftBy * sizeof(T));
 			}
 			break;

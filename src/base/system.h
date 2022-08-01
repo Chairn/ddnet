@@ -2481,6 +2481,12 @@ inline void str_copy(char (&dst)[N], const char *src)
  * Memory management utilities.
  */
 
+#if defined(__GNUC__) || defined(__clang__)
+#define RESTRICT __restrict__
+#else
+#define RESTRICT // no-op
+#endif
+
 /**
  * Copies a a memory block.
  *
@@ -2495,7 +2501,7 @@ inline void str_copy(char (&dst)[N], const char *src)
  * @see mem_move
  */
 template<typename T1, typename T2>
-inline void mem_copy(T1 *__restrict__ dest, const T2 *__restrict__ source, unsigned size)
+inline void mem_copy(T1 *RESTRICT dest, const T2 *RESTRICT source, unsigned size)
 {
 	static_assert(std::is_same<T1, void>::value || std::is_trivial<T1>::value || std::is_standard_layout<T1>::value);
 	static_assert(std::is_same<T2, void>::value || std::is_trivial<T2>::value || std::is_standard_layout<T2>::value);

@@ -64,6 +64,7 @@ void CGraphics_Threaded::FlushVertices(bool KeepVertices)
 
 	if(Cmd.m_pVertices != NULL)
 	{
+		// std::copy(m_aVertices, &m_aVertices[NumVerts-1], Cmd.m_pVertices);
 		mem_copy(Cmd.m_pVertices, m_aVertices, VertSize * NumVerts);
 	}
 }

@@ -11,8 +11,10 @@ SECURITY_TOKEN ToSecurityToken(unsigned char *pData)
 
 void CNetConnection::ResetStats()
 {
-	mem_zero(&m_Stats, sizeof(m_Stats));
-	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
+	m_Stats = NETSTATS();
+	memnull(m_Stats);
+	m_PeerAddr = NETADDR();
+	memnull(m_PeerAddr);
 	m_LastUpdateTime = 0;
 }
 
@@ -202,7 +204,7 @@ int CNetConnection::Connect(const NETADDR *pAddr, int NumAddrs)
 
 	// init connection
 	Reset();
-	mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
+	m_PeerAddr = NETADDR();
 	for(int i = 0; i < NumAddrs; i++)
 	{
 		m_aConnectAddrs[i] = pAddr[i];

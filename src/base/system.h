@@ -2556,11 +2556,16 @@ inline void mem_copy(T1 *__restrict__ dest, const T2 *__restrict__ source, unsig
  */
 
 int mem_is_null(const void *block, size_t size);
+int mem_is_equal(const void *a, const void *b, size_t size);
 
 #define memnull(x) dbg_assert(mem_is_null(&x, sizeof(x)), "mem not null");
 #define memnullp(x) dbg_assert(mem_is_null(x, sizeof(*x)), "mem not null (pointer)");
 #define memnulla(x) dbg_assert(mem_is_null(x, sizeof(std::remove_pointer<decltype(x)>::type)), "mem not null (array)");
 #define memnullaa(x, n) dbg_assert(mem_is_null(x, sizeof(*x) * (n)), "mem not null (pointer array)");
+#define memequal(x, y) dbg_assert(mem_is_equal(&x, &y, sizeof(x)), "mem not equal");
+#define memequalp(x, y) dbg_assert(mem_is_equal(x, &y, sizeof(*x)), "mem not equal (pointer)");
+#define memequala(x, y) dbg_assert(mem_is_equal(x, y, sizeof(std::remove_pointer<decltype(x)>::type)), "mem not equal (array)");
+#define memequalaa(x, y, n) dbg_assert(mem_is_equal(x, y, sizeof(*x) * (n)), "mem not equal (pointer array)");
 
 template<typename T1, typename T2>
 inline void mem_move(T1 *dest, const T2 *source, unsigned size)

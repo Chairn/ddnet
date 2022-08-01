@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 
 int main(int argc, char **argv)
 {
@@ -35,6 +36,8 @@ int main(int argc, char **argv)
 		  << m_aTest << std::endl;
 	std::cout << typeid(decltype(&m_aTest)).name() << std::endl;
 	std::cout << sizeof(int) << std::endl;
+
+    std::copy(m_aTest, &m_aTest[511], *b);
 
 	return 0;
 }

@@ -765,8 +765,8 @@ void CClient::Connect(const char *pAddress, const char *pPassword)
 	ServerInfoRequest();
 
 	int NumConnectAddrs = 0;
-	NETADDR aConnectAddrs[MAX_SERVER_ADDRESSES];
-	mem_zero(aConnectAddrs, sizeof(aConnectAddrs));
+	NETADDR aConnectAddrs[MAX_SERVER_ADDRESSES]{};
+	memnulla(aConnectAddrs);
 	const char *pNextAddr = pAddress;
 	char aBuffer[128];
 	while((pNextAddr = str_next_token(pNextAddr, ",", aBuffer, sizeof(aBuffer))))
@@ -878,7 +878,6 @@ void CClient::DisconnectWithReason(const char *pReason)
 	// clear the current server info
 	m_CurrentServerInfo = CServerInfo();
 	dbg_assert(mem_is_null(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo)), "mem not null");
-	//mem_zero(m_CurrentServerInfo.m_aAddresses, sizeof(m_CurrentServerInfo.m_aAddresses));
 
 	// clear snapshots
 	m_aapSnapshots[g_Config.m_ClDummy][SNAP_CURRENT] = 0;
@@ -964,7 +963,8 @@ int CClient::GetCurrentRaceTime()
 
 void CClient::GetServerInfo(CServerInfo *pServerInfo) const
 {
-	mem_copy(pServerInfo, &m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
+	*pServerInfo = m_CurrentServerInfo;
+	memequalp(pServerInfo, m_CurrentServerInfo);
 
 	if(m_DemoPlayer.IsPlaying() && g_Config.m_ClDemoAssumeRace)
 		str_copy(pServerInfo->m_aGameType, "DDraceNetwork");
@@ -974,7 +974,6 @@ void CClient::ServerInfoRequest()
 {
 	m_CurrentServerInfo = CServerInfo();
 	dbg_assert(mem_is_null(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo)), "mem not null");
-	//mem_zero(m_CurrentServerInfo.m_aAddresses, sizeof(m_CurrentServerInfo.m_aAddresses));
 	m_CurrentServerInfoRequestTime = 0;
 }
 
@@ -1551,7 +1550,8 @@ void CClient::ProcessServerInfo(int RawType, NETADDR *pFrom, const void *pData, 
 			// us.
 			if(SavedType >= m_CurrentServerInfo.m_Type)
 			{
-				mem_copy(&m_CurrentServerInfo, &Info, sizeof(m_CurrentServerInfo));
+				m_CurrentServerInfo = Info;
+				memequal(m_CurrentServerInfo, Info);
 				m_CurrentServerInfo.m_NumAddresses = 1;
 				m_CurrentServerInfo.m_aAddresses[0] = ServerAddress();
 				m_CurrentServerInfoRequestTime = -1;
@@ -3094,7 +3094,8 @@ void CClient::Run()
 		}
 		else
 		{
-			mem_zero(&BindAddr, sizeof(BindAddr));
+			BindAddr = NETADDR();
+			memnull(BindAddr);
 			BindAddr.type = NETTYPE_ALL;
 		}
 		for(unsigned int i = 0; i < std::size(m_aNetClient); i++)

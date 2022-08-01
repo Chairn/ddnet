@@ -491,7 +491,8 @@ class NetOperatorEquality(NetFunction):
 		if self.static_assert and self.rhs:
 			lines += [f"\tstatic_assert(sizeof({self.parent}) == sizeof({self.rhs}));"]
 		if self.parent.base:
-			from network import Objects
+			## need import here due to circular import
+			from network import Objects # pylint: disable=import-outside-toplevel
 			base = next((base for base in Objects if base.name == self.parent.base))
 			lines += [f"\treturn {base.variables[0]} == rhs.{base.variables[0]}"]
 			for var in base.variables[1:]:
@@ -516,7 +517,8 @@ class NetOperatorInequality(NetFunction):
 		if self.static_assert and self.rhs:
 			lines += [f"\tstatic_assert(sizeof({self.parent}) == sizeof({self.rhs}));"]
 		if self.parent.base:
-			from network import Objects
+			## need import here due to circular import
+			from network import Objects # pylint: disable=import-outside-toplevel
 			base = next((base for base in Objects if base.name == self.parent.base))
 			lines += [f"\treturn {base.variables[0]} != rhs.{base.variables[0]}"]
 			for var in base.variables[1:]:

@@ -4229,3 +4229,18 @@ int mem_is_null(const void *block, size_t size)
 	}
 	return 1;
 }
+
+int mem_is_equal(const void *a, const void *b, size_t size)
+{
+	const unsigned char *ab = (const unsigned char *)a;
+	const unsigned char *bb = (const unsigned char *)b;
+	size_t i;
+	for(i = 0; i < size; i++)
+	{
+		if(ab[i] != bb[i])
+		{
+			return 0;
+		}
+	}
+	return 1;
+}

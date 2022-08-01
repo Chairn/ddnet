@@ -517,7 +517,7 @@ void CServerBrowser::SetInfo(CServerEntry *pEntry, const CServerInfo &Info)
 	pEntry->m_Info.m_Favorite = TmpInfo.m_Favorite;
 	pEntry->m_Info.m_FavoriteAllowPing = TmpInfo.m_FavoriteAllowPing;
 	pEntry->m_Info.m_Official = TmpInfo.m_Official;
-	mem_copy(pEntry->m_Info.m_aAddresses, TmpInfo.m_aAddresses, sizeof(pEntry->m_Info.m_aAddresses));
+	std::copy(TmpInfo.m_aAddresses, TmpInfo.m_aAddresses + MAX_SERVER_ADDRESSES, pEntry->m_Info.m_aAddresses);
 	pEntry->m_Info.m_NumAddresses = TmpInfo.m_NumAddresses;
 	ServerBrowserFormatAddresses(pEntry->m_Info.m_aAddress, sizeof(pEntry->m_Info.m_aAddress), pEntry->m_Info.m_aAddresses, pEntry->m_Info.m_NumAddresses);
 
@@ -594,8 +594,7 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR *pAddrs, int Num
 	// create new pEntry
 	pEntry = (CServerEntry *)m_ServerlistHeap.Allocate(sizeof(CServerEntry));
 	*pEntry = CServerEntry();
-	//mem_zero(pEntry->m_Info.m_aAddresses, sizeof(pEntry->m_Info.m_aAddresses));
-	dbg_assert(mem_is_null(pEntry, sizeof(pEntry)), "mem not null");
+	dbg_assert(mem_is_null(pEntry, sizeof(*pEntry)), "mem not null");
 
 	// set the info
 	mem_copy(pEntry->m_Info.m_aAddresses, pAddrs, NumAddrs * sizeof(pAddrs[0]));
@@ -669,8 +668,8 @@ void CServerBrowser::OnServerInfoUpdate(const NETADDR &Addr, int Token, const CS
 
 	if(m_ServerlistType == IServerBrowser::TYPE_LAN)
 	{
-		NETADDR Broadcast;
-		mem_zero(&Broadcast, sizeof(Broadcast));
+		NETADDR Broadcast{};
+		memnull(Broadcast);
 		Broadcast.type = m_pNetClient->NetType() | NETTYPE_LINK_BROADCAST;
 		int TokenBC = GenerateToken(Broadcast);
 		bool Drop = false;

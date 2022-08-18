@@ -78,7 +78,7 @@ void CCharacter::HandleJetpack()
 		return;
 	}
 
-	if(m_Core.m_ActiveWeapon == WEAPON_GUN && m_Jetpack)
+	if(m_Core.m_ActiveWeapon == WEAPON_GUN && m_Core.m_Jetpack)
 	{
 		float Strength = GetTuning(m_TuneZone)->m_JetpackStrength;
 		if(!m_TuneZone)

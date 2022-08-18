@@ -469,6 +469,7 @@ TEST(Str, StrTime)
 	EXPECT_EQ(str_time(123456, TIME_DAYS, aBuf, 0), -1);
 	EXPECT_STREQ(aBuf, "foobar");
 
+	// EXPECT_DEATH(str_time(123456, TIME_MINS_CENTISECS + 1, aBuf, sizeof(aBuf)), "[  DEATH   ]");
 	// EXPECT_EQ(str_time(123456, TIME_MINS_CENTISECS + 1, aBuf, sizeof(aBuf)), -1);
 	// EXPECT_STREQ(aBuf, "");
 

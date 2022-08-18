@@ -618,7 +618,7 @@ void CPlayers::RenderPlayer(
 			case WEAPON_SHOTGUN: RenderHand(&RenderInfo, WeaponPosition, Direction, -pi / 2, vec2(-5, 4), Alpha); break;
 			case WEAPON_GRENADE: RenderHand(&RenderInfo, WeaponPosition, Direction, -pi / 2, vec2(-4, 7), Alpha); break;
             default:
-                dbg_assert(false, "???");
+                // dbg_assert(false, "???"); // triggered on player death
                 break; // don't render non projectile weapon
 			}
 		}

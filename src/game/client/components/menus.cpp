@@ -2653,6 +2653,22 @@ bool CMenus::CheckHotKey(int Key) const
 	       Input()->KeyIsPressed(Key) && m_pClient->m_GameConsole.IsClosed();
 }
 
+int CMenus::DoButton_CheckBox_Tristate(const void *pID, const char *pText, TRISTATE Checked, const CUIRect *pRect)
+{
+	switch(Checked)
+	{
+	case TRISTATE::NONE:
+		return DoButton_CheckBox_Common(pID, pText, "", pRect);
+	case TRISTATE::SOME:
+		return DoButton_CheckBox_Common(pID, pText, "O", pRect);
+	case TRISTATE::ALL:
+		return DoButton_CheckBox_Common(pID, pText, "X", pRect);
+	default:
+		dbg_assert(false, "invalid tristate");
+	}
+	dbg_break();
+}
+
 int CMenus::MenuImageScan(const char *pName, int IsDir, int DirType, void *pUser)
 {
 	CMenus *pSelf = (CMenus *)pUser;

@@ -685,7 +685,7 @@ void *CSnapshotBuilder::NewItem(int Type, int ID, int Size)
 	}
 
 	// FIXME: unsafe behavior in c++
-	mem_zero((void *)pObj, sizeof(CSnapshotItem) + Size);
+	mem_zero((void*)pObj, sizeof(CSnapshotItem) + Size);
 	pObj->m_TypeAndID = (Type << 16) | ID;
 	m_aOffsets[m_NumItems] = m_DataSize;
 	m_DataSize += sizeof(CSnapshotItem) + Size;

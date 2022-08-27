@@ -1199,7 +1199,7 @@ int net_host_lookup_impl(const char *hostname, NETADDR *addr, int types)
 
 	dbg_msg("host_lookup", "host='%s' port=%d %d", host, port, types);
 
-	mem_zero(&hints, sizeof(hints));
+	mem_zero(hints, sizeof(hints));
 
 	hints.ai_family = AF_UNSPEC;
 
@@ -1603,7 +1603,7 @@ int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size
 			struct sockaddr_in sa;
 			if(addr->type & NETTYPE_LINK_BROADCAST)
 			{
-				mem_zero(&sa, sizeof(sa));
+				mem_zero(sa, sizeof(sa));
 				sa.sin_port = htons(addr->port);
 				sa.sin_family = AF_INET;
 				sa.sin_addr.s_addr = INADDR_BROADCAST;
@@ -1639,7 +1639,7 @@ int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size
 			struct sockaddr_in6 sa;
 			if(addr->type & NETTYPE_LINK_BROADCAST)
 			{
-				mem_zero(&sa, sizeof(sa));
+				mem_zero(sa, sizeof(sa));
 				sa.sin6_port = htons(addr->port);
 				sa.sin6_family = AF_INET6;
 				sa.sin6_addr.s6_addr[0] = 0xff; /* multicast */
@@ -3817,7 +3817,7 @@ PROCESS shell_execute(const char *file)
 	WCHAR wBuffer[512];
 	MultiByteToWideChar(CP_UTF8, 0, file, -1, wBuffer, std::size(wBuffer));
 	SHELLEXECUTEINFOW info;
-	mem_zero(&info, sizeof(SHELLEXECUTEINFOW));
+	mem_zero(info, sizeof(SHELLEXECUTEINFOW));
 	info.cbSize = sizeof(SHELLEXECUTEINFOW);
 	info.lpVerb = L"open";
 	info.lpFile = wBuffer;

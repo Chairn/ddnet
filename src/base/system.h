@@ -2590,24 +2590,27 @@ inline int mem_comp(const T1 *a, const T2 *b, int size)
 }
 template<typename T>
 [[gnu::warning("your type here")]]
-inline void mem_zero(T *block, unsigned size)
+inline void mem_zero(T& block, size_t size)
 {
 	static_assert(std::is_same<T, void>::value || std::is_trivial<T>::value || std::is_standard_layout<T>::value);
 
 	if constexpr(std::is_same<T, void>::value)
 	{
+		static_assert(std::is_same<T, void>::value && false);
 		// dbg_msg("mem_zero", "void type @%p in %s", block, __PRETTY_FUNCTION__);
 		memset(block, 0, size);
 	}
 	else if constexpr(std::is_pointer<T>::value)
 	{
-		dbg_msg("mem_zero", "pointer type \"%s\" (%d) @%p (%d) in %s", typeid(T).name(), (int)sizeof(T),
+		dbg_msg("mem_zero", "pointer type \"%s\" (%d) @%p (%I64u) in %s", typeid(T).name(), (int)sizeof(T),
 																	block, size, __PRETTY_FUNCTION__);
+		//for(size_t i(0); i < size; i += sizeof(T))
+		
 		memset(block, 0, size);
 	}
 	else if constexpr(std::is_array<T>::value)
 	{
-		dbg_msg("mem_zero", "array type \"%s\" (%d) @%p (%d) in %s", typeid(T).name(), (int)sizeof(T),
+		dbg_msg("mem_zero", "array type \"%s\" (%d) @%p (%I64u) in %s", typeid(T).name(), (int)sizeof(T),
 																	block, size, __PRETTY_FUNCTION__);
 		dbg_msg("mem_zero", "underlying type is %s", typeid(typename std::remove_all_extents<T>::type).name());
 		dbg_assert(size % sizeof(typename std::remove_all_extents<T>::type) == 0, "array size not multiple");
@@ -2615,17 +2618,23 @@ inline void mem_zero(T *block, unsigned size)
 	}
 	else if constexpr(std::is_trivial<T>::value)
 	{
-		dbg_msg("mem_zero", "trivial type \"%s\" (%d) @%p (%d) in %s", typeid(T).name(), (int)sizeof(T),
-																	   block, size, __PRETTY_FUNCTION__);
+		dbg_msg("mem_zero", "trivial type \"%s\" (%d) @%p (%I64u) in %s", typeid(T).name(), (int)sizeof(T),
+																	   &block, size, __PRETTY_FUNCTION__);
 		dbg_assert(size % sizeof(T) == 0, "trivial size not multiple");
-		memset(block, 0, size);
+		memset(&block, 0, size);
 	}
 	else
 	{
-		dbg_msg("mem_zero", "unknown type \"%s\" (%d) @%p (%d) in %s", typeid(T).name(), (int)sizeof(T),
+		dbg_msg("mem_zero", "unknown type \"%s\" (%d) @%p (%I64u) in %s", typeid(T).name(), (int)sizeof(T),
 																		block, size, __PRETTY_FUNCTION__);
 		memset(block, 0, size);
 	}
+}
+
+[[gnu::warning("void type called")]]
+inline void mem_zero(void* block, size_t size)
+{
+	memset(block, 0, size);
 }
 
 template<>

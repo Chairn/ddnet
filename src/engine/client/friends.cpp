@@ -11,7 +11,7 @@
 
 CFriends::CFriends()
 {
-	new(m_aFriends) std::remove_pointer<decltype(m_aFriends)>::type{};
+	mem_zero(m_aFriends, sizeof(m_aFriends));
 	memnulla(m_aFriends);
 	m_NumFriends = 0;
 	m_Foes = false;

@@ -7,7 +7,7 @@
 
 bool CNetConsole::Open(NETADDR BindAddr, CNetBan *pNetBan)
 {
-	// zero out the whole structure
+	// reset the whole structure
 	*this = CNetConsole();
 	memnullp(this);
 	m_pNetBan = pNetBan;

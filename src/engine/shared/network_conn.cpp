@@ -40,7 +40,7 @@ void CNetConnection::Reset(bool Rejoin)
 	m_LastRecvTime = 0;
 	//m_LastUpdateTime = 0;
 
-	mem_zero(&m_aConnectAddrs, sizeof(m_aConnectAddrs));
+	mem_zero(m_aConnectAddrs, sizeof(m_aConnectAddrs));
 	m_NumConnectAddrs = 0;
 	//mem_zero(&m_PeerAddr, sizeof(m_PeerAddr));
 	m_UnknownSeq = false;
@@ -515,6 +515,7 @@ void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SE
 		CNetChunkResend *pFirst = pResendBuffer->First();
 
 		CNetChunkResend *pResend = m_Buffer.Allocate(sizeof(CNetChunkResend) + pFirst->m_DataSize);
+		// FIXME: unsafe c++ construct
 		mem_copy((void*)pResend, (void*)pFirst, sizeof(CNetChunkResend) + pFirst->m_DataSize);
 
 		pResendBuffer->PopFirst();

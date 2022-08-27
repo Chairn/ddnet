@@ -45,7 +45,7 @@ static SECURITY_TOKEN ToSecurityToken(const unsigned char *pData)
 
 bool CNetServer::Open(NETADDR BindAddr, CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP)
 {
-	// zero out the whole structure
+	// reset the whole structure
 	*this = CNetServer();
 
 	// open socket

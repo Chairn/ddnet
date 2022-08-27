@@ -379,7 +379,7 @@ CClient::CClient() :
 	m_aCurrentInput[1] = 0;
 	m_LastDummy = false;
 
-	new(m_aInputs) std::remove_pointer<decltype(m_aInputs)>::type{};
+	mem_zero(m_aInputs, sizeof(m_aInputs));
 	dbg_assert(mem_is_null(m_aInputs, sizeof(m_aInputs)), "mem not null");
 
 	m_State = IClient::STATE_OFFLINE;
@@ -765,7 +765,8 @@ void CClient::Connect(const char *pAddress, const char *pPassword)
 	ServerInfoRequest();
 
 	int NumConnectAddrs = 0;
-	NETADDR aConnectAddrs[MAX_SERVER_ADDRESSES]{};
+	NETADDR aConnectAddrs[MAX_SERVER_ADDRESSES];
+	mem_zero(aConnectAddrs, sizeof(aConnectAddrs));
 	memnulla(aConnectAddrs);
 	const char *pNextAddr = pAddress;
 	char aBuffer[128];
@@ -3086,18 +3087,10 @@ void CClient::Run()
 #ifndef CONF_WEBASM
 	// open socket
 	{
-		NETADDR BindAddr;
-		if(g_Config.m_Bindaddr[0] && net_host_lookup(g_Config.m_Bindaddr, &BindAddr, NETTYPE_ALL) == 0)
-		{
-			// got bindaddr
-			BindAddr.type = NETTYPE_ALL;
-		}
-		else
-		{
-			BindAddr = NETADDR();
-			memnull(BindAddr);
-			BindAddr.type = NETTYPE_ALL;
-		}
+		NETADDR BindAddr{};
+		if(g_Config.m_Bindaddr[0])
+			net_host_lookup(g_Config.m_Bindaddr, &BindAddr, NETTYPE_ALL);
+		BindAddr.type = NETTYPE_ALL;
 		for(unsigned int i = 0; i < std::size(m_aNetClient); i++)
 		{
 			int &PortRef = i == CONN_MAIN ? g_Config.m_ClPort : i == CONN_DUMMY ? g_Config.m_ClDummyPort : g_Config.m_ClContactPort;

@@ -561,7 +561,7 @@ void CDataFileWriter::Init()
 	m_NumDatas = 0;
 	m_NumItemTypes = 0;
 	m_NumExtendedItemTypes = 0;
-	new(m_pItemTypes) CItemTypeInfo[MAX_ITEM_TYPES]{};
+	mem_zero(m_pItemTypes, sizeof(CItemTypeInfo) * MAX_ITEM_TYPES);
 	dbg_assert(mem_is_null(m_pItemTypes, sizeof(CItemTypeInfo) * MAX_ITEM_TYPES), "mem not null");
 	mem_zero(m_aExtendedItemTypes, sizeof(m_aExtendedItemTypes));
 

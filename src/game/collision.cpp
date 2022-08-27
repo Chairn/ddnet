@@ -85,7 +85,8 @@ void CCollision::Init(class CLayers *pLayers)
 		if(Size >= (size_t)m_Width * m_Height * sizeof(CSwitchTile))
 			m_pSwitch = static_cast<CSwitchTile *>(m_pLayers->Map()->GetData(m_pLayers->SwitchLayer()->m_Switch));
 
-		m_pDoor = new CDoorTile[m_Width * m_Height]{};
+		m_pDoor = new CDoorTile[m_Width * m_Height];
+		mem_zero(m_pDoor, (size_t)m_Width * m_Height * sizeof(CDoorTile));
 #ifdef __gcc__
 		dbg_assert(mem_is_null(m_pDoor, sizeof(CDoorTile) * m_Width * m_Height), "mem not null");
 #endif

@@ -202,7 +202,7 @@ template<class T, int HashCount>
 void CNetBan::CBanPool<T, HashCount>::Reset()
 {
 	mem_zero(m_aapHashList, sizeof(m_aapHashList));
-	new(m_aBans) typename std::remove_pointer<decltype(m_aBans)>::type{};
+	mem_zero(m_aBans, sizeof(m_aBans));
 	dbg_assert(mem_is_null(m_aBans, sizeof(typename std::remove_pointer<decltype(m_aBans)>::type)), "mem not null");
 	m_pFirstUsed = 0;
 	m_CountUsed = 0;

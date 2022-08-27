@@ -11,7 +11,7 @@ bool CNetClient::Open(NETADDR BindAddr)
 	if(!Socket)
 		return false;
 
-	// clean it
+	// reset it
 	*this = CNetClient();
 
 	// init

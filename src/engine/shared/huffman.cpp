@@ -93,7 +93,7 @@ void CHuffman::ConstructTree(const unsigned *pFrequencies)
 void CHuffman::Init(const unsigned *pFrequencies)
 {
 	// make sure to cleanout every thing
-	new(m_aNodes) std::remove_pointer<decltype(m_aNodes)>::type{};
+	mem_zero(m_aNodes, sizeof(m_aNodes));
 	memnulla(m_aNodes);
 	mem_zero(m_apDecodeLut, sizeof(m_apDecodeLut));
 	m_pStartNode = 0x0;

@@ -17,7 +17,7 @@
 
 CControls::CControls()
 {
-	new(m_aLastData) std::remove_pointer<decltype(m_aLastData)>::type{};
+	mem_zero(&m_aLastData, sizeof(m_aLastData));
 	memnulla(m_aLastData);
 	m_LastDummy = 0;
 	m_OtherFire = 0;

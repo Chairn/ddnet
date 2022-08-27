@@ -525,7 +525,7 @@ protected:
 			for(int y = 0; y < m_Height; ++y)
 			{
 				std::copy(&pTiles[y * m_Width + ShiftBy], &pTiles[(y + 1) * m_Width], &pTiles[y * m_Width]);
-				new(&pTiles[y * m_Width + (m_Width - ShiftBy)]) T[ShiftBy]{};
+				mem_zero(&pTiles[y * m_Width + (m_Width - ShiftBy)], ShiftBy * sizeof(T));
 				dbg_assert(mem_is_null(&pTiles[y * m_Width + (m_Width - ShiftBy)], ShiftBy * sizeof(T)), "mem not null");
 			}
 			break;
@@ -533,7 +533,7 @@ protected:
 			for(int y = 0; y < m_Height; ++y)
 			{
 				std::copy_backward(&pTiles[y * m_Width],  &pTiles[(y + 1) * m_Width - ShiftBy], &pTiles[(y + 1) * m_Width]);
-				new(&pTiles[y * m_Width]) T[ShiftBy]{};
+				mem_zero(&pTiles[y * m_Width], ShiftBy * sizeof(T));
 				dbg_assert(mem_is_null(&pTiles[y * m_Width], ShiftBy * sizeof(T)), "mem not null");
 			}
 			break;
@@ -542,7 +542,7 @@ protected:
 			{
 				std::copy_n(&pTiles[(y + ShiftBy) * m_Width], m_Width, &pTiles[y * m_Width]);
 				memequalaa(&pTiles[(y + ShiftBy) * m_Width], &pTiles[y * m_Width], m_Width);
-				new(&pTiles[(y + ShiftBy) * m_Width]) T[m_Width]{};
+				mem_zero(&pTiles[(y + ShiftBy) * m_Width], m_Width * sizeof(T));
 				dbg_assert(mem_is_null(&pTiles[(y + ShiftBy) * m_Width], m_Width * sizeof(T)), "mem not null");
 			}
 			break;
@@ -551,7 +551,7 @@ protected:
 			{
 				std::copy_n(&pTiles[(y - ShiftBy) * m_Width], m_Width, &pTiles[y * m_Width]);
 				memequalaa(&pTiles[(y - ShiftBy) * m_Width], &pTiles[y * m_Width], m_Width);
-				new(&pTiles[(y - ShiftBy) * m_Width]) T[m_Width]{};
+				mem_zero(&pTiles[(y - ShiftBy) * m_Width], m_Width * sizeof(T));
 				dbg_assert(mem_is_null(&pTiles[(y - ShiftBy) * m_Width], m_Width * sizeof(T)), "mem not null");
 			}
 		}

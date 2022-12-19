@@ -278,8 +278,17 @@ DDNetProjectile = NetObjectEx("DDNetProjectile", "projectile@netobj.ddnet.tw", [
 	NetIntAny("m_Data"),
 	NetIntRange("m_Type", 0, 'NUM_WEAPONS-1'),
 	NetTick("m_StartTick"),
-
 	NetOperatorAssignment(Projectile, True),
+])
+
+DDNetLaser = NetObjectEx("DDNetLaser", "laser@netobj.ddnet.tw", [
+	NetIntAny("m_ToX"),
+	NetIntAny("m_ToY"),
+	NetIntAny("m_FromX"),
+	NetIntAny("m_FromY"),
+	NetTick("m_StartTick"),
+	NetIntRange("m_Owner", 0, 'MAX_CLIENTS-1'),
+	NetIntAny("m_Type"),
 ])
 
 ## Events
@@ -352,6 +361,7 @@ Objects = [PlayerInput,
 		   DDNetPlayer,
 		   GameInfoEx,
 		   DDNetProjectile,
+		   DDNetLaser,
 
 ## Events
 

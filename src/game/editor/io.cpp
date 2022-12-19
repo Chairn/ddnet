@@ -363,7 +363,7 @@ bool CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 	for(const auto &pEnvelope : m_vpEnvelopes)
 	{
-		std::copy(pEnvelope->m_vPoints.begin(), pEnvelope->m_vPoints.end(), pPoints);
+		std::copy(pEnvelope->m_vPoints.begin(), pEnvelope->m_vPoints.end(), &pPoints[PointCount]);
 		PointCount += pEnvelope->m_vPoints.size();
 	}
 

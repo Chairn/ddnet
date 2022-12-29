@@ -16,6 +16,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+#include <string.h>
 #include <time.h>
 
 #ifdef __MINGW32__
@@ -39,6 +40,16 @@
 
 #include <chrono>
 #include <functional>
+#include <type_traits>
+#include <iostream>
+#include <iomanip>
+
+std::string demangle(const char* name);
+
+template <class T>
+std::string type(const T& t) {
+    return demangle(typeid(t).name());
+}
 
 extern "C" {
 
@@ -150,6 +161,7 @@ void mem_copy(void *dest, const void *source, unsigned size);
  */
 void mem_move(void *dest, const void *source, unsigned size);
 
+}
 /**
  * Sets a complete memory block to 0.
  *
@@ -158,8 +170,138 @@ void mem_move(void *dest, const void *source, unsigned size);
  * @param block Pointer to the block to zero out.
  * @param size Size of the block.
  */
-void mem_zero(void *block, unsigned size);
+template<typename T>
+[[gnu::warning("pointer type")]]
+inline void mem_zero(T *block, size_t size)
+{
+	typedef typename std::remove_all_extents<T>::type BaseT;
+	std::cout << "----------------------------------------------------------------------------------" << std::endl << std::boolalpha
+			  << std::left << std::setw(32) << typeid(block).name() << type(block) << std::endl
+			  << std::left << std::setw(32) << typeid(*block).name() << type(*block) << std::endl 
+			  << std::setw(32) << "is_pointer    " << std::is_pointer    <T>::value << std::endl
+			  << std::setw(32) << "is_pointer (no extents)" << std::is_pointer<BaseT>::value << std::endl
+			  << std::setw(32) << "is_array      " << std::is_array      <T>::value << std::endl
+			  << std::setw(32) << "is_fundamental" << std::is_fundamental<T>::value << std::endl
+			  << std::setw(32) << "is_fundamental (no extents)" << std::is_fundamental<BaseT>::value << std::endl
+			  << std::setw(32) << "is_void       " << std::is_same <T, void>::value << std::endl
+			  << std::setw(32) << "is_void (no extents)" << std::is_same<BaseT, void>::value << std::endl
+			  << std::setw(32) << "is_void*      " << std::is_same <T, void>::value << std::endl
+			  << std::setw(32) << "is_void* (no extents)" << std::is_same<BaseT, void*>::value << std::endl
+			  << std::setw(32) << "is_default_cons" << std::is_default_constructible<T>::value << std::endl
+			  << std::setw(32) << "is_default_cons (no extents)" << std::is_default_constructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_trivial_cons" << std::is_trivially_constructible<T>::value << std::endl
+			  << std::setw(32) << "is_trivial_cons (no extents)" << std::is_trivially_constructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_destructible" << std::is_destructible<T>::value << std::endl
+			  << std::setw(32) << "is_destructible (no extents)" << std::is_destructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_trivial_dest" << std::is_trivially_destructible<T>::value << std::endl
+			  << std::setw(32) << "is_trivial_dest (no extents)" << std::is_trivially_destructible<BaseT>::value << std::endl;
 
+	if constexpr(std::is_pointer<T>::value || std::is_pointer<BaseT>::value)
+	{
+		// pointer of pointer, just memset it
+		std::cout << "pointer of pointer, just memset it" << std::endl << std::endl;
+		memset(block, 0, size);
+	}
+	else if constexpr(std::is_array<T>::value)
+	{	// pointer to array type
+		std::cout << "100% array of type " << typeid(typename std::remove_pointer<T>::type).name() << "      ";
+		if constexpr(std::is_fundamental<BaseT>::value)
+		{	// array of fundamental type, just memset it
+			std::cout << "which is array of fundamental so memsetting it" << std::endl << std::endl;
+			memset(block, 0, size);
+		}
+		else
+		{	// array of user defined type, destroying all objects and recreating new ones
+			std::cout << "which is array of user defined type, ";
+			const size_t N = size/sizeof(BaseT);
+			if constexpr(!std::is_trivially_destructible<BaseT>::value)
+			{	// non trivial destructor means user provided or virtual destructor, see https://en.cppreference.com/w/cpp/language/destructor#Trivial_destructor
+				// so we gotta call it manually
+				std::cout << "destroying all objects ";
+				for(size_t i(0); i < N; ++i)
+				{
+					((BaseT*)block)[i].~BaseT();
+					// (*block)[i].~BaseT();
+				}
+			}
+			if constexpr(std::is_trivially_constructible<BaseT>::value)
+			{
+				std::cout << "memsetting it" << std::endl << std::endl;
+				memset(block, 0, size);
+			}
+			else
+			{
+				std::cout << "and recreating new ones" << std::endl << std::endl;
+				new(block) BaseT[N]{};
+			}
+		}
+	}
+	else if constexpr(std::is_fundamental<typename std::remove_pointer<T>::type>::value ||
+					  std::is_same<decltype(block), void*>::value)
+	{ 	// pointer to fundamental type, just memset it
+		std::cout << "pointer to fundamental type, just memset it" << std::endl << std::endl;
+		memset(block, 0, size);
+	} 
+	else
+	{	// pointer to type T, BUT CAN BE AN ARRAY...
+		std::cout << "pointer to type T, BUT CAN BE AN ARRAY... ";
+		const size_t N = size/sizeof(T);
+		if constexpr(!std::is_trivially_destructible<T>::value)
+		{	// non trivial destructor means user provided or virtual destructor, see https://en.cppreference.com/w/cpp/language/destructor#Trivial_destructor
+			// so we gotta call it manually
+			std::cout << "destroying all objects ";
+			for(size_t i(0); i < N; ++i)
+			{
+				block[i].~T();
+			}
+		}
+		if constexpr(std::is_trivially_constructible<T>::value)
+		{
+			std::cout << "memsetting it" << std::endl << std::endl;
+			memset(block, 0, size);
+		}
+		else
+		{
+			std::cout << "recreating new ones" << std::endl << std::endl;
+			new(block) T[N]{};
+		}
+	}
+	// memset(block, 0, size);
+	//assert(mem_is_null(block, size));
+}
+
+template<>
+[[gnu::warning("pointer type")]]
+inline void mem_zero(void *block, size_t size)
+{
+	typedef void T;
+	typedef typename std::remove_all_extents<T>::type BaseT;
+	static_assert(std::is_same<T, void>::value || std::is_trivial<T>::value || std::is_standard_layout<T>::value);
+	std::cout << "----------------------------------------------------------------------------------" << std::endl
+			  << std::left << std::setw(32) << typeid(block).name() << type(block) << std::endl
+			  << std::setw(32) << "is_pointer    " << std::is_pointer    <T>::value << std::endl
+			  << std::setw(32) << "is_pointer (no extents)" << std::is_pointer<BaseT>::value << std::endl
+			  << std::setw(32) << "is_array      " << std::is_array      <T>::value << std::endl
+			  << std::setw(32) << "is_fundamental" << std::is_fundamental<T>::value << std::endl
+			  << std::setw(32) << "is_fundamental (no extents)" << std::is_fundamental<BaseT>::value << std::endl
+			  << std::setw(32) << "is_void       " << std::is_same <T, void>::value << std::endl
+			  << std::setw(32) << "is_void (no extents)" << std::is_same<BaseT, void>::value << std::endl
+			  << std::setw(32) << "is_void*      " << std::is_same <T, void>::value << std::endl
+			  << std::setw(32) << "is_void* (no extents)" << std::is_same<BaseT, void*>::value << std::endl
+			  << std::setw(32) << "is_default_cons" << !std::is_default_constructible<T>::value << std::endl
+			  << std::setw(32) << "is_default_cons (no extents)" << !std::is_default_constructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_trivial_cons" << !std::is_trivially_constructible<T>::value << std::endl
+			  << std::setw(32) << "is_trivial_cons (no extents)" << !std::is_trivially_constructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_destructible" << !std::is_destructible<T>::value << std::endl
+			  << std::setw(32) << "is_destructible (no extents)" << !std::is_destructible<BaseT>::value << std::endl
+			  << std::setw(32) << "is_trivial_dest" << !std::is_trivially_destructible<T>::value << std::endl
+			  << std::setw(32) << "is_trivial_dest (no extents)" << !std::is_trivially_destructible<BaseT>::value << std::endl;
+
+	std::cout << "void pointer, just memset it" << std::endl << std::endl;
+	memset(block, 0, size);
+}
+
+extern "C" {
 /**
  * Compares two blocks of memory
  *

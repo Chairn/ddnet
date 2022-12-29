@@ -4518,6 +4518,14 @@ int SDL_main(int argc, char *argv2[])
 int main(int argc, const char **argv)
 #endif
 {
+	std::cout << std::boolalpha;
+	{CClient *pClient = static_cast<CClient *>(malloc(sizeof(*pClient)));
+	for(size_t i(0); i < sizeof(CClient); ++i)
+		((char*)pClient)[i] = 0;
+	new(pClient) CClient();
+	std::cout << "test 				" << std::flush << type(*pClient) << std::endl
+			  << typeid(*pClient).name() << std::endl;
+	mem_zero(pClient, sizeof(CClient));}
 #if defined(CONF_PLATFORM_ANDROID)
 	const char **argv = const_cast<const char **>(argv2);
 #elif defined(CONF_FAMILY_WINDOWS)

@@ -83,6 +83,25 @@
 #include <sys/filio.h>
 #endif
 
+#include <string>
+#include <typeinfo>
+#include <cstdlib>
+#include <memory>
+#include <cxxabi.h>
+
+std::string demangle(const char* name)
+{
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void(*)(void*)> res {
+        abi::__cxa_demangle(name, NULL, NULL, &status),
+        std::free
+    };
+
+    return (status==0) ? res.get() : name ;
+}
+
 extern "C" {
 
 IOHANDLE io_stdin()
@@ -214,11 +233,6 @@ void mem_copy(void *dest, const void *source, unsigned size)
 void mem_move(void *dest, const void *source, unsigned size)
 {
 	memmove(dest, source, size);
-}
-
-void mem_zero(void *block, unsigned size)
-{
-	memset(block, 0, size);
 }
 
 IOHANDLE io_open_impl(const char *filename, int flags)
@@ -3393,6 +3407,20 @@ int mem_has_null(const void *block, unsigned size)
 		}
 	}
 	return 0;
+}
+
+int mem_is_null(const void* block, size_t size)
+{
+       const unsigned char *bytes = (const unsigned char *)block;
+       size_t i;
+       for(i = 0; i < size; i++)
+       {
+                       if(bytes[i] != 0)
+                       {
+                                       return 0;
+                       }
+       }
+       return 1;
 }
 
 void net_stats(NETSTATS *stats_inout)

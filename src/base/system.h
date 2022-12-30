@@ -177,7 +177,7 @@ inline void mem_zero(T *block, size_t size)
 	typedef typename std::remove_all_extents<T>::type BaseT;
 	std::cout << "----------------------------------------------------------------------------------" << std::endl << std::boolalpha
 			  << std::left << std::setw(32) << typeid(block).name() << type(block) << std::endl
-			  << std::left << std::setw(32) << typeid(*block).name() << type(*block) << std::endl 
+			  << std::left << std::setw(32) << typeid(*block).name() << type(*block) << std::endl
 			  << std::setw(32) << "is_pointer    " << std::is_pointer    <T>::value << std::endl
 			  << std::setw(32) << "is_pointer (no extents)" << std::is_pointer<BaseT>::value << std::endl
 			  << std::setw(32) << "is_array      " << std::is_array      <T>::value << std::endl
@@ -241,7 +241,7 @@ inline void mem_zero(T *block, size_t size)
 	{ 	// pointer to fundamental type, just memset it
 		std::cout << "pointer to fundamental type, just memset it" << std::endl << std::endl;
 		memset(block, 0, size);
-	} 
+	}
 	else
 	{	// pointer to type T, BUT CAN BE AN ARRAY...
 		std::cout << "pointer to type T, BUT CAN BE AN ARRAY... ";

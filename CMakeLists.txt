@@ -2693,6 +2693,7 @@ if(GTEST_FOUND OR DOWNLOAD_GTEST)
     jobs.cpp
     json.cpp
     mapbugs.cpp
+    memory.cpp
     name_ban.cpp
     net.cpp
     netaddr.cpp

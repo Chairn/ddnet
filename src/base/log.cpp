@@ -422,15 +422,15 @@ std::unique_ptr<ILogger> log_logger_stdout()
 
 		// Try to enable virtual terminal processing in the Windows console.
 		// See https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
-		if(!SetConsoleMode(pOutput, OldConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN))
+		/*if(!SetConsoleMode(pOutput, OldConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN))
 		{
 			// Try to downgrade mode gracefully when failing to set both.
 			if(!SetConsoleMode(pOutput, OldConsoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-			{
+			{*/
 				// Fallback to old, slower Windows logging API, when failing to enable virtual terminal processing.
 				return std::make_unique<CWindowsConsoleLogger>(pOutput, Colors);
-			}
-		}
+			/*}
+		}*/
 
 		// Virtual terminal processing was enabled successfully. We can
 		// use the async logger with ANSI escape codes for colors now.

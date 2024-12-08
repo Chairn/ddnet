@@ -7,19 +7,32 @@
 #include <cmath>
 #include <cstdlib>
 
+#include "fxpt.h"
+
 using std::clamp;
 
-constexpr float pi = 3.1415926535897932384626433f;
+constexpr fxpt<16,16> pi = 3.1415926535897932384626433f;
+//constexpr float pi = 3.1415926535897932384626433f;
 
-constexpr inline int round_to_int(float f)
+constexpr inline int round_to_int(fxpt<16, 16> f)
+{
+	return f > 0 ? (f + 0.5f).toInt() : (f - 0.5f).toInt();
+}
+
+/*constexpr inline int round_to_int(float f)
 {
 	return f > 0 ? (int)(f + 0.5f) : (int)(f - 0.5f);
+}*/
+
+constexpr inline int round_truncate(fxpt<16, 16> f)
+{
+	return f.toInt();
 }
 
-constexpr inline int round_truncate(float f)
+/*constexpr inline int round_truncate(float f)
 {
 	return (int)f;
-}
+}*/
 
 template<typename T, typename TB>
 constexpr inline T mix(const T a, const T b, TB amount)
@@ -41,7 +54,27 @@ inline T bezier(const T p0, const T p1, const T p2, const T p3, TB amount)
 	return mix(c20, c21, amount); // c30
 }
 
-inline float random_float()
+inline fxpt<16, 16> random_float()
+{
+	return rand() / (fxpt<16, 16>)(RAND_MAX);
+}
+
+inline fxpt<16, 16> random_float(fxpt<16, 16> min, fxpt<16, 16> max)
+{
+	return min + random_float() * (max - min);
+}
+
+inline fxpt<16, 16> random_float(fxpt<16, 16> max)
+{
+	return random_float(0.0f, max);
+}
+
+inline fxpt<16, 16> random_angle()
+{
+	return 2.0f * pi * (rand() / std::nextafter((fxpt<16, 16>)RAND_MAX, std::numeric_limits<fxpt<16, 16>>::max()));
+}
+
+/*inline float random_float()
 {
 	return rand() / (float)(RAND_MAX);
 }
@@ -59,7 +92,7 @@ inline float random_float(float max)
 inline float random_angle()
 {
 	return 2.0f * pi * (rand() / std::nextafter((float)RAND_MAX, std::numeric_limits<float>::max()));
-}
+}*/
 
 constexpr int fxpscale = 1 << 10;
 

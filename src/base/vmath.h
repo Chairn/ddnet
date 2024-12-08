@@ -101,28 +101,23 @@ constexpr inline T dot(const vector2_base<T> a, const vector2_base<T> &b)
 	return a.x * b.x + a.y * b.y;
 }
 
-inline float length(const vector2_base<float> &a)
+inline fx16_16_t length(const vector2_base<fx16_16_t> &a)
 {
 	return std::sqrt(dot(a, a));
 }
 
-inline float length(const vector2_base<int> &a)
-{
-	return std::sqrt(dot(a, a));
-}
-
-inline float length_squared(const vector2_base<float> &a)
+inline fx16_16_t length_squared(const vector2_base<fx16_16_t> &a)
 {
 	return dot(a, a);
 }
 
-constexpr inline float angle(const vector2_base<float> &a)
+constexpr inline fx16_16_t angle(const vector2_base<fx16_16_t> &a)
 {
 	if(a.x == 0 && a.y == 0)
 		return 0.0f;
 	else if(a.x == 0)
 		return a.y < 0 ? -pi / 2 : pi / 2;
-	float result = std::atan(a.y / a.x);
+	fx16_16_t result = std::atan(a.y / a.x);
 	if(a.x < 0)
 		result = result + pi;
 	return result;
@@ -136,26 +131,26 @@ constexpr inline vector2_base<T> normalize_pre_length(const vector2_base<T> &v, 
 	return vector2_base<T>(v.x / len, v.y / len);
 }
 
-inline vector2_base<float> normalize(const vector2_base<float> &v)
+inline vector2_base<fx16_16_t> normalize(const vector2_base<fx16_16_t> &v)
 {
-	float divisor = length(v);
+	fx16_16_t divisor = length(v);
 	if(divisor == 0.0f)
-		return vector2_base<float>(0.0f, 0.0f);
-	float l = (float)(1.0f / divisor);
-	return vector2_base<float>(v.x * l, v.y * l);
+		return vector2_base<fx16_16_t>(0.0f, 0.0f);
+	fx16_16_t l = (fx16_16_t)(1.0f / divisor);
+	return vector2_base<fx16_16_t>(v.x * l, v.y * l);
 }
 
-inline vector2_base<float> direction(float angle)
+inline vector2_base<fx16_16_t> direction(fx16_16_t angle)
 {
-	return vector2_base<float>(std::cos(angle), std::sin(angle));
+	return vector2_base<fx16_16_t>(std::cos(angle), std::sin(angle));
 }
 
-inline vector2_base<float> random_direction()
+inline vector2_base<fx16_16_t> random_direction()
 {
 	return direction(random_angle());
 }
 
-typedef vector2_base<float> vec2;
+typedef vector2_base<fxpt<16,16>> vec2;
 typedef vector2_base<bool> bvec2;
 typedef vector2_base<int> ivec2;
 

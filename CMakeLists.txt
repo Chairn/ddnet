@@ -1997,6 +1997,7 @@ set_src(BASE GLOB_RECURSE src/base
   color.h
   detect.h
   dynamic.h
+  fxpt.h
   hash.cpp
   hash.h
   hash_bundled.cpp
@@ -2940,77 +2941,14 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/game/generated/checksum.cpp
 
 if(GTEST_FOUND OR DOWNLOAD_GTEST)
   set_src(TESTS GLOB src/test
-    aio.cpp
-    bezier.cpp
-    blocklist_driver.cpp
-    bytes_be.cpp
-    color.cpp
-    compression.cpp
-    csv.cpp
-    datafile.cpp
-    editor.cpp
-    fs.cpp
-    git_revision.cpp
-    hash.cpp
-    huffman.cpp
-    io.cpp
-    jobs.cpp
-    json.cpp
-    jsonwriter.cpp
-    linereader.cpp
-    mapbugs.cpp
-    math.cpp
-    memory.cpp
-    name_ban.cpp
-    net.cpp
-    netaddr.cpp
-    os.cpp
-    packer.cpp
-    prng.cpp
-    score.cpp
-    secure_random.cpp
-    serverbrowser.cpp
-    serverinfo.cpp
-    snapshot.cpp
-    str.cpp
-    strip_path_and_extension.cpp
-    swap_endian.cpp
-    teehistorian.cpp
+    fxpt.cpp
     test.cpp
     test.h
-    thread.cpp
-    timestamp.cpp
-    unix.cpp
-    uuid.cpp
-  )
-  set(TESTS_EXTRA
-    src/engine/client/blocklist_driver.cpp
-    src/engine/client/blocklist_driver.h
-    src/engine/client/serverbrowser.cpp
-    src/engine/client/serverbrowser.h
-    src/engine/client/serverbrowser_http.cpp
-    src/engine/client/serverbrowser_http.h
-    src/engine/client/serverbrowser_ping_cache.cpp
-    src/engine/client/serverbrowser_ping_cache.h
-    src/engine/client/sqlite.cpp
-    src/engine/server/databases/connection.cpp
-    src/engine/server/databases/connection.h
-    src/engine/server/databases/sqlite.cpp
-    src/engine/server/databases/mysql.cpp
-    src/engine/server/name_ban.cpp
-    src/engine/server/name_ban.h
-    src/engine/server/sql_string_helpers.cpp
-    src/engine/server/sql_string_helpers.h
-    src/game/server/teehistorian.cpp
-    src/game/server/teehistorian.h
-    src/game/server/scoreworker.cpp
-    src/game/server/scoreworker.h
   )
 
   set(TARGET_TESTRUNNER testrunner)
   add_executable(${TARGET_TESTRUNNER} EXCLUDE_FROM_ALL
     ${TESTS}
-    ${TESTS_EXTRA}
     $<TARGET_OBJECTS:engine-gfx>
     $<TARGET_OBJECTS:engine-shared>
     $<TARGET_OBJECTS:game-shared>

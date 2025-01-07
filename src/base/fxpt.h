@@ -22,6 +22,7 @@ public:
     {}
 
     constexpr fxpt<E,F>()
+    : m_fixed()
     {}
 
     constexpr static fxpt<E, F> fromRaw(int i)
@@ -37,7 +38,7 @@ public:
         return m_fixed/float(1 << F);
     }
     constexpr int toInt() const
-    {
+    {   // division rather than shift for correct rounding towards 0 of negative numbers
         return m_fixed/(1 << F);
     }
 
@@ -104,7 +105,7 @@ public:
         m_fixed = buf;
         return *this;
     }
-    /*constexpr fxpt<E, F>& operator%=(const fxpt<E, F>& rhs)
+    constexpr fxpt<E, F>& operator%=(const fxpt<E, F>& rhs)
     {
         int64_t buf = ((int64_t)m_fixed << F) % rhs.m_fixed;
         m_fixed = buf;
@@ -116,7 +117,7 @@ public:
         int64_t buf = ((int64_t)m_fixed << F) % fxpt<E, F>(rhs).m_fixed;
         m_fixed = buf;
         return *this;
-    }*/
+    }
 
     constexpr friend bool operator==(const fxpt<E, F>& lhs, const fxpt<E, F>& rhs)
     {
@@ -387,24 +388,32 @@ namespace ns
     template<int E, int F>
     constexpr fxpt<E, F> exp(fxpt<E, F> num)
     {
-        constexpr fxpt<E, F> e = 2.718281828459045235360287471352;
-        fxpt<E, F> res = num+1;
-        fxpt<E, F> numpow = num*num;
-        int fact = 2;
-        for(int i = 2; i < 13; ++i)
+        if(num.Raw() > 681389) // overflow, (exp(10.397) = 32767)
         {
-            res += num/fact;
-            numpow *= num;
+            return std::numeric_limits<fxpt<E, F>>::max();
+        }
+        else if(num.Raw() < -726817) // unferflow, (exp(-11.09) = 1/65536)
+        {
+            return 0;
+        }
+        fxpt<E, F> res = 1+num;
+        fxpt<E, F> prod = num*num;
+        fxpt<E, F> fact = 2;
+        for(int i = 2; i < 8; )
+        {
+            res += prod/fact;
+            i++;
             fact *= i;
+            prod *= num;
         }
 
         return res;
     }
 
     template<int E, int F>
-    constexpr fxpt<E, F> pow(fxpt<E, F> base, fxpt<E, F> exp)
+    constexpr fxpt<E, F> pow(fxpt<E, F> base, fxpt<E, F> num)
     {
-
+        return exp(num*log(base));
     }
 
     // log2 function taken from https://github.com/dmoulding/log2fix/blob/master/log2fix.c
@@ -470,9 +479,79 @@ namespace ns
     }
 
     template<int E, int F>
+    constexpr fxpt<E, F> acos(fxpt<E, F> num)
+    {
+        return 0;
+    }
+
+    template<int E, int F>
+    constexpr fxpt<E, F> asin(fxpt<E, F> num)
+    {
+        return 0;
+    }
+
+    template<int E, int F>
     constexpr fxpt<E, F> atan(fxpt<E, F> num)
     {
+        return 0;
+    }
 
+    template<int E, int F>
+    constexpr fxpt<E, F> cos(fxpt<E, F> num)
+    {
+        // https://en.wikipedia.org/wiki/CORDIC#Software_Example_(Python)
+        /*from math import atan2, sqrt, sin, cos, radians
+
+ITERS = 16
+theta_table = [atan2(1, 2**i) for i in range(ITERS)]
+
+def compute_K(n):
+    """
+    Compute K(n) for n = ITERS. This could also be
+    stored as an explicit constant if ITERS above is fixed.
+    """
+    k = 1.0
+    for i in range(n):
+        k *= 1 / sqrt(1 + 2 ** (-2 * i))
+    return k
+
+def CORDIC(alpha, n):
+    K_n = compute_K(n)
+    theta = 0.0
+    x = 1.0
+    y = 0.0
+    P2i = 1  # This will be 2**(-i) in the loop below
+    for arc_tangent in theta_table:
+        sigma = +1 if theta < alpha else -1
+        theta += sigma * arc_tangent
+        x, y = x - sigma * y * P2i, sigma * P2i * x + y
+        P2i /= 2
+    return x * K_n, y * K_n
+
+if __name__ == "__main__":
+# Print a table of computed sines and cosines, from -90° to +90°, in steps of 15°,
+# comparing against the available math routines.
+print("  x       sin(x)     diff. sine     cos(x)    diff. cosine ")
+for x in range(-90, 91, 15):
+    cos_x, sin_x = CORDIC(radians(x), ITERS)
+    print(
+        f"{x:+05.1f}°  {cos_x:+.8f} ({cos_x-cos(radians(x)):+.8f})  {sin_x:+.8f} ({sin_x-sin(radians(x)):+.8f})"
+    )*/
+        // cos(x) = somme (-1)^n*x^2n/(2n)!
+
+        return 0;
+    }
+
+    template<int E, int F>
+    constexpr fxpt<E, F> sin(fxpt<E, F> num)
+    {
+        return 0;
+    }
+
+    template<int E, int F>
+    constexpr fxpt<E, F> tan(fxpt<E, F> num)
+    {
+        return 0;
     }
 }
 

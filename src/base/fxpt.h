@@ -107,14 +107,16 @@ public:
     }
     constexpr fxpt<E, F>& operator%=(const fxpt<E, F>& rhs)
     {
-        int64_t buf = ((int64_t)m_fixed << F) % rhs.m_fixed;
-        m_fixed = buf;
+        int64_t buf = (int64_t)(m_fixed % rhs.m_fixed);
+        //printf("%d %d %llx ", m_fixed, rhs.m_fixed, buf);
+        m_fixed = buf;// >> F;
+        //printf("%d %g\n", m_fixed, m_fixed/65536.f);
         return *this;
     }
     template<typename T>
     constexpr fxpt<E, F>& operator%=(const T& rhs)
     {
-        int64_t buf = ((int64_t)m_fixed << F) % fxpt<E, F>(rhs).m_fixed;
+        int64_t buf = ((int64_t)m_fixed) % fxpt<E, F>(rhs).m_fixed;
         m_fixed = buf;
         return *this;
     }
@@ -178,10 +180,6 @@ public:
     {
         return m_fixed;
     }
-
-protected:
-    void Scale();
-    void Unscale();
 
 private:
     int m_fixed : E+F;
@@ -383,6 +381,12 @@ namespace ns
         }
         q >>= 8;
         return fxpt<E, F>::fromRaw(q);
+    }
+
+    template<int E, int F>
+    constexpr fxpt<E, F> cbrt(fxpt<E, F> num)
+    {
+        return 0;
     }
 
     template<int E, int F>

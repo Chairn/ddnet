@@ -72,9 +72,9 @@ TEST(fxpt, ModuloInt)
 
 TEST(fxpt, AdditionFloat)
 {
-    for(float i = -10; i < 10; i += 1./16)
+    for(float i = -10; i < 10; i += 1./128)
     {
-        for(float j = -10; j < 10; j += 1./16)
+        for(float j = -10; j < 10; j += 1./128)
         {
             EXPECT_EQ(i+j, (fx16_16_t(i)+fx16_16_t(j)).toFloat());
             EXPECT_EQ(i+j, fx16_16_t(i)+fx16_16_t(j));
@@ -84,9 +84,9 @@ TEST(fxpt, AdditionFloat)
 
 TEST(fxpt, SubstractionFloat)
 {
-    for(float i = -10; i < 10; i += 1./16)
+    for(float i = -10; i < 10; i += 1./128)
     {
-        for(float j = -10; j < 10; j += 1./16)
+        for(float j = -10; j < 10; j += 1./128)
         {
             EXPECT_EQ(i-j, (fx16_16_t(i)-fx16_16_t(j)).toFloat());
             EXPECT_EQ(i-j, fx16_16_t(i)-fx16_16_t(j));
@@ -138,7 +138,7 @@ public:
         return val;
     }
 
-    std::map<int, int> values;
+    std::map<int, int64_t> values;
 };
 
 class CMeas3
@@ -165,7 +165,7 @@ public:
     }
 
     const char* m_name;
-    std::map<int, int> values;
+    std::map<int, int64_t> values;
 };
 
 template<typename T>
@@ -282,6 +282,44 @@ TEST(fxpt, DivisionFloat)
 [-16] = 141534276; [-15] = 4143012; [-14] = 1044136; [-13] = 227464; [-12] = 38668; [16] = 131076;  }
 */
 
+TEST(fxpt, ModuloFloat)
+{
+    //CMeas2 a;
+    for(int i = -65536; i <= 65536; i += 64)
+    {
+        /*static int prev = 0;
+        if(int(100.*(i+65536)/131072.) != prev)
+        {
+            printf("%d%%\n", ++prev);
+            fflush(stdout);
+        }*/
+        fx16_16_t fi = fx16_16_t::fromRaw(i);
+        for(int j = -65536; j <= 65536; j += 64)
+        {
+            fx16_16_t fj = fx16_16_t::fromRaw(j);
+            //printf("%d %d\n", i, j);
+            if(j != 0)
+            {
+                //EXPECT_EQ(fx16_16_t(std::fmod(fi.toFloat(), fj.toFloat())), fi%fj);
+                //EXPECT_EQ(std::fmod(fi.toFloat(), fj.toFloat()), fi%fj);
+                //EXPECT_TRUE(a(std::fabs(std::fmod(fi.toFloat(), fj.toFloat()) - (fi%fj).toFloat())) < 1./16384);
+                EXPECT_TRUE(std::fabs(std::fmod(fi.toFloat(), fj.toFloat()) - (fi%fj).toFloat()) < 1./16384);
+                /*float div = (fi/fj).toFloat();
+                if(std::fabs(div) < 32768)
+                {
+                    if(std::fabs(fi.toFloat()/fj.toFloat() - (fi/fj).toFloat()) >= 1./16384)
+                    {
+                        //a_i(i);
+                        a_j(j);
+                        //printf("%d %d\n", i, j);
+                    }
+                }*/
+            }
+        }
+    }
+    EXPECT_TRUE(true);
+}
+
 TEST(fxpt, Comparison)
 {
     for(float i = -1; i < 1; i += 1./1024)
@@ -304,9 +342,10 @@ TEST(fxpt, Comparison)
         }
     }
 }
-/*
+
 TEST(fxpt, Sqrt)
 {
+    CMeas2 a;
     for(int i = 0; i < std::numeric_limits<int>::max(); ++i)
     {
         static int prev = 0;
@@ -316,7 +355,24 @@ TEST(fxpt, Sqrt)
             fflush(stdout);
         }
         //printf("%x\n", i);
-        EXPECT_EQ((fx16_16_t)sqrtf(i/65536.f), std::sqrt(fx16_16_t::fromRaw(i)));
+        EXPECT_TRUE(a(std::fabs(sqrtf(i/65536.f) - std::sqrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+        //EXPECT_EQ((fx16_16_t)(sqrtf(i/65536.f)), std::sqrt(fx16_16_t::fromRaw(i)));
     }
 }
-*/
+
+/*TEST(fxpt, Cbrt)
+{
+    CMeas2 a;
+    for(int i = std::numeric_limits<int>::min(); i < std::numeric_limits<int>::max(); ++i)
+    {
+        static int prev = 0;
+        if(int(100.*i/((float)std::numeric_limits<int>::max() - std::numeric_limits<int>::min())) != prev)
+        {
+            printf("%d%%\n", ++prev);
+            fflush(stdout);
+        }
+        //printf("%x\n", i);
+        EXPECT_TRUE(a(std::fabs(cbrtf(i/65536.f) - std::cbrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+    }
+}*/
+

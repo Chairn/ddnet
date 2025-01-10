@@ -319,6 +319,7 @@ TEST(fxpt, ModuloFloat)
     }
     EXPECT_TRUE(true);
 }
+/*{ [-2147483648] = 17180000256;  }*/
 
 TEST(fxpt, Comparison)
 {
@@ -345,24 +346,29 @@ TEST(fxpt, Comparison)
 
 TEST(fxpt, Sqrt)
 {
-    CMeas2 a;
-    for(int i = 0; i < std::numeric_limits<int>::max(); ++i)
+    //CMeas2 a;
+    for(int i = 0; i < std::numeric_limits<int>::max() && i >= 0; i += 1024)
     {
-        static int prev = 0;
+        /*static int prev = 0;
         if(int(100.*i/(float)std::numeric_limits<int>::max()) != prev)
         {
             printf("%d%%\n", ++prev);
             fflush(stdout);
-        }
+        }*/
         //printf("%x\n", i);
-        EXPECT_TRUE(a(std::fabs(sqrtf(i/65536.f) - std::sqrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+        //EXPECT_TRUE(a(std::fabs(sqrtf(i/65536.f) - fx::sqrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+        EXPECT_TRUE(  std::fabs(sqrtf(i/65536.f) - fx::sqrt(fx16_16_t::fromRaw(i)).toFloat()) < 1./16384);
         //EXPECT_EQ((fx16_16_t)(sqrtf(i/65536.f)), std::sqrt(fx16_16_t::fromRaw(i)));
     }
 }
+/*
+{ [-2147483648] = 766940448; [-26] = 2; [-25] = 29; [-24] = 244; [-23] = 1954; [-22] = 16107; [-21] = 129902;
+[-20] = 1048956; [-19] = 8390227; [-18] = 67113307; [-17] = 536929927; [-16] = 766912544;  }
+*/
 
-/*TEST(fxpt, Cbrt)
+TEST(fxpt, Cbrt)
 {
-    CMeas2 a;
+    /*CMeas2 a;
     for(int i = std::numeric_limits<int>::min(); i < std::numeric_limits<int>::max(); ++i)
     {
         static int prev = 0;
@@ -372,7 +378,14 @@ TEST(fxpt, Sqrt)
             fflush(stdout);
         }
         //printf("%x\n", i);
-        EXPECT_TRUE(a(std::fabs(cbrtf(i/65536.f) - std::cbrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
-    }
-}*/
+        EXPECT_TRUE(a(std::fabs(cbrtf(i/65536.f) - fx::cbrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+    }*/
+
+    int i = 1;
+    do {
+        printf("%08x %2d %2d\n", i, __builtin_clrsb(i), __builtin_clrsb(-i));
+        i <<= 1;
+    } while(i);
+    printf("%08x %2d %2d\n", i, __builtin_clrsb(i), __builtin_clrsb(-i));
+}
 

@@ -318,10 +318,10 @@ namespace std
         else // to < from
             return fxpt<E, F>::fromRaw(from.Raw()-1);
     }
-/*}
+}
 
-namespace ns
-{*/
+namespace fx
+{
     // those overloads are forbidden in std::...
     template<int E, int F>
     constexpr fxpt<E, F> sqrt(fxpt<E, F> f)
@@ -386,6 +386,22 @@ namespace ns
     template<int E, int F>
     constexpr fxpt<E, F> cbrt(fxpt<E, F> num)
     {
+        /* Halley's Method: (a is num), x0 should be close to cbrt of num
+        x_(n+1) = x_n (x_n^3+2a)/(2x_n^3+a)
+        */
+        if(num == 0)
+            return 0;
+        
+        constexpr fxpt<E,F> x0_table[32] = {
+            1./32, 1./32, 1./16, 1./16, 1./16, 1./8, 1./8, 1./8,
+            1./4, 1./4, 1./4, 1./2, 1./2, 1./2, 1, 1, 1,
+            2, 2, 2, 4, 4, 4, 8, 8, 8, 16, 16, 16, 32, 32,
+        };
+
+        int power = __builtin_clrsb(num.Raw());
+
+        fxpt<E, F> x0 = __builtin_clrsb(num.Raw());
+
         return 0;
     }
 

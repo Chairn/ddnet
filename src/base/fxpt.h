@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <cmath>
 
 template<int E, int F>
 class fxpt
@@ -392,17 +393,27 @@ namespace fx
         if(num == 0)
             return 0;
         
-        constexpr fxpt<E,F> x0_table[32] = {
+        constexpr fxpt<E,F> x0_table[] = {
             1./32, 1./32, 1./16, 1./16, 1./16, 1./8, 1./8, 1./8,
             1./4, 1./4, 1./4, 1./2, 1./2, 1./2, 1, 1, 1,
-            2, 2, 2, 4, 4, 4, 8, 8, 8, 16, 16, 16, 32, 32,
+            2, 2, 2, 4, 4, 4, 8, 8, 8, 16, 16, 16, 32, 32, 32
         };
 
-        int power = __builtin_clrsb(num.Raw());
-
-        fxpt<E, F> x0 = __builtin_clrsb(num.Raw());
-
-        return 0;
+        fxpt<E, F> xn;
+        if(num > 0)
+            xn = x0_table[30-__builtin_clrsb(num.Raw())];
+        else
+            xn = -x0_table[31-__builtin_clrsb(num.Raw())];
+        fxpt<E, F> numtwice = 2*num;
+        std::cout << num << " " << __builtin_clrsb(num.Raw()) << " " << xn;
+        for(int i = 0; i < 6; ++i)
+        {
+            fxpt<E, F> xn3 = xn*xn*xn;
+            xn = xn * (xn3+numtwice)/(2*xn3+num);
+            printf("%d %g\n", i, xn.toFloat());
+        }
+        printf("%g\n", std::cbrt(num.toFloat()));
+        return xn;
     }
 
     template<int E, int F>

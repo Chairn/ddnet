@@ -372,7 +372,7 @@ TEST(fxpt, Cbrt)
     for(int i = std::numeric_limits<int>::min(); i < std::numeric_limits<int>::max(); ++i)
     {
         static int prev = 0;
-        if(int(100.*i/((float)std::numeric_limits<int>::max() - std::numeric_limits<int>::min())) != prev)
+        if(int(100.*((float)i-(float)std::numeric_limits<int>::min())/((float)std::numeric_limits<int>::max() - std::numeric_limits<int>::min())) != prev)
         {
             printf("%d%%\n", ++prev);
             fflush(stdout);
@@ -380,12 +380,21 @@ TEST(fxpt, Cbrt)
         //printf("%x\n", i);
         EXPECT_TRUE(a(std::fabs(cbrtf(i/65536.f) - fx::cbrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
     }*/
+    CMeas2 a;
+    for(int i = 0; i < 100; ++i)
+    {
+        //EXPECT_TRUE(a(std::fabs(cbrtf(i/65536.f) - fx::cbrt(fx16_16_t::fromRaw(i)).toFloat())) < 1./16384);
+        if(a(std::fabs(cbrtf(i/65536.f) - fx::cbrt(fx16_16_t::fromRaw(i)).toFloat())) >= 1./16384)
+        {
+            printf("failed %d : %g\n", i, std::fabs(cbrtf(i/65536.f) - fx::cbrt(fx16_16_t::fromRaw(i)).toFloat()));
+        }
+    }
 
-    int i = 1;
+    /*int i = 1;
     do {
         printf("%08x %2d %2d\n", i, __builtin_clrsb(i), __builtin_clrsb(-i));
         i <<= 1;
     } while(i);
-    printf("%08x %2d %2d\n", i, __builtin_clrsb(i), __builtin_clrsb(-i));
+    printf("%08x %2d %2d\n", i, __builtin_clrsb(i), __builtin_clrsb(-i));*/
 }
 

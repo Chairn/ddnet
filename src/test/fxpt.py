@@ -9,6 +9,7 @@ Created on Fri Jan 17 11:36:03 2025
 import math
 from time import process_time_ns
 from multiprocessing import Pool
+from struct import pack, unpack
 from collections import Counter
 maxi = Counter()
 
@@ -25,36 +26,56 @@ class fxpt:
     def __repr__(self) -> str:
         return "{:x} {:.8f}".format(self.m_fixed, self.m_fixed/2**self.m_frac)
     def __add__(self, other):
-        # if isinstance(other, fxpt):
-        #     if other.m_frac < self.m_frac:
-        #         return fxpt.fromRaw(self.m_fixed + (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
-        #     else:
-        #         return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) + other.m_fixed, other.m_frac)
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw(self.m_fixed + (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+            else:
+                return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) + other.m_fixed, other.m_frac)
         return fxpt.fromRaw(self.m_fixed + fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __radd__(self, other):
         return self.__add__(other)
     def __sub__(self, other):
-        # if isinstance(other, fxpt):
-        #     if other.m_frac < self.m_frac:
-        #         return fxpt.fromRaw(self.m_fixed - (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
-        #     else:
-        #         return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) - other.m_fixed, other.m_frac)
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw(self.m_fixed - (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+            else:
+                return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) - other.m_fixed, other.m_frac)
         return fxpt.fromRaw(self.m_fixed - fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __rsub__(self, other):
         return fxpt(other, self.m_frac).__sub__(self)
     def __mul__(self, other):
-        return fxpt.fromRaw((self.m_fixed* fxpt(other, self.m_frac).m_fixed) >> self.m_frac, self.m_frac)
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw((self.m_fixed * (other.m_fixed << (self.m_frac-other.m_frac))) >> self.m_frac, self.m_frac)
+            else:
+                return fxpt.fromRaw(((self.m_fixed << (other.m_frac-self.m_frac)) * other.m_fixed) >> other.m_frac, other.m_frac)
+        return fxpt.fromRaw((self.m_fixed * fxpt(other, self.m_frac).m_fixed) >> self.m_frac, self.m_frac)
     def __rmul__(self, other):
         return self.__mul__(other)
     def __truediv__(self, other):
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw((self.m_fixed << self.m_frac) / (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+            else:
+                return fxpt.fromRaw((self.m_fixed << other.m_frac) / other.m_fixed, other.m_frac)
         return fxpt.fromRaw((self.m_fixed << self.m_frac) / fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __rtruediv__(self, other):
         return fxpt(other, self.m_frac).__truediv__(self)
     def __floordiv__(self, other):
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw(self.m_fixed // (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+            else:
+                return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) // other.m_fixed, other.m_frac)
         return fxpt(self.m_fixed // fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __rfloordiv__(self, other):
         return fxpt(other, self.m_frac).__floordiv__(self)
     def __mod__(self, other):
+        if isinstance(other, fxpt):
+            if other.m_frac < self.m_frac:
+                return fxpt.fromRaw(self.m_fixed % (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+            else:
+                return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) % other.m_fixed, other.m_frac)
         return fxpt.fromRaw(self.m_fixed % other.m_fixed, self.m_frac)
     def __rmod__(self, other):
         return fxpt(other, self.m_frac).__mod__(self)
@@ -134,6 +155,8 @@ class fxpt:
         return self.m_fixed / 2**self.m_frac ## round towards 0
     
     def sqrt(self):
+        if self.m_fixed < 0:
+            raise ValueError("math domain error")
         t = 0
         q = 0
         b = 0x40000000
@@ -197,7 +220,7 @@ class fxpt:
     
     def frexp(self):
         if self.m_fixed == 0:
-            return 0, 0
+            return fxpt(0, 32), 0
         e = self.m_fixed.bit_length()-self.m_frac
         m = self.m_fixed << (32-self.m_frac-e)
         # if e >= 0:
@@ -206,8 +229,69 @@ class fxpt:
         #     m = m << -e
         return fxpt.fromRaw(m, 32), e
     
+    def log2(self):
+        f = fxpt(self, 24)
+        b = 1 << (f.m_frac - 1)
+        y = 0
+        x = f.m_fixed
+
+        if x <= 0:
+            raise ValueError("math domain error")
+
+        while x < (1 << f.m_frac):
+            x <<= 1
+            y -= 1 << f.m_frac
+
+        while x >= (2 << f.m_frac):
+            x >>= 1
+            y += 1 << f.m_frac
+
+        z = x
+
+        for i in range(f.m_frac):
+            z = (z * z) >> f.m_frac
+            if z >= (2 << f.m_frac):
+                z >>= 1
+                y += b
+            b >>= 1
+            # print("{:016x} {:08x} {:08x}".format(z, y, b))
+
+        return fxpt.fromRaw(y, 24)
+    def log(self, base=2.718281828459045):
+        # return self.log2()*0.6931471805599453   ## log2(x)/log2(e)
+        return self.log2()/fxpt(base, self.m_frac).log2()
+    def log10(self):
+        return self.log2()*0.3010299956639812   ## log2(x)/log2(10)
+    def exp(self):
+        if self.m_fixed < -726817:
+            return fxpt(0)
+        res = 1+self
+        prod = self*self
+        fact = 2
+        for i in range(2, 8):
+            res += prod/fact
+            fact *= i+1
+            prod *= self
+            print(i, prod, fact, res)
+        return res
+    
     # def __pow__(self, other[, modulo]):
     # def __rpow__(self, other[, modulo]):
+
+def exp(f, deg):
+    global m, e
+    m, e = np.frexp(f)
+    res = 1 + m
+    prod = m*m
+    fact = 2
+    for i in range(2, deg):
+        res += prod/fact
+        fact *= i+1
+        prod *= m
+    return np.ldexp(res, e)*2.**e
+def exp2(f):
+    ln2 = fxpt(2, 32).log()
+    z = f%ln2
 
 def cbrt_glibc(f):
     if isinstance(f, float | int):
@@ -224,14 +308,14 @@ def cbrt_glibc(f):
     u = (0.492659620528969547+(0.697570460207922770-0.191502161678719066*m)*m)
     t2 = u*u*u
     if e < 0:
-        ## mimic c modulo which is negative
+        ## mimic c modulo which is negative for negative numbers
         em = e%3-3
         if em == -3:
             em = 0
         ym = u * (t2+2*m)/(2*t2+m) * factor[2+em]
     else:
         ym = u * (t2+2*m)/(2*t2+m) * factor[2+e%3]
-    print(ym, e//3)
+    # print(ym, e//3)
     if f < 0:
         return -ym*2**(e//3)
     else:
@@ -261,7 +345,7 @@ def testAdditionInt():
         for j in range(MIN_J, MAX_J, STEP_J):
             assert i+j == fxpt(i)+fxpt(j), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testSubstractionInt():
     FUNC = "testSubstractionInt"
     print(FUNC)
@@ -274,7 +358,7 @@ def testSubstractionInt():
         for j in range(MIN_J, MAX_J, STEP_J):
             assert i-j == fxpt(i)-fxpt(j), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testMultiplicationInt():
     FUNC = "testMultiplicationInt"
     print(FUNC)
@@ -287,7 +371,7 @@ def testMultiplicationInt():
         for j in range(MIN_J, MAX_J, STEP_J):
             assert i*j == fxpt(i)*fxpt(j), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testDivisionInt():
     FUNC = "testDivisionInt"
     print(FUNC)
@@ -301,7 +385,7 @@ def testDivisionInt():
             if j != 0:
                 assert i//j == (fxpt(i)//fxpt(j)).toInt(), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testModuloInt():
     FUNC = "testModuloInt"
     print(FUNC)
@@ -315,7 +399,7 @@ def testModuloInt():
             if j != 0:
                 assert i%j == (fxpt(i)%fxpt(j)).toInt(), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testComparisonInt():
     FUNC = "testComparisonInt"
     print(FUNC)
@@ -333,7 +417,7 @@ def testComparisonInt():
             assert (i == j) == (fxpt(i) == fxpt(j)), "{} {}".format(i, j)
             assert (i != j) == (fxpt(i) != fxpt(j)), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testAdditionFloat():
     FUNC = "testAdditionFloat"
     print(FUNC)
@@ -348,7 +432,7 @@ def testAdditionFloat():
             fj = fxpt(j/65536)
             assert fi.toFloat()+fj.toFloat() == fi+fj, "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testSubstractionFloat():
     FUNC = "testSubstractionFloat"
     print(FUNC)
@@ -363,7 +447,7 @@ def testSubstractionFloat():
             fj = fxpt(j/65536)
             assert fi.toFloat()-fj.toFloat() == fi-fj, "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testMultiplicationFloat():
     FUNC = "testMultiplicationFloat"
     print(FUNC)
@@ -378,7 +462,7 @@ def testMultiplicationFloat():
             fj = fxpt(j/65536)
             assert abs(fi.toFloat()*fj.toFloat() - fi*fj) < 1/32768, "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testDivisionFloat():
     FUNC = "testDivisionFloat"
     print(FUNC)
@@ -400,7 +484,7 @@ def testDivisionFloat():
             if j != 0:
                 assert abs(fi.toFloat()/fj.toFloat() - fi/fj) < 1/32768, "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testModuloFloat():
     FUNC = "testComparisonFloat"
     print(FUNC)
@@ -422,7 +506,7 @@ def testModuloFloat():
             if j != 0:
                 assert abs(fi.toFloat()%fj.toFloat() - fi%fj) < 1/32768, "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testComparisonFloat():
     FUNC = "testComparisonFloat"
     print(FUNC)
@@ -440,7 +524,7 @@ def testComparisonFloat():
             assert (i == j) == (fxpt(i) == fxpt(j)), "{} {}".format(i, j)
             assert (i != j) == (fxpt(i) != fxpt(j)), "{} {}".format(i, j)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
             
 def testFrexp():
     FUNC = "testFrexp"
@@ -452,9 +536,10 @@ def testFrexp():
             prev += 1
             print("{} {}%".format(FUNC, prev))
         fi = fxpt.fromRaw(i)
-        assert math.frexp(fi.toFloat()) == fxpt.frexp(fi), "{}".format(i)
+        m, e = fxpt.frexp(fi)
+        assert math.frexp(fi.toFloat()) == (m.toFloat(), e), "{}".format(i)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
         
 def testSqrt():
     FUNC = "testSqrt"
@@ -466,25 +551,80 @@ def testSqrt():
             prev += 1
             print("{} {}%".format(FUNC, prev))
         fi = fxpt.fromRaw(i)
-        assert abs(math.sqrt(fi.toFloat()) - fxpt.sqrt(fi)) < 1/32768, "{}".format(i)
+        assert abs(math.sqrt(fi.toFloat()) - fxpt.sqrt(fi).toFloat()) < 1/32768, "{}".format(i)
     end = process_time_ns()
-    return end-start
+    return (end-start)/1e9
 def testCbrt():
     FUNC = "testCbrt"
     print(FUNC)
     prev = 0
     start = process_time_ns()
     for i in range(MIN, MAX, STEP):
-        if DEBUG and int(100*(i+2**31)/2**32) != prev:
+        if DEBUG and int(100*(i-MIN)/(MAX-MIN)) != prev:
             prev += 1
             print("{} {}%".format(FUNC, prev))
         fi = fxpt.fromRaw(i)
         # assert math.cbrt(fi.toFloat()) == fi.cbrt(), "{}".format(i)
-        print(i)
-        assert abs(math.cbrt(fi.toFloat()) - fxpt.cbrt(fi)) < 1/32768, "{}".format(i)
+        assert abs(math.cbrt(fi.toFloat()) - fxpt.cbrt(fi).toFloat()) < 1/32768, "{}".format(i)
     end = process_time_ns()
-    return end-start
-
+    return (end-start)/1e9
+def testlog2():
+    FUNC = "testlog2"
+    print(FUNC)
+    prev = 0
+    start = process_time_ns()
+    for i in range(STEP, 2*MAX, STEP):
+        if DEBUG and int(100*(i-STEP)/(2*MAX)) != prev:
+            prev += 1
+            print("{} {}%".format(FUNC, prev))
+        fi = fxpt.fromRaw(i)
+        # assert math.log2(fi.toFloat()) == fi.log2(), "{}".format(i)
+        assert abs(math.log2(fi.toFloat()) - fxpt.log2(fi).toFloat()) < 1/32768, "{}".format(i)
+    end = process_time_ns()
+    return (end-start)/1e9
+def testlog(base = 2.718281828459045):
+    FUNC = "testlog {}".format(base)
+    print(FUNC)
+    prev = 0
+    start = process_time_ns()
+    for i in range(STEP, 2*MAX, STEP):
+        if DEBUG and int(100*(i-STEP)/(2*MAX)) != prev:
+            prev += 1
+            print("{} {}%".format(FUNC, prev))
+        fi = fxpt.fromRaw(i)
+        # assert math.log(fi.toFloat(), base) == fi.log(base), "{}".format(i)
+        assert abs(math.log(fi.toFloat(), base) - fxpt.log(fi, base).toFloat()) < 1/32768, "{}".format(i)
+    end = process_time_ns()
+    return (end-start)/1e9
+def testlog10():
+    FUNC = "testlog10"
+    print(FUNC)
+    prev = 0
+    start = process_time_ns()
+    for i in range(STEP, 2*MAX, STEP):
+        if DEBUG and int(100*(i-STEP)/(2*MAX)) != prev:
+            prev += 1
+            print("{} {}%".format(FUNC, prev))
+        fi = fxpt.fromRaw(i)
+        # assert math.log10(fi.toFloat()) == fi.log10(), "{}".format(i)
+        assert abs(math.log10(fi.toFloat()) - fxpt.log10(fi).toFloat()) < 1/32768, "{}".format(i)
+    end = process_time_ns()
+    return (end-start)/1e9
+def testexp():
+    global fi, i
+    FUNC = "testexp"
+    print(FUNC)
+    prev = 0
+    start = process_time_ns()
+    for i in range(MIN, MAX, STEP):
+        if DEBUG and int(100*(i-MIN)/(MAX-MIN)) != prev:
+            prev += 1
+            print("{} {}%".format(FUNC, prev))
+        fi = fxpt.fromRaw(i)
+        # assert math.exp(fi.toFloat()) == fi.exp(), "{}".format(i)
+        assert abs(math.exp(fi.toFloat()) - fxpt.exp(fi).toFloat()) < 1/32768, "{}".format(i)
+    end = process_time_ns()
+    return (end-start)/1e9
 
 a = fxpt(1)
 print(a)
@@ -508,21 +648,43 @@ if STEP_I * STEP_J < 16384:
     def smap(f, *args):
         return f(*args)
     with Pool() as p:
-        p.map(smap, funcs)
+        res = p.map(smap, funcs)
 else:
-    testAdditionInt()
-    testSubstractionInt()
-    testMultiplicationInt()
-    testDivisionInt()
-    testModuloInt()
-    testAdditionFloat()
-    testSubstractionFloat()
-    testMultiplicationFloat()
-    testDivisionFloat()
-    testModuloFloat()
+    # testAdditionInt()
+    # testSubstractionInt()
+    # testMultiplicationInt()
+    # testDivisionInt()
+    # testModuloInt()
+    # testAdditionFloat()
+    # testSubstractionFloat()
+    # testMultiplicationFloat()
+    # testDivisionFloat()
+    # testModuloFloat()
     
-    testFrexp()
+    # testFrexp()
     
     # testSqrt()
-    testCbrt()
+    # testCbrt()
+    testlog2()
+    # testlog()
+    # testlog(3)
+    # testlog10()
+    # testexp()
     
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython import get_ipython
+ipython = get_ipython()
+ipython.run_line_magic("matplotlib", "qt")
+# %matplotlib qt
+x = np.logspace(-2, 2, 10**3)
+x = np.concatenate((-np.flip(x), x))
+plt.figure()
+legend = []
+for i in range(3, 20):
+    plt.semilogy(x, exp(x, i))
+    legend.append(str(i))
+plt.semilogy(x, np.exp(x))
+legend.append("inf")
+plt.legend(legend)
+plt.show()

@@ -57,16 +57,16 @@ class fxpt:
             if other.m_frac < self.m_frac:
                 return fxpt.fromRaw((self.m_fixed << self.m_frac) / (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
             else:
-                return fxpt.fromRaw((self.m_fixed << other.m_frac) / other.m_fixed, other.m_frac)
+                return fxpt.fromRaw((self.m_fixed << (self.m_frac+other.m_frac)) / other.m_fixed, other.m_frac)
         return fxpt.fromRaw((self.m_fixed << self.m_frac) / fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __rtruediv__(self, other):
         return fxpt(other, self.m_frac).__truediv__(self)
     def __floordiv__(self, other):
         if isinstance(other, fxpt):
             if other.m_frac < self.m_frac:
-                return fxpt.fromRaw(self.m_fixed // (other.m_fixed << (self.m_frac-other.m_frac)), self.m_frac)
+                return fxpt.fromRaw((self.m_fixed // (other.m_fixed << (self.m_frac-other.m_frac))) << self.m_frac, self.m_frac)
             else:
-                return fxpt.fromRaw((self.m_fixed << (other.m_frac-self.m_frac)) // other.m_fixed, other.m_frac)
+                return fxpt.fromRaw(((self.m_fixed << (other.m_frac-self.m_frac)) // other.m_fixed) << other.m_frac, other.m_frac)
         return fxpt(self.m_fixed // fxpt(other, self.m_frac).m_fixed, self.m_frac)
     def __rfloordiv__(self, other):
         return fxpt(other, self.m_frac).__floordiv__(self)
@@ -277,21 +277,6 @@ class fxpt:
     
     # def __pow__(self, other[, modulo]):
     # def __rpow__(self, other[, modulo]):
-
-def exp(f, deg):
-    global m, e
-    m, e = np.frexp(f)
-    res = 1 + m
-    prod = m*m
-    fact = 2
-    for i in range(2, deg):
-        res += prod/fact
-        fact *= i+1
-        prod *= m
-    return np.ldexp(res, e)*2.**e
-def exp2(f):
-    ln2 = fxpt(2, 32).log()
-    z = f%ln2
 
 def cbrt_glibc(f):
     if isinstance(f, float | int):
@@ -671,20 +656,114 @@ else:
     # testlog10()
     # testexp()
     
+
+def exp(f, deg):
+    global m, e
+    m, e = np.frexp(f)
+    res = 1 + m
+    prod = m*m
+    fact = 2
+    for i in range(2, deg):
+        res += prod/fact
+        fact *= i+1
+        prod *= m
+    # return np.ldexp(res, e)*2.**e
+    return res
+def exp2(f, deg):
+    global m, e
+    m, e = np.frexp(f)
+    res = 1 + m
+    prod = m*m
+    fact = 2
+    for i in range(2, deg):
+        res += prod/fact
+        fact *= i+1
+        prod *= m
+    return np.ldexp(res, e)
+def exp3(f, deg):
+    global m, e
+    m, e = np.frexp(f)
+    res = 1 + m
+    prod = m*m
+    fact = 2
+    for i in range(2, deg):
+        res += prod/fact
+        fact *= i+1
+        prod *= m
+    return np.ldexp(res, e)*2.**e
+def exp4(f, deg):
+    return (1+f/deg)**deg
+def exp5(f, deg):
+    # ln2 = fxpt(0.6931471805599453, 32)
+    ln2 = math.log(2)
+    z = f % ln2
+    E = f // ln2
+    return exp(z, deg)*2**E
+def exp6(f, deg):
+    # ln2 = fxpt(0.6931471805599453, 32)
+    ln2 = math.log(2)
+    z = f % ln2
+    E = f // ln2
+    return exp2(z, deg)*2**E
+def exp7(f, deg):
+    # ln2 = fxpt(0.6931471805599453, 32)
+    ln2 = math.log(2)
+    z = f % ln2
+    E = f // ln2
+    return exp3(z, deg)*2**E
+def exp8(f, deg):
+    # ln2 = fxpt(0.6931471805599453, 32)
+    ln2 = math.log(2)
+    z = f % ln2
+    E = f // ln2
+    return exp4(z, deg)*2**E
+def exp9(f, deg):
+    x = f
+    f = f/2
+    x2 = x*x/9
+    x3 = x*x2/8
+    x4 = x*x3/14
+    x5 = x*x4/30
+    return (1+f+x2+x3+x4+x5)/(1-f+x2-x3+x4-x5)
+
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython import get_ipython
 ipython = get_ipython()
 ipython.run_line_magic("matplotlib", "qt")
 # %matplotlib qt
-x = np.logspace(-2, 2, 10**3)
+x = np.logspace(-6, 2, 10**4)
 x = np.concatenate((-np.flip(x), x))
-plt.figure()
-legend = []
+real = np.exp(x)
 for i in range(3, 20):
-    plt.semilogy(x, exp(x, i))
-    legend.append(str(i))
-plt.semilogy(x, np.exp(x))
-legend.append("inf")
-plt.legend(legend)
-plt.show()
+    plt.figure()
+    legend = []
+    plot = plt.semilogy
+    plot(x, abs(exp(x, i)-real)/real)
+    legend.append("DL Taylor")
+    plot(x, abs(exp2(x, i)-real)/real)
+    legend.append("DL + ldexp")
+    plot(x, abs(exp3(x, i)-real)/real)
+    legend.append("DL + ldexp + 2**e")
+    plot(x, abs(exp4(x, i)-real)/real)
+    legend.append("1+x/n")
+    plot(x, abs(exp5(x, i)-real)/real)
+    legend.append("red+DL")
+    plot(x, abs(exp6(x, i)-real)/real)
+    legend.append("red+DL+ldexp")
+    plot(x, abs(exp7(x, i)-real)/real)
+    legend.append("red+DL+ldexp+2**e")
+    plot(x, abs(exp8(x, i)-real)/real)
+    legend.append("red+1+x/n")
+    plot(x, abs(exp9(x, i)-real)/real)
+    legend.append("pade5/5")
+    # plot(x, np.exp(x))
+    # legend.append("real")
+    # plot(x, np.exp(x))
+    # legend.append("inf")
+    plt.legend(legend)
+    plt.title(str(i))
+    plt.show()
+
+
+

@@ -197,12 +197,12 @@ class fxpt:
         # global maxi
         if self.m_fixed == 0:
             return fxpt(0)
-        x0_table = [
+        x0_table = (
             float('nan'),
             1./32, 1./32, 1./16, 1./16, 1./16, 1./8, 1./8, 1./8,
             1./4, 1./4, 1./4, 1./2, 1./2, 1./2, 1, 1, 1,
             2, 2, 2, 4, 4, 4, 8, 8, 8, 16, 16, 16, 32, 32, 32
-        ]
+        )
         xn = fxpt(x0_table[self.m_fixed.bit_length()], 24)
         f = abs(fxpt(self, 24))
         # print(f, xn)
@@ -262,25 +262,94 @@ class fxpt:
         return self.log2()/fxpt(base, 24).log2()
     def log10(self):
         return self.log2()*0.3010299956639812   ## log2(x)/log2(10)
+    EXP_MIN_ARG = -726817
+    EXP_MAX_ARG = +681391
     def exp(self):
-        if self.m_fixed < -726817: ## exp(-11.0903473) = 0
-            return fxpt(0,32)
-        elif self.m_fixed > 681391: ## exp(10.3972077)= 32768
-            return fxpt(32768,32)
-        # ln2 = fxpt.fromRaw(0xb17217f7, 32) ## ln2 = 0.6931471805599453
+        global eint, expint, frac, val, res, f, E
+        precision = 40
+        if self.m_fixed < fxpt.EXP_MIN_ARG: ## exp(-11.0903473) = 0
+            return fxpt(0,precision)
+        elif self.m_fixed > fxpt.EXP_MAX_ARG: ## exp(10.3972077)= 32768
+            return fxpt(32768,precision)
+        ##### reduce argument between 0 and 1 and computes exp(int(self)) separately #####
+        if self.m_fixed < 0:
+            expint = (-self.m_fixed) >> self.m_frac
+            frac = (-self.m_fixed) & ((1 << self.m_frac)-1)
+        else:
+            expint = self.m_fixed >> self.m_frac
+            frac = self.m_fixed & ((1 << self.m_frac)-1)
+        eint = fxpt(2.718281828459045, precision)**expint
+        ## with table's method, need precision 48
+        ## with pade's, work with precision 32 and degree 5, degree 4 fails at 456264
+        ## with DL's, fails @16 for -18382 with deg 7, fails @32 for 561164 with deg 11, works pres 40 deg 11
+        
+        ##### Table's method #####
+        # exptable = (1.0000152589054785 ,
+        # 1.000030518043791 ,
+        # 1.0000610370189331 ,
+        # 1.0001220777633837 ,
+        # 1.0002441704297478 ,
+        # 1.0004884004786945 ,
+        # 1.0009770394924165 ,
+        # 1.0019550335910028 ,
+        # 1.0039138893383475 ,
+        # 1.007843097206448 ,
+        # 1.0157477085866857 ,
+        # 1.0317434074991028 ,
+        # 1.0644944589178593 ,
+        # 1.1331484530668263 ,
+        # 1.2840254166877414 ,
+        # 1.6487212707001282 ,
+        # 2.718281828459045 ,
+        # 7.38905609893065 ,
+        # 54.598150033144236 ,
+        # 2980.9579870417283 ,
+        # 8886110.520507872)
+        # res = fxpt(1, precision)
+        # val = frac
+        # # if self.m_fixed < 0:
+        # #     val = -self.m_fixed
+        # # else:
+        # #     val = self.m_fixed
+        # for i, e in enumerate(exptable):
+        #     if val & (1 << i):
+        #         res *= e
+        # # if self.m_fixed < 0:
+        # #     return 1/res
+        # # else:
+        # #     return res
+        # if self.m_fixed < 0:
+        #     return 1/(eint*res)
+        # else:
+        #     return eint*res
+        ##### Pade's Approximants #####
+        # return padered(fxpt(self, 48), 6) ## fails around +621xxx
+        # if self.m_fixed < 0:
+        #     return 1/(pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 5)*eint)
+        # else:
+        #     return pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 5)*eint
+        ##### Taylor with reduction #####
+        # ln2 = fxpt(0.6931471805599453, 48)
         # f = self % ln2
         # E = self // ln2
+        # ln2 = fxpt(0.6931471805599453, precision)
+        # f = frac % ln2
+        # E = frac // ln2
         # print(f, E)
-        # res = 1+f
-        # prod = f*f
-        # fact = 2
-        # for i in range(2, 32):
-        #     res += prod/fact
-        #     fact *= i+1
-        #     prod *= f
-        #     print(i, prod, fact, res)
+        f = fxpt.fromRaw(frac << (precision-self.m_frac), precision)
+        res = 1+f
+        prod = f*f
+        fact = 2
+        for i in range(2, 12):
+            res += prod/fact
+            fact *= i+1
+            prod *= f
+            # print(i, prod, fact, res)
         # return res*2**E.toInt()
-        return padered(self, 6)
+        if self.m_fixed < 0:
+            return 1/(res*eint)
+        else:
+            return res*eint
     
     def __pow__(self, other):
         if isinstance(other, int):
@@ -290,8 +359,13 @@ class fxpt:
                 other -= 1
             return res
         else:
+            # val = fxpt(other, self.m_frac)
+            
             raise NotImplementedError
     # def __rpow__(self, other[, modulo]):
+        
+from functools import cache
+@cache
 def fact(n):
     if n == 0:
         return 1
@@ -300,6 +374,7 @@ def fact(n):
         res *= n
         n -= 1
     return res
+@cache
 def coef_y(k, n):
     return fact(n+k)//(fact(n-k)*fact(k)*2**k)
 def bessel(n, x):
@@ -329,7 +404,7 @@ def pade(f, deg):
     # print(numstr)
     # return num/den
 def padered(f, deg):
-    ln2 = math.log(2)
+    ln2 = fxpt(0.6931471805599453, 32)
     z = f % ln2
     E = f // ln2
     return pade(z, deg)*2**E.toInt()
@@ -1155,9 +1230,11 @@ def testexp():
     FUNC = "testexp"
     print(FUNC)
     prev = 0
+    localstep = (MAX-MIN)//(fxpt.EXP_MAX_ARG-fxpt.EXP_MIN_ARG)
     start = process_time_ns()
-    for i in range(MIN, MAX, STEP):
-        if DEBUG and int(100*(i-MIN)/(MAX-MIN)) != prev:
+    for i in range(fxpt.EXP_MIN_ARG-1, fxpt.EXP_MAX_ARG+1, STEP//localstep if STEP > localstep else 1):
+    # for i in range(fxpt.EXP_MIN_ARG-1, fxpt.EXP_MAX_ARG+1, 1):
+        if DEBUG and int(100*(i-fxpt.EXP_MIN_ARG+1)/(fxpt.EXP_MAX_ARG-fxpt.EXP_MIN_ARG)) != prev:
             prev += 1
             print("{} {}%".format(FUNC, prev))
         fi = fxpt.fromRaw(i)
@@ -1237,28 +1314,16 @@ else:
     
     # testSqrt()
     # testCbrt()
-    testlog2()
+    # testlog2()
     # testlog()
     # testlog(3)
     # testlog10()
     testexp()
     
 
-def exp(f, deg):
-    # global m, e
-    # m, e = np.frexp(f)
-    res = 1 + f
-    prod = f*f
-    fact = 2
-    for i in range(2, deg):
-        res += prod/fact
-        fact *= i+1
-        prod *= f
-    # return np.ldexp(res, e)*2.**e
-    return res
-# def exp2(f, deg):
-#     global m, e
-#     m, e = np.frexp(f)
+# def exp(f, deg):
+#     # global m, e
+#     # m, e = np.frexp(f)
 #     res = 1 + f
 #     prod = f*f
 #     fact = 2
@@ -1266,182 +1331,211 @@ def exp(f, deg):
 #         res += prod/fact
 #         fact *= i+1
 #         prod *= f
-#     return np.ldexp(res, e)
-# def exp3(f, deg):
-#     global m, e
-#     m, e = np.frexp(f)
-#     res = 1 + f
-#     prod = f*f
-#     fact = 2
-#     for i in range(2, deg):
-#         res += prod/fact
-#         fact *= i+1
-#         prod *= f
-#     return np.ldexp(res, e)*2.**e
-def exp4(f, deg):
-    return (1+f/deg)**deg
-def exp5(f, deg):
-    # ln2 = fxpt(0.6931471805599453, 32)
-    ln2 = math.log(2)
-    z = f % ln2
-    E = f // ln2
-    return exp(z, deg)*2**E
-# def exp6(f, deg):
+#     # return np.ldexp(res, e)*2.**e
+#     return res
+# # def exp2(f, deg):
+# #     global m, e
+# #     m, e = np.frexp(f)
+# #     res = 1 + f
+# #     prod = f*f
+# #     fact = 2
+# #     for i in range(2, deg):
+# #         res += prod/fact
+# #         fact *= i+1
+# #         prod *= f
+# #     return np.ldexp(res, e)
+# # def exp3(f, deg):
+# #     global m, e
+# #     m, e = np.frexp(f)
+# #     res = 1 + f
+# #     prod = f*f
+# #     fact = 2
+# #     for i in range(2, deg):
+# #         res += prod/fact
+# #         fact *= i+1
+# #         prod *= f
+# #     return np.ldexp(res, e)*2.**e
+# def exp4(f, deg):
+#     return (1+f/deg)**deg
+# def exp5(f, deg):
 #     # ln2 = fxpt(0.6931471805599453, 32)
 #     ln2 = math.log(2)
 #     z = f % ln2
 #     E = f // ln2
-#     return exp2(z, deg)*2**E
-# def exp7(f, deg):
+#     return exp(z, deg)*2**E
+# # def exp6(f, deg):
+# #     # ln2 = fxpt(0.6931471805599453, 32)
+# #     ln2 = math.log(2)
+# #     z = f % ln2
+# #     E = f // ln2
+# #     return exp2(z, deg)*2**E
+# # def exp7(f, deg):
+# #     # ln2 = fxpt(0.6931471805599453, 32)
+# #     ln2 = math.log(2)
+# #     z = f % ln2
+# #     E = f // ln2
+# #     return exp3(z, deg)*2**E
+# def exp8(f, deg):
 #     # ln2 = fxpt(0.6931471805599453, 32)
 #     ln2 = math.log(2)
 #     z = f % ln2
 #     E = f // ln2
-#     return exp3(z, deg)*2**E
-def exp8(f, deg):
-    # ln2 = fxpt(0.6931471805599453, 32)
-    ln2 = math.log(2)
-    z = f % ln2
-    E = f // ln2
-    return exp4(z, deg)*2**E
-def exp9(f, deg):
-    x = f
-    f = f/2
-    x2 = x*x/9
-    x3 = x*x2/8
-    x4 = x*x3/14
-    x5 = x*x4/30
-    return (1+f+x2+x3+x4+x5)/(1-f+x2-x3+x4-x5)
-def exp10(f, deg):
-    ln2 = math.log(2)
-    z = f % ln2
-    E = f // ln2
-    # print(z, E)
-    return exp9(z, deg)*2**E
-def exp11(f, deg):
-    # ln2 = fxpt(0.6931471805599453, 32)
-    ln2 = math.log(2)
-    z = f % ln2
-    E = f // ln2
-    return pade(z, deg)*2**E
-# def pade(f, deg):
-#     # deg -= 2
-#     if deg == 1:
-#         x = f/2
-#         return (1+x)/(1-x)
-#     elif deg == 2:
-#         x = f
-#         f = f/2
-#         x2 = x*x/12
-#         return (1+f+x2)/(1-f+x2)
-#     elif deg == 3:
-#         x = f
-#         f = f/2
-#         x2 = x*x/10
-#         x3 = x*x2/12
-#         return (1+f+x2+x3)/(1-f+x2-x3)
-#     elif deg == 4:
-#         x = f
-#         f = f/2
-#         x2 = x*x*3/28
-#         x3 = f*x2/12
-#         x4 = f*x3/14
-#         return (1+x+x2+x3+x4)/(1-x+x2-x3+x4)
-#     elif deg == 5:
-#         x = f
-#         f = f/2
-#         x2 = x*x/9
-#         x3 = x*x2/8
-#         x4 = x*x3/14
-#         x5 = x*x4/30
-#         return (1+f+x2+x3+x4+x5)/(1-f+x2-x3+x4-x5)
-#     else:
-#         x = f/2
-#         x2 = x*x/3
-#         x3 = f*x2/12
-#         x4 = f*x3/14
-#         x5 = f*x4/30
-#         x6 = f*x5/42
-#         return (1+x+x2+x3+x4+x5+x6)/(1-x+x2-x3+x4-x5+x6)
+#     return exp4(z, deg)*2**E
+# def exp9(f, deg):
+#     x = f
+#     f = f/2
+#     x2 = x*x/9
+#     x3 = x*x2/8
+#     x4 = x*x3/14
+#     x5 = x*x4/30
+#     return (1+f+x2+x3+x4+x5)/(1-f+x2-x3+x4-x5)
+# def exp10(f, deg):
+#     ln2 = math.log(2)
+#     z = f % ln2
+#     E = f // ln2
+#     # print(z, E)
+#     return exp9(z, deg)*2**E
+# def exp11(f, deg):
+#     # ln2 = fxpt(0.6931471805599453, 32)
+#     ln2 = math.log(2)
+#     z = f % ln2
+#     E = f // ln2
+#     return pade(z, deg)*2**E
+# # def pade(f, deg):
+# #     # deg -= 2
+# #     if deg == 1:
+# #         x = f/2
+# #         return (1+x)/(1-x)
+# #     elif deg == 2:
+# #         x = f
+# #         f = f/2
+# #         x2 = x*x/12
+# #         return (1+f+x2)/(1-f+x2)
+# #     elif deg == 3:
+# #         x = f
+# #         f = f/2
+# #         x2 = x*x/10
+# #         x3 = x*x2/12
+# #         return (1+f+x2+x3)/(1-f+x2-x3)
+# #     elif deg == 4:
+# #         x = f
+# #         f = f/2
+# #         x2 = x*x*3/28
+# #         x3 = f*x2/12
+# #         x4 = f*x3/14
+# #         return (1+x+x2+x3+x4)/(1-x+x2-x3+x4)
+# #     elif deg == 5:
+# #         x = f
+# #         f = f/2
+# #         x2 = x*x/9
+# #         x3 = x*x2/8
+# #         x4 = x*x3/14
+# #         x5 = x*x4/30
+# #         return (1+f+x2+x3+x4+x5)/(1-f+x2-x3+x4-x5)
+# #     else:
+# #         x = f/2
+# #         x2 = x*x/3
+# #         x3 = f*x2/12
+# #         x4 = f*x3/14
+# #         x5 = f*x4/30
+# #         x6 = f*x5/42
+# #         return (1+x+x2+x3+x4+x5+x6)/(1-x+x2-x3+x4-x5+x6)
 
-def fact(n):
-    if n == 0:
-        return 1
-    res = 1
-    while n:
-        res *= n
-        n -= 1
-    return res
-def coef_y(k, n):
-    return fact(n+k)//(fact(n-k)*fact(k)*2**k)
-def bessel(n, x):
-    res = 0
-    for k in range(n+1):
-        res += coef_y(k, n)*x**k
-    return res
-def theta(n, x):
-    res = 0
-    for k in range(n+1):
-        res += coef_y(k, n)*x**(n-k)
-    return res
-def pade(f, deg):
-    return theta(deg, f/2)/theta(deg, -f/2)
-    # global i, poly, num, den, numstr, denstr
-    # f = f/2
-    # num = 1
-    # den = 1
-    # numstr = "1"
-    # denstr = "1"
-    # for i in range(1, deg+1):
-    #     poly = theta(i)
-    #     num += (1/poly)*f**i
-    #     den += (1/poly)*(-f)**i
-    #     numstr += "+{}x^{}".format(2*poly,i)
-    #     print(i, poly, num, den, num/den)
-    # print(numstr)
-    # return num/den
-def padered(f, deg):
-    ln2 = math.log(2)
-    z = f % ln2
-    E = f // ln2
-    return pade(z, deg)*2**E
+# def fact(n):
+#     if n == 0:
+#         return 1
+#     res = 1
+#     while n:
+#         res *= n
+#         n -= 1
+#     return res
+# def coef_y(k, n):
+#     return fact(n+k)//(fact(n-k)*fact(k)*2**k)
+# def bessel(n, x):
+#     res = 0
+#     for k in range(n+1):
+#         res += coef_y(k, n)*x**k
+#     return res
+# def theta(n, x):
+#     res = 0
+#     for k in range(n+1):
+#         res += coef_y(k, n)*x**(n-k)
+#     return res
+# def pade(f, deg):
+#     return theta(deg, f/2)/theta(deg, -f/2)
+#     # global i, poly, num, den, numstr, denstr
+#     # f = f/2
+#     # num = 1
+#     # den = 1
+#     # numstr = "1"
+#     # denstr = "1"
+#     # for i in range(1, deg+1):
+#     #     poly = theta(i)
+#     #     num += (1/poly)*f**i
+#     #     den += (1/poly)*(-f)**i
+#     #     numstr += "+{}x^{}".format(2*poly,i)
+#     #     print(i, poly, num, den, num/den)
+#     # print(numstr)
+#     # return num/den
+# def padered(f, deg):
+#     ln2 = math.log(2)
+#     z = f % ln2
+#     E = f // ln2
+#     return pade(z, deg)*2**E
 
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython import get_ipython
 ipython = get_ipython()
 ipython.run_line_magic("matplotlib", "qt")
-# %matplotlib qt
-x = np.logspace(-6, 1.05, 10**4)
-# x = np.logspace(-6, 2, 10**4)
-x = np.concatenate((-np.flip(x), x))
-real = np.exp(x)
-plot = plt.semilogy
-# for i in range(3, 20):
+# # %matplotlib qt
+# x = np.logspace(-6, 1.05, 10**4)
+# # x = np.logspace(-6, 2, 10**4)
+# x = np.concatenate((-np.flip(x), x))
+# real = np.exp(x)
+# plot = plt.semilogy
+# # for i in range(3, 20):
+# #     plt.figure()
+# #     legend = []
+# #     plot(x, abs(exp(x, i)-real)/real)
+# #     legend.append("DL Taylor")
+# #     # plot(x, abs(exp2(x, i)-real)/real)
+# #     # legend.append("DL + ldexp")
+# #     # plot(x, abs(exp3(x, i)-real)/real)
+# #     # legend.append("DL + ldexp + 2**e")
+# #     # plot(x, abs(exp4(x, i)-real)/real)
+# #     # legend.append("1+x/n")
+# #     plot(x, abs(exp5(x, i)-real)/real)
+# #     legend.append("red+DL")
+# #     # plot(x, abs(exp6(x, i)-real)/real)
+# #     # legend.append("red+DL+ldexp")
+# #     # plot(x, abs(exp7(x, i)-real)/real)
+# #     # legend.append("red+DL+ldexp+2**e")
+# #     plot(x, abs(exp8(x, i)-real)/real)
+# #     legend.append("red+1+x/n")
+# #     plot(x, abs(pade(x, i)-real)/real)
+# #     legend.append("pade")
+# #     # plot(x, abs(exp10(x, i)-real)/real)
+# #     # legend.append("pade5/5+frexp")
+# #     plot(x, abs(exp11(x, i)-real)/real)
+# #     legend.append("red+pade")
+    
+# #     # plot(x, np.exp(x))
+# #     # legend.append("real")
+# #     # plot(x, np.exp(x))
+# #     # legend.append("inf")
+# #     plt.legend(legend)
+# #     plt.title(str(i))
+# #     plt.show()
+# for i in range(1, 10):
 #     plt.figure()
 #     legend = []
-#     plot(x, abs(exp(x, i)-real)/real)
-#     legend.append("DL Taylor")
-#     # plot(x, abs(exp2(x, i)-real)/real)
-#     # legend.append("DL + ldexp")
-#     # plot(x, abs(exp3(x, i)-real)/real)
-#     # legend.append("DL + ldexp + 2**e")
-#     # plot(x, abs(exp4(x, i)-real)/real)
-#     # legend.append("1+x/n")
 #     plot(x, abs(exp5(x, i)-real)/real)
 #     legend.append("red+DL")
-#     # plot(x, abs(exp6(x, i)-real)/real)
-#     # legend.append("red+DL+ldexp")
-#     # plot(x, abs(exp7(x, i)-real)/real)
-#     # legend.append("red+DL+ldexp+2**e")
-#     plot(x, abs(exp8(x, i)-real)/real)
-#     legend.append("red+1+x/n")
-#     plot(x, abs(pade(x, i)-real)/real)
+#     plot(x, abs(pade(x,i)-real)/real)
 #     legend.append("pade")
-#     # plot(x, abs(exp10(x, i)-real)/real)
-#     # legend.append("pade5/5+frexp")
-#     plot(x, abs(exp11(x, i)-real)/real)
-#     legend.append("red+pade")
+#     plot(x, abs(padered(x, i)-real)/real)
+#     legend.append("padered")
     
 #     # plot(x, np.exp(x))
 #     # legend.append("real")
@@ -1450,20 +1544,3 @@ plot = plt.semilogy
 #     plt.legend(legend)
 #     plt.title(str(i))
 #     plt.show()
-for i in range(1, 10):
-    plt.figure()
-    legend = []
-    plot(x, abs(exp5(x, i)-real)/real)
-    legend.append("red+DL")
-    plot(x, abs(pade(x,i)-real)/real)
-    legend.append("pade")
-    plot(x, abs(padered(x, i)-real)/real)
-    legend.append("padered")
-    
-    # plot(x, np.exp(x))
-    # legend.append("real")
-    # plot(x, np.exp(x))
-    # legend.append("inf")
-    plt.legend(legend)
-    plt.title(str(i))
-    plt.show()

@@ -12,6 +12,11 @@ from multiprocessing import Pool
 from struct import pack, unpack
 from collections import Counter
 maxi = Counter()
+import matplotlib.pyplot as plt
+import numpy as np
+from IPython import get_ipython
+ipython = get_ipython()
+ipython.run_line_magic("matplotlib", "qt")
 
 class fxpt:
     def __init__(self, value = 0, frac = 16):
@@ -238,16 +243,18 @@ class fxpt:
         if x <= 0:
             raise ValueError("math domain error")
 
+        ## make x in [1, 2[
         while x < (1 << f.m_frac):
             x <<= 1
             y -= 1 << f.m_frac
+            # print("inf {:08x} {:08x}".format(x, y))
 
         while x >= (2 << f.m_frac):
             x >>= 1
             y += 1 << f.m_frac
-
+            # print("sup {:08x} {:08x}".format(x, y))
         z = x
-
+        # print("{:016x} {:08x} {:08x}".format(z, y, b))
         for i in range(f.m_frac):
             z = (z * z) >> f.m_frac
             if z >= (2 << f.m_frac):
@@ -255,8 +262,18 @@ class fxpt:
                 y += b
             b >>= 1
             # print("{:016x} {:08x} {:08x}".format(z, y, b))
-
         return fxpt.fromRaw(y, 24)
+    
+    EXP2_MIN_ARG = -2**20
+    EXP2_MAX_ARG = 2**20
+    def exp2(self):
+        f = fxpt(self, self.m_frac)
+        z = f.m_fixed
+        b = (1 << f.m_frac) + 1
+        for i in range(f.m_frac):
+            if z >= (2 << f.m_frac):
+                pass
+        
     def log(self, base=2.718281828459045):
         # return self.log2()*0.6931471805599453   ## log2(x)/log2(e)
         return self.log2()/fxpt(base, 24).log2()
@@ -266,7 +283,7 @@ class fxpt:
     EXP_MAX_ARG = +681391
     def exp(self):
         global eint, expint, frac, val, res, f, E
-        precision = 40
+        precision = 48
         if self.m_fixed < fxpt.EXP_MIN_ARG: ## exp(-11.0903473) = 0
             return fxpt(0,precision)
         elif self.m_fixed > fxpt.EXP_MAX_ARG: ## exp(10.3972077)= 32768
@@ -280,54 +297,54 @@ class fxpt:
             frac = self.m_fixed & ((1 << self.m_frac)-1)
         eint = fxpt(2.718281828459045, precision)**expint
         ## with table's method, need precision 48
-        ## with pade's, work with precision 32 and degree 5, degree 4 fails at 456264
+        ## with pade's, work with precision 32 and degree 5, degree 4, prec 64 fails at 456343
         ## with DL's, fails @16 for -18382 with deg 7, fails @32 for 561164 with deg 11, works pres 40 deg 11
         
         ##### Table's method #####
-        # exptable = (1.0000152589054785 ,
-        # 1.000030518043791 ,
-        # 1.0000610370189331 ,
-        # 1.0001220777633837 ,
-        # 1.0002441704297478 ,
-        # 1.0004884004786945 ,
-        # 1.0009770394924165 ,
-        # 1.0019550335910028 ,
-        # 1.0039138893383475 ,
-        # 1.007843097206448 ,
-        # 1.0157477085866857 ,
-        # 1.0317434074991028 ,
-        # 1.0644944589178593 ,
-        # 1.1331484530668263 ,
-        # 1.2840254166877414 ,
-        # 1.6487212707001282 ,
-        # 2.718281828459045 ,
-        # 7.38905609893065 ,
-        # 54.598150033144236 ,
-        # 2980.9579870417283 ,
-        # 8886110.520507872)
-        # res = fxpt(1, precision)
-        # val = frac
-        # # if self.m_fixed < 0:
-        # #     val = -self.m_fixed
-        # # else:
-        # #     val = self.m_fixed
-        # for i, e in enumerate(exptable):
-        #     if val & (1 << i):
-        #         res *= e
+        exptable = (1.0000152589054785 ,
+        1.000030518043791 ,
+        1.0000610370189331 ,
+        1.0001220777633837 ,
+        1.0002441704297478 ,
+        1.0004884004786945 ,
+        1.0009770394924165 ,
+        1.0019550335910028 ,
+        1.0039138893383475 ,
+        1.007843097206448 ,
+        1.0157477085866857 ,
+        1.0317434074991028 ,
+        1.0644944589178593 ,
+        1.1331484530668263 ,
+        1.2840254166877414 ,
+        1.6487212707001282 ,
+        2.718281828459045 ,
+        7.38905609893065 ,
+        54.598150033144236 ,
+        2980.9579870417283 ,
+        8886110.520507872)
+        res = fxpt(1, precision)
+        val = frac
+        # if self.m_fixed < 0:
+        #     val = -self.m_fixed
+        # else:
+        #     val = self.m_fixed
+        for i, e in enumerate(exptable):
+            if val & (1 << i):
+                res *= e
         # # if self.m_fixed < 0:
         # #     return 1/res
         # # else:
         # #     return res
-        # if self.m_fixed < 0:
-        #     return 1/(eint*res)
-        # else:
-        #     return eint*res
+        if self.m_fixed < 0:
+            return 1/(eint*res)
+        else:
+            return eint*res
         ##### Pade's Approximants #####
         # return padered(fxpt(self, 48), 6) ## fails around +621xxx
         # if self.m_fixed < 0:
-        #     return 1/(pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 5)*eint)
+        #     return 1/(pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 4)*eint)
         # else:
-        #     return pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 5)*eint
+        #     return pade(fxpt.fromRaw(frac << (precision-self.m_frac), precision), 4)*eint
         ##### Taylor with reduction #####
         # ln2 = fxpt(0.6931471805599453, 48)
         # f = self % ln2
@@ -336,20 +353,20 @@ class fxpt:
         # f = frac % ln2
         # E = frac // ln2
         # print(f, E)
-        f = fxpt.fromRaw(frac << (precision-self.m_frac), precision)
-        res = 1+f
-        prod = f*f
-        fact = 2
-        for i in range(2, 12):
-            res += prod/fact
-            fact *= i+1
-            prod *= f
-            # print(i, prod, fact, res)
-        # return res*2**E.toInt()
-        if self.m_fixed < 0:
-            return 1/(res*eint)
-        else:
-            return res*eint
+        # f = fxpt.fromRaw(frac << (precision-self.m_frac), precision)
+        # res = 1+f
+        # prod = f*f
+        # fact = 2
+        # for i in range(2, 12):
+        #     res += prod/fact
+        #     fact *= i+1
+        #     prod *= f
+        #     # print(i, prod, fact, res)
+        # # return res*2**E.toInt()
+        # if self.m_fixed < 0:
+        #     return 1/(res*eint)
+        # else:
+        #     return res*eint
     
     def __pow__(self, other):
         if isinstance(other, int):
@@ -359,8 +376,6 @@ class fxpt:
                 other -= 1
             return res
         else:
-            # val = fxpt(other, self.m_frac)
-            
             raise NotImplementedError
     # def __rpow__(self, other[, modulo]):
         
@@ -437,6 +452,37 @@ def cbrt_glibc(f):
         return -ym*2**(e//3)
     else:
         return ym*2**(e//3)
+def exp_glibc(f):
+    global z, kd, ki, r, t, s, z, r2, y
+    if isinstance(f, np.ndarray):
+        return np.array([exp_glibc(i) for i in f])
+    N = 32
+    exp2f_data_tab = (0x3ff0000000000000, 0x3fefd9b0d3158574, 0x3fefb5586cf9890f, 0x3fef9301d0125b51,
+0x3fef72b83c7d517b, 0x3fef54873168b9aa, 0x3fef387a6e756238, 0x3fef1e9df51fdee1,
+0x3fef06fe0a31b715, 0x3feef1a7373aa9cb, 0x3feedea64c123422, 0x3feece086061892d,
+0x3feebfdad5362a27, 0x3feeb42b569d4f82, 0x3feeab07dd485429, 0x3feea47eb03a5585,
+0x3feea09e667f3bcd, 0x3fee9f75e8ec5f74, 0x3feea11473eb0187, 0x3feea589994cce13,
+0x3feeace5422aa0db, 0x3feeb737b0cdc5e5, 0x3feec49182a3f090, 0x3feed503b23e255d,
+0x3feee89f995ad3ad, 0x3feeff76f2fb5e47, 0x3fef199bdd85529c, 0x3fef3720dcef9069,
+0x3fef5818dcfba487, 0x3fef7c97337b9b5f, 0x3fefa4afa2a490da, 0x3fefd0765b6e4540)
+    exp2f_data_poly_scaled = (float.fromhex('0x1.c6af84b912394p-5')/N/N/N, 
+                              float.fromhex('0x1.ebfce50fac4f3p-3')/N/N,
+                              float.fromhex('0x1.62e42ff0c52d6p-1')/N)
+    # if isinstance(f, float):
+    InvLn2N = float.fromhex('0x1.71547652b82fep+0') * N
+    z = InvLn2N * f
+    kd = int(z)
+    ki = int(z)
+    r = z-kd
+    t = exp2f_data_tab[ki % N]
+    t += ki << 47
+    s = unpack('@d', pack('@q', t))[0]
+    z = exp2f_data_poly_scaled[0] * r + exp2f_data_poly_scaled[1]
+    r2 = r*r
+    y = exp2f_data_poly_scaled[2] * r + 1
+    y = z * r2 + y
+    y *= s
+    return y
 
 STEP_I = 256
 STEP_J = 256
@@ -1242,6 +1288,23 @@ def testexp():
         assert abs(math.exp(fi.toFloat()) - fxpt.exp(fi).toFloat()) < 1/32768, "{}".format(i)
     end = process_time_ns()
     return (end-start)/1e9
+def testexp2():
+    global fi, i
+    FUNC = "testexp2"
+    print(FUNC)
+    prev = 0
+    localstep = (MAX-MIN)//(fxpt.EXP2_MAX_ARG-fxpt.EXP2_MIN_ARG)
+    start = process_time_ns()
+    for i in range(fxpt.EXP2_MIN_ARG-1, fxpt.EXP2_MAX_ARG+1, STEP//localstep if STEP > localstep else 1):
+    # for i in range(fxpt.EXP_MIN_ARG-1, fxpt.EXP_MAX_ARG+1, 1):
+        if DEBUG and int(100*(i-fxpt.EXP_MIN_ARG+1)/(fxpt.EXP_MAX_ARG-fxpt.EXP_MIN_ARG)) != prev:
+            prev += 1
+            print("{} {}%".format(FUNC, prev))
+        fi = fxpt.fromRaw(i)
+        # assert math.exp(fi.toFloat()) == fi.exp(), "{}".format(i)
+        assert abs(math.exp2(fi.toFloat()) - fxpt.exp2(fi).toFloat()) < 1/32768, "{}".format(i)
+    end = process_time_ns()
+    return (end-start)/1e9
 
 a = fxpt(1)
 print(a)
@@ -1319,6 +1382,7 @@ else:
     # testlog(3)
     # testlog10()
     testexp()
+    testexp2()
     
 
 # def exp(f, deg):
@@ -1483,17 +1547,13 @@ else:
 #     E = f // ln2
 #     return pade(z, deg)*2**E
 
-import matplotlib.pyplot as plt
-import numpy as np
-from IPython import get_ipython
-ipython = get_ipython()
-ipython.run_line_magic("matplotlib", "qt")
+
 # # %matplotlib qt
-# x = np.logspace(-6, 1.05, 10**4)
-# # x = np.logspace(-6, 2, 10**4)
-# x = np.concatenate((-np.flip(x), x))
-# real = np.exp(x)
-# plot = plt.semilogy
+x = np.logspace(-6, 1.05, 10**4, dtype=np.float32)
+x = np.logspace(-6, 2, 10**4, dtype=np.float32)
+x = np.concatenate((-np.flip(x), x))
+real = np.exp(x)
+plot = plt.semilogy
 # # for i in range(3, 20):
 # #     plt.figure()
 # #     legend = []
@@ -1530,7 +1590,7 @@ ipython.run_line_magic("matplotlib", "qt")
 # for i in range(1, 10):
 #     plt.figure()
 #     legend = []
-#     plot(x, abs(exp5(x, i)-real)/real)
+#     plot(x, abs(exp_glibc(x)-real)/real)
 #     legend.append("red+DL")
 #     plot(x, abs(pade(x,i)-real)/real)
 #     legend.append("pade")
